@@ -1,0 +1,131 @@
+# std
+from time import perf_counter
+# interno
+import bot
+from bot.tipagem import Coordenada
+# externo
+import numpy as np
+from PIL import Image
+
+
+def capturar_imagem (regiao: Coordenada = None, cinza=False) -> Image.Image:
+    """Realizar uma captura de tela na `regiao` informada da tela
+    - `regiao` vazia para capturar a tela inteira
+    - `cinza` True para transformar a imagem para o formato grayscale"""
+    imagem = bot.pyautogui.screenshot(region=tuple(regiao) if regiao else None)
+    return imagem.convert("L") if cinza else imagem
+
+
+def procurar_imagem (imagem: bot.tipagem.caminho | Image.Image, confianca: bot.tipagem.PORCENTAGENS = "0.9", segundosProcura=0, regiao: Coordenada = None, cinza=False) -> Coordenada | None:
+    """Procurar a `imagem` na tela, com `confianca`% de confiança na procura, durante `segundosProcura` segundos e na `regiao` da tela informada
+    - `imagem` pode ser o camnho até o arquivo ou `Image` do módulo `pillow`
+    - `regiao` vazia para procurar na tela inteira
+    - `segundosProcura` vazio para procurar 1 vez apenas
+    - `cinza` True para comparar ambas imagem como grayscale"""
+    box = bot.pyautogui.locateOnScreen(
+        image=imagem, 
+        minSearchTime=segundosProcura,
+        confidence=confianca,
+        region=tuple(regiao) if regiao else None,
+        grayscale=cinza
+    )
+    return Coordenada(box.left, box.top, box.width, box.height) if box else None
+
+
+def procurar_imagens (imagem: bot.tipagem.caminho | Image.Image, confianca: bot.tipagem.PORCENTAGENS = "0.9", regiao: Coordenada = None, cinza=False) -> list[Coordenada] | None:
+    """Procurar todas as vezes que a `imagem` aparece na tela, com `confianca`% de confiança na procura e na `regiao` da tela informada
+    - `imagem` pode ser o camnho até o arquivo ou `Image` do módulo `pillow`
+    - `regiao` vazia para procurar na tela inteira
+    - `cinza` True para comparar ambas imagem como grayscale"""
+    boxes = bot.pyautogui.locateAllOnScreen(
+        image=imagem, 
+        confidence=confianca,
+        region=tuple(regiao) if regiao else None,
+        grayscale=cinza
+    )
+    coordenadas = [Coordenada(box.left, box.top, box.width, box.height) for box in boxes]
+    return coordenadas if len(coordenadas) >= 1 else None
+
+
+def cores_imagem (imagem: bot.tipagem.caminho | Image.Image, qtd: int = None) -> list[bot.tipagem.FrequenciaCor]:
+    """Obter as cores RGB e frequencia de cada pixel da `imagem`
+    - `imagem` pode ser o camnho até o arquivo ou `Image` do módulo `pillow`
+    - `qtd` quantidade que será retornada dos mais frequentes"""
+    imagem = Image.open(imagem) if isinstance(imagem, str) else imagem
+    itens: list[tuple[int, tuple[int, int, int]]] = imagem.getcolors()
+    itens.sort(key=lambda item: item[0], reverse=True) # ordernar pelos mais frequentes
+
+    cores: list[bot.tipagem.FrequenciaCor] = []
+    if qtd != None and qtd <= 0: return cores
+
+    for frequencia, cor in itens:
+        cores.append(bot.tipagem.FrequenciaCor(frequencia, cor))
+        if len(cores) == qtd: break
+    return cores
+
+
+class LeitorOCR:
+    """Classe de abstração do EasyOCR"""
+    
+    def __init__ (self, confianca: bot.tipagem.PORCENTAGENS = "0.4"):
+        """Inicia o leitor OCR
+        - `confianca` porcentagem mínima de confiança no texto extraído (entre 0.0 e 1.0)"""
+        from easyocr import Reader
+        self.__reader = Reader(["en"])
+        
+        confianca: float = float(confianca)
+        self.__confianca = max(0.0, min(1.0, confianca))
+    
+    def ler_tela (self, regiao: Coordenada = None) -> list[bot.tipagem.TextoCoordenada]:
+        """Extrair texto e coordenadas da tela na posição `coordenada` 
+        - `regiao` vazia para ler a tela inteira"""
+        inicio = perf_counter()
+        bot.logger.debug("Iniciado o processo de extração de textos e coordenadas da tela")
+        
+        if not regiao: regiao = Coordenada(0, 0, *bot.pyautogui.size())
+        imagem = capturar_imagem(regiao, True)
+        extracoes = self.__extrair(imagem)
+
+        # Corrigir offset com a regiao informada
+        for extracao in extracoes:
+            extracao.coordenada.x += regiao.x
+            extracao.coordenada.y += regiao.y
+
+        bot.logger.debug(f"Extração realizada em {perf_counter() - inicio:.2f} segundos")
+        return extracoes
+
+    def ler_imagem (self, imagem: bot.tipagem.caminho | Image.Image) -> list[bot.tipagem.TextoCoordenada]:
+        """Extrair texto e coordenadas de uma imagem
+        - `imagem` pode ser o camnho até o arquivo ou `Image` do módulo `pillow`"""
+        inicio = perf_counter()
+        bot.logger.debug("Iniciado o processo de extração de textos e coordenadas de uma imagem")
+        
+        imagem: Image.Image = Image.open(imagem) if isinstance(imagem, str) else imagem
+        extracoes = self.__extrair(imagem)
+
+        bot.logger.debug(f"Extração realizada em {perf_counter() - inicio:.2f} segundos")
+        return extracoes
+
+    def __extrair (self, imagem: Image.Image) -> list[bot.tipagem.TextoCoordenada]:
+        """Receber a imagem e extrair os dados"""
+        extracoes: list[bot.tipagem.TextoCoordenada] = []
+        imagem: np.ndarray = np.asarray(imagem)
+        dados: list[tuple[ list[list[int]], str, float ]] = self.__reader.readtext(imagem)
+
+        for box, texto, confianca in dados:
+            if confianca < self.__confianca: continue
+            x, y = box[0]
+            comprimento, altura = box[1][0] - x, box[2][1] - y
+            coordenada = Coordenada(int(x), int(y), int(comprimento), int(altura))
+            extracoes.append(bot.tipagem.TextoCoordenada(texto, coordenada))
+
+        return extracoes
+
+
+__all__ = [
+    "LeitorOCR",
+    "cores_imagem",
+    "capturar_imagem",
+    "procurar_imagem",
+    "procurar_imagens"
+]
