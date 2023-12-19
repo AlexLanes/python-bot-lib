@@ -26,7 +26,7 @@ def validar_schema (item, schema: dict) -> tuple[bool, str | None]:
         validate(item, schema)
         return (True, None)
     except Exception as erro:
-        return (False, erro.message if hasattr(erro, "message") else "Erro na validação do json_schema" )
+        return (False, erro.message if hasattr(erro, "message") else "Erro na validação do json_schema")
 
 
 __all__ = [

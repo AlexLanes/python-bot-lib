@@ -24,8 +24,8 @@ def digitar (texto: str, mascara: str = None, timeout=10000) -> str | None:
     - Retorna o texto digitado ou `None` caso timeout ou Cancelar
     - `mascara` char caso queira mascarar o que está sendo digitado
     - `timeout` tempo em milissegundos para a caixa desaparecer caso não seja terminado"""
-    mensagem = pymsgbox.password(texto, "Digitar", mask=mascara[0], timeout=timeout) if mascara != None else\
-               pymsgbox.prompt(texto, "Digitar", timeout=timeout)
+    mensagem = pymsgbox.prompt(texto, "Digitar", timeout=timeout) if mascara == None else\
+               pymsgbox.password(texto, "Digitar", mask=mascara[0], timeout=timeout)
     return mensagem if mensagem not in (None, "Timeout") else None
 
 
