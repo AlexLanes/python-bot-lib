@@ -5,6 +5,7 @@ import bot
 # externo
 from selenium.webdriver import ActionChains
 from selenium.webdriver.remote.webelement import WebElement
+from selenium.webdriver import Ie as WebDriverIe, IeOptions
 from selenium.webdriver import Edge as WebDriverEdge, EdgeOptions
 from selenium.webdriver import Chrome as WebDriverChrome, ChromeOptions
 
@@ -12,7 +13,7 @@ from selenium.webdriver import Chrome as WebDriverChrome, ChromeOptions
 class Navegador (ABC):
     """Classe do navegador abstrata que deve ser herdada"""
 
-    driver: WebDriverEdge | WebDriverChrome
+    driver: WebDriverEdge | WebDriverChrome | WebDriverIe
     """Driver do `Selenium`"""
     
     def __del__ (self):
@@ -74,6 +75,9 @@ class Navegador (ABC):
 
 class Edge (Navegador):
     """Navegador Edge"""
+    
+    driver: WebDriverEdge
+    """Driver Edge"""
 
     def __init__ (self, timeout=30.0):
         """Inicializar o navegador Edge
@@ -95,7 +99,10 @@ class Edge (Navegador):
 
 class Chrome (Navegador):
     """Navegador Edge"""
-
+    
+    driver: WebDriverChrome
+    """Driver Chrome"""
+    
     def __init__ (self, timeout=30.0):
         """Inicializar o navegador Chrome
         - `timeout` utilizado na espera do `implicitly_wait`"""
@@ -114,7 +121,30 @@ class Chrome (Navegador):
         bot.logger.informar("Navegador Chrome iniciado")
 
 
+# TODO - O pesquisar não está retornando e o código pausa
+# Checar se colocar o Driver no PATH faz diferença
+class Explorer (Navegador):
+    """Navegador Internet Explorer"""
+
+    driver: WebDriverIe
+    """Driver Internet Explorer"""
+
+    def __init__ (self, timeout=30.0):
+        """Inicializar o navegador Edge no modo Internet Explorer
+        - `timeout` utilizado na espera do `implicitly_wait`"""
+        options = IeOptions()
+        options.attach_to_edge_chrome = True
+        options.add_argument("--ignore-certificate-errors")
+        
+        self.driver = WebDriverIe(options)
+        self.driver.maximize_window()
+        self.driver.implicitly_wait(timeout)
+
+        bot.logger.informar("Navegador Edge, modo Internet Explorer, iniciado")
+
+
 __all__ = [
     "Edge",
-    "Chrome"
+    "Chrome",
+    "Explorer"
 ]
