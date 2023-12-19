@@ -65,6 +65,16 @@ class Coordenada:
         yield self.y
         yield self.largura
         yield self.altura
+
+    def __len__(self):
+        return 4
+    
+    def __contains__ (self, c) -> bool:
+        """Testar se o ponto central da coordenada está dentro da outra
+        - `coordenada in coordenada2`"""
+        if not isinstance(c, Coordenada): return False
+        x, y = self.transformar()
+        return x in range(c.x, c.x + c.largura + 1) and y in range(c.y, c.y + c.altura + 1)
     
     def transformar (self, xOffset=0.5, yOffset=0.5) -> tuple[int, int]:
         """Transformar as cordenadas para a posição (X, Y) de acordo com a porcentagem `xOffset` e `yOffset`
@@ -75,9 +85,6 @@ class Coordenada:
         xOffset, yOffset = max(0.0, min(1.0, xOffset)), max(0.0, min(1.0, yOffset))
         return (self.x + int(self.largura * xOffset), 
                 self.y + int(self.altura * yOffset))
-
-    def __len__(self):
-        return 4
 
 
 @dataclass
