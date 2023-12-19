@@ -56,20 +56,20 @@ def procurar_imagens (imagem: bot.tipagem.caminho | Image.Image, confianca: bot.
     return coordenadas
 
 
-def cores_imagem (imagem: bot.tipagem.caminho | Image.Image, qtd: int = None) -> list[bot.tipagem.FrequenciaCor]:
+def cores_imagem (imagem: bot.tipagem.caminho | Image.Image, limite: int = None) -> list[bot.tipagem.FrequenciaCor]:
     """Obter as cores RGB e frequencia de cada pixel da `imagem`
     - `imagem` pode ser o camnho até o arquivo ou `Image` do módulo `pillow`
-    - `qtd` quantidade que será retornada dos mais frequentes"""
+    - `limite` quantidade que será retornada dos mais frequentes"""
     imagem = Image.open(imagem) if isinstance(imagem, str) else imagem
     itens: list[tuple[int, tuple[int, int, int]]] = imagem.getcolors()
     itens.sort(key=lambda item: item[0], reverse=True) # ordernar pelos mais frequentes
 
     cores: list[bot.tipagem.FrequenciaCor] = []
-    if qtd != None and qtd <= 0: return cores
+    if limite != None and limite <= 0: return cores
 
     for frequencia, cor in itens:
         cores.append(bot.tipagem.FrequenciaCor(frequencia, cor))
-        if len(cores) == qtd: break
+        if len(cores) == limite: break
     return cores
 
 

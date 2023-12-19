@@ -2,28 +2,30 @@
 import bot
 from bot.tipagem import Coordenada
 # externo
-from pynput.mouse import Controller
+from pyscreeze import pixel
+from pynput.mouse import Controller, Button
 
 
 mouse = Controller()
 
 
-def obter_x_y (coordenada: tuple[int, int] | Coordenada) -> tuple[int, int] | tuple[None, None]:
-    """Obter coordenada (x, y) do item recebido"""
-    if isinstance(coordenada, Coordenada): return coordenada.transformar()
-    if isinstance(coordenada, tuple): return coordenada
-    return (None, None)
-
-
 def posicao_mouse () -> tuple[int, int]:
     """Obter a posição (X, Y) do mouse"""
-    return tuple(bot.pyautogui.position())
+    return mouse.position
+
+
+def obter_x_y (coordenada: tuple[int, int] | Coordenada | None) -> tuple[int, int]:
+    """Obter posicao (x, y) do item recebido
+    - `Default` posicao_mouse()"""
+    c = coordenada # apelido
+    if isinstance(c, Coordenada): return c.transformar() # centro da coordenada
+    if isinstance(c, tuple) and len(c) >= 2: return (c[0], c[1])
+    return posicao_mouse()
 
 
 def mover_mouse (coordenada: tuple[int, int] | Coordenada) -> None:
     """Mover o mouse até as cordenadas"""
-    x, y = obter_x_y(coordenada)
-    bot.pyautogui.moveTo(x, y)
+    mouse.position = obter_x_y(coordenada)
 
 
 def clicar_mouse (coordenada: Coordenada | tuple[int, int] = None, botao: bot.tipagem.BOTOES_MOUSE = "left", quantidade=1) -> None:
@@ -31,8 +33,9 @@ def clicar_mouse (coordenada: Coordenada | tuple[int, int] = None, botao: bot.ti
     - Default `Coordenada` posição atual do mouse
     - Default `botao` botão esquerdo do mouse
     - Default `quantidade` 1"""
-    x, y = obter_x_y(coordenada)
-    bot.pyautogui.click(x, y, quantidade, 0.1, botao)
+    if coordenada: mover_mouse(coordenada) # mover mouse se requisitado
+    botao: int = Button.right if botao == "right" else Button.middle if botao == "middle" else Button.left # Enum do botão
+    mouse.click(botao, max(1, quantidade)) # clicar
 
 
 def scroll_vertical (quantidade: int, direcao: bot.tipagem.DIRECOES_SCROLL = "baixo") -> None:
@@ -42,7 +45,7 @@ def scroll_vertical (quantidade: int, direcao: bot.tipagem.DIRECOES_SCROLL = "ba
 
 def rgb_mouse () -> bot.tipagem.FrequenciaCor:
     """Obter o RGB da coordenada atual do mouse"""
-    rgb = bot.pyautogui.pixel(*bot.pyautogui.position())
+    rgb = pixel(*posicao_mouse())
     return bot.tipagem.FrequenciaCor(1, rgb)
 
 

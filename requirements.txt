@@ -1,20 +1,29 @@
+PyAutoGUI == 0.9.54
+
+# bot.teclado e bot.mouse
+pynput    == 1.7.6
+pyperclip == 1.8.2
+
+# bot.database
 pandas     == 2.0.3
 xlsxwriter == 3.1.6
 
-numpy       == 1.25.0
-pynput      == 1.7.6
-pillow      == 9.5.0
-PyMsgBox    == 1.0.9
-pyperclip   == 1.8.2
-PyAutoGUI   == 0.9.54
+# bot.mensagem
+PyMsgBox  == 1.0.9
+
+# bot.windows
 pywinauto   == 0.6.8
 PyGetWindow == 0.0.9
 
-easyocr       == 1.7.1
-PyScreeze     == 0.1.30
-opencv-python == 4.8.1.78
+# bot.imagem
+numpy     == 1.25.0
+pillow    == 9.5.0
+easyocr   == 1.7.1
+PyScreeze == 0.1.30
 
+# bot.navegador
 selenium == 4.16.0
 
+# bot.rest
 httpx      == 0.25.2
 jsonschema == 4.20.0
