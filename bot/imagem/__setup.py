@@ -26,7 +26,7 @@ def procurar_imagem (imagem: bot.tipagem.caminho | Image.Image, confianca: bot.t
     - `regiao` especifica uma parte da tela
     - `segundos` tempo de procuraa pela imagem
     - `cinza` compara ambas imagem como grayscale"""
-    box = bot.pyautogui.locateOnScreen(
+    box = pyscreeze.locateOnScreen(
         image=imagem, 
         minSearchTime=segundos,
         confidence=confianca,
