@@ -41,14 +41,19 @@ def procurar_imagens (imagem: bot.tipagem.caminho | Image.Image, confianca: bot.
     - `imagem` caminho até o arquivo ou `Image` do `pillow`
     - `regiao` especifica uma parte da tela
     - `cinza` compara ambas imagem como grayscale"""
-    boxes = bot.pyautogui.locateAllOnScreen(
-        image=imagem, 
-        confidence=confianca,
-        region=tuple(regiao) if regiao else None,
-        grayscale=cinza
-    )
-    coordenadas = [Coordenada(box.left, box.top, box.width, box.height) for box in boxes]
-    return coordenadas if len(coordenadas) >= 1 else None
+    boxes = list(pyscreeze.locateAllOnScreen(imagem, 
+                                             grayscale=cinza,
+                                             confidence=confianca,
+                                             region=tuple(regiao) if regiao else None))
+    if not boxes: return None # não encontrou
+
+    coordenadas: list[Coordenada] = []
+    for box in boxes:
+        coordenada = Coordenada(box.left, box.top, box.width, box.height) # transformar para Coordenada
+        if all(coordenada not in c for c in coordenadas): # filtrar duplicações
+            coordenadas.append(coordenada) # adicionar
+
+    return coordenadas
 
 
 def cores_imagem (imagem: bot.tipagem.caminho | Image.Image, qtd: int = None) -> list[bot.tipagem.FrequenciaCor]:
