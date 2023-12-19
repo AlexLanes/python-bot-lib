@@ -60,7 +60,7 @@ class Coordenada:
     altura: int
 
     def __iter__ (self):
-        """Utilizado com o tuple()"""
+        """Utilizado com o `tuple(coordenada)` e `x, y, largura, altura = coordenada`"""
         yield self.x
         yield self.y
         yield self.largura

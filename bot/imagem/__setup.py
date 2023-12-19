@@ -8,23 +8,23 @@ import numpy as np
 from PIL import Image
 
 
-def capturar_imagem (regiao: Coordenada = None, cinza=False) -> Image.Image:
-    """Realizar uma captura de tela na `regiao` informada da tela
-    - `regiao` vazia para capturar a tela inteira
-    - `cinza` True para transformar a imagem para o formato grayscale"""
+def capturar_tela (regiao: Coordenada = None, cinza=False) -> Image.Image:
+    """Realizar uma captura de tela na `regiao` informada
+    - `regiao` especifica uma parte da tela
+    - `cinza` transforma a imagem para o formato grayscale"""
     imagem = bot.pyautogui.screenshot(region=tuple(regiao) if regiao else None)
     return imagem.convert("L") if cinza else imagem
 
 
-def procurar_imagem (imagem: bot.tipagem.caminho | Image.Image, confianca: bot.tipagem.PORCENTAGENS = "0.9", segundosProcura=0, regiao: Coordenada = None, cinza=False) -> Coordenada | None:
-    """Procurar a `imagem` na tela, com `confianca`% de confiança na procura, durante `segundosProcura` segundos e na `regiao` da tela informada
-    - `imagem` pode ser o camnho até o arquivo ou `Image` do módulo `pillow`
-    - `regiao` vazia para procurar na tela inteira
-    - `segundosProcura` vazio para procurar 1 vez apenas
-    - `cinza` True para comparar ambas imagem como grayscale"""
+def procurar_imagem (imagem: bot.tipagem.caminho | Image.Image, confianca: bot.tipagem.PORCENTAGENS = "0.9", segundos=0, regiao: Coordenada = None, cinza=False) -> Coordenada | None:
+    """Procurar a `imagem` na tela, com `confianca`% de confiança na procura e na `regiao` da tela informada
+    - `imagem` caminho até o arquivo ou `Image` do `pillow`
+    - `regiao` especifica uma parte da tela
+    - `segundos` tempo de procuraa pela imagem
+    - `cinza` compara ambas imagem como grayscale"""
     box = bot.pyautogui.locateOnScreen(
         image=imagem, 
-        minSearchTime=segundosProcura,
+        minSearchTime=segundos,
         confidence=confianca,
         region=tuple(regiao) if regiao else None,
         grayscale=cinza
@@ -34,9 +34,9 @@ def procurar_imagem (imagem: bot.tipagem.caminho | Image.Image, confianca: bot.t
 
 def procurar_imagens (imagem: bot.tipagem.caminho | Image.Image, confianca: bot.tipagem.PORCENTAGENS = "0.9", regiao: Coordenada = None, cinza=False) -> list[Coordenada] | None:
     """Procurar todas as vezes que a `imagem` aparece na tela, com `confianca`% de confiança na procura e na `regiao` da tela informada
-    - `imagem` pode ser o camnho até o arquivo ou `Image` do módulo `pillow`
-    - `regiao` vazia para procurar na tela inteira
-    - `cinza` True para comparar ambas imagem como grayscale"""
+    - `imagem` caminho até o arquivo ou `Image` do `pillow`
+    - `regiao` especifica uma parte da tela
+    - `cinza` compara ambas imagem como grayscale"""
     boxes = bot.pyautogui.locateAllOnScreen(
         image=imagem, 
         confidence=confianca,
@@ -83,7 +83,7 @@ class LeitorOCR:
         bot.logger.debug("Iniciado o processo de extração de textos e coordenadas da tela")
         
         if not regiao: regiao = Coordenada(0, 0, *bot.pyautogui.size())
-        imagem = capturar_imagem(regiao, True)
+        imagem = capturar_tela(regiao, True)
         extracoes = self.__extrair(imagem)
 
         # Corrigir offset com a regiao informada
@@ -125,7 +125,7 @@ class LeitorOCR:
 __all__ = [
     "LeitorOCR",
     "cores_imagem",
-    "capturar_imagem",
+    "capturar_tela",
     "procurar_imagem",
     "procurar_imagens"
 ]
