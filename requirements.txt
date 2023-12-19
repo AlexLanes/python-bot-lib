@@ -10,7 +10,9 @@ PyAutoGUI   == 0.9.54
 pywinauto   == 0.6.8
 PyGetWindow == 0.0.9
 
-easyocr == 1.7.1
+easyocr       == 1.7.1
+PyScreeze     == 0.1.30
+opencv-python == 4.8.1.78
 
 selenium == 4.16.0
 

@@ -4,15 +4,19 @@ from time import perf_counter
 import bot
 from bot.tipagem import Coordenada
 # externo
+import pyscreeze
 import numpy as np
 from PIL import Image
 
 
+pyscreeze.USE_IMAGE_NOT_FOUND_EXCEPTION = False
+
+
 def capturar_tela (regiao: Coordenada = None, cinza=False) -> Image.Image:
-    """Realizar uma captura de tela na `regiao` informada
+    """Realizar uma captura de tela
     - `regiao` especifica uma parte da tela
     - `cinza` transforma a imagem para o formato grayscale"""
-    imagem = bot.pyautogui.screenshot(region=tuple(regiao) if regiao else None)
+    imagem = pyscreeze.screenshot(region=tuple(regiao) if regiao else None)
     return imagem.convert("L") if cinza else imagem
 
 
