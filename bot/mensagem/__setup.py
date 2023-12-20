@@ -1,3 +1,5 @@
+# interno
+from bot.tipagem import char
 # externo
 import pymsgbox
 
@@ -19,7 +21,7 @@ def confirmar (texto: str, botaoConfirmar="Confirmar", botaoCancelar="Cancelar",
     return botao == botaoConfirmar
 
 
-def digitar (texto: str, mascara: str = None, timeout=10000) -> str | None:
+def digitar (texto: str, mascara: char = None, timeout=10000) -> str | None:
     """Mostrar caixa de mensagem para ser digitado um valor
     - Retorna o texto digitado ou `None` caso timeout ou Cancelar
     - `mascara` char caso queira mascarar o que está sendo digitado
