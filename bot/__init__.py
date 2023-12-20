@@ -15,9 +15,3 @@ import bot.database as database
 import bot.mensagem as mensagem
 import bot.navegador as navegador
 import bot.configfile as configfile
-# externo
-import pyautogui
-
-
-pyautogui.PAUSE = 0.1
-pyautogui.FAILSAFE = True

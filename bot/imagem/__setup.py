@@ -91,14 +91,13 @@ class LeitorOCR:
         inicio = perf_counter()
         bot.logger.debug("Iniciado o processo de extração de textos e coordenadas da tela")
         
-        if not regiao: regiao = Coordenada(0, 0, *bot.pyautogui.size())
         imagem = capturar_tela(regiao, True)
         extracoes = self.__extrair(imagem)
 
-        # Corrigir offset com a regiao informada
+        # corrigir offset com a regiao informada
         for extracao in extracoes:
-            extracao.coordenada.x += regiao.x
-            extracao.coordenada.y += regiao.y
+            extracao.coordenada.x += regiao.x if regiao else 0
+            extracao.coordenada.y += regiao.y if regiao else 0
 
         bot.logger.debug(f"Extração realizada em {perf_counter() - inicio:.2f} segundos")
         return extracoes
