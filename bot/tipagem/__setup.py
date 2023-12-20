@@ -149,6 +149,8 @@ class ResultadoSQL:
 @dataclass
 class Email:
     """Classe para armazenar informações extraídas de Email"""
+    uid: int
+    """id do e-mail"""
     remetente: email
     """Remetente que enviou o e-mail"""
     destinatarios: list[email]

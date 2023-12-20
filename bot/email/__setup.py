@@ -6,6 +6,7 @@ from email.message import Message
 from re import search as re_search
 from email import message_from_bytes
 from email.mime.text import MIMEText
+from email.header import decode_header
 from email.utils import parsedate_to_datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
@@ -65,6 +66,13 @@ def extrair_email (email: str) -> bot.tipagem.email:
     return resultado.group()
 
 
+def extrair_assunto (assunto: str) -> str:
+    """Extrair assunto do e-mail e realizar o decode quando necessário
+    - o subject pode vir em formatos não convencionais como `=?utf-8?B?Q29tbyBvIEhvbG1lcyByZWNlYmUgb3Mgbm92b3MgdXN1w6FyaW9z?=`"""
+    decoded = [mensagem.decode(charset) if charset else mensagem for (mensagem, charset) in decode_header(assunto)]
+    return " ".join(decoded)
+
+
 def extrair_datetime (datetime: str | None) -> DateTime:
     """Extrair o datetime do e-mail e realizar o parse para o `DateTime` BRT
     - Retorna o DateTime.now() BRT caso seja None ou ocorra algum erro"""
@@ -103,7 +111,7 @@ def obter (limite: int | slice = None, query="ALL", visualizar=False) -> Generat
         uids = list(reversed(uids))[limite] # inverter e aplicar o slice nos ids
 
         for uid in uids:
-            email = bot.tipagem.Email("", [], "", None, None, None, []) # armazenará as informações extraídas
+            email = bot.tipagem.Email(int(uid), "", [], "", None, None, None, []) # armazenará as informações extraídas
             mensagem: bytes = imap.fetch(uid, '(RFC822)')[1][0][1] # bytes da mensagem
             mensagem: Message = message_from_bytes(mensagem) # parser email
 
@@ -113,7 +121,7 @@ def obter (limite: int | slice = None, query="ALL", visualizar=False) -> Generat
             # extrair headers desejados
             email.remetente = extrair_email(mensagem.get("From", ""))
             email.destinatarios = [extrair_email(email) for email in mensagem.get("To", "").split(",")]
-            email.assunto = mensagem.get("Subject", "")
+            email.assunto = extrair_assunto(mensagem.get("Subject", ""))
             email.data = extrair_datetime(mensagem.get("Date"))
 
             # extrair o conteúdo e possíveis anexos
