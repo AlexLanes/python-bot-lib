@@ -22,14 +22,14 @@ def has_options (secao: str, opcoes: list[str]) -> bool:
     return all(config.has_option(secao, opcao) for opcao in opcoes)
 
 
-def obter_opcoes (secao: str, opcoes: list[str]) -> tuple:
+def obter_opcoes (secao: str, opcoes: list[str]) -> tuple[str, ...]:
     """Obter `opções` de uma `seção` do configfile
     - Versão do `get` que aceita uma lista de `opcoes`
     - `AssertionError` caso a `secao` ou alguma `opcao` não exista
     - `tuple` de retorno terá os valores na mesma ordem que as `opcoes`"""
     assert has_section(secao), f"Seção do configfile '{ secao }' não foi configurada"
     assert has_options(secao, opcoes), f"Variáveis do configfile { str(opcoes) } não foram configuradas para a seção '{ secao }'"
-    return tuple(get(secao, opcao) for opcao in opcoes)
+    return tuple(str(get(secao, opcao)) for opcao in opcoes)
 
 
 __all__ = [
