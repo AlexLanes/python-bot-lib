@@ -7,7 +7,7 @@ import pymsgbox
 pymsgbox.CANCEL_TEXT = "Cancelar"
 
 
-def alertar (texto: str, timeout=10000):
+def alertar (texto: str, timeout=10000) -> None:
     """Mostrar caixa de mensagem de alerta informando o `texto`
     - `timeout` tempo em milissegundos para a caixa desaparecer caso não seja terminado"""
     pymsgbox.alert(texto, "Alerta", timeout=timeout)
