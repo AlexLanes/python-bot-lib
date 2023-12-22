@@ -7,7 +7,7 @@ import bot
 config = ConfigParser()
 arquivos = bot.windows.diretorio_execucao().arquivos
 if nomes := [bot.windows.path.basename(caminho) for caminho in arquivos if caminho.endswith(".ini")]:
-    [config.read(nome) for nome in nomes]
+    [config.read(nome, encoding="utf-8") for nome in nomes]
 
 
 get = config.get
