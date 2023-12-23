@@ -22,7 +22,7 @@ def atalho_teclado (teclas: list[bot.tipagem.BOTOES_TECLADO]) -> None:
     # obter teclas do Enum(Key) se existir, se não char
     teclas = [Key[tecla] if any(tecla == k.name for k in Key) else tecla[0] for tecla in teclas]
     for tecla in teclas: teclado.press(tecla) # pressionar teclas
-    for tecla in reversed(teclas): teclado.release(tecla) # soltar teclar
+    for tecla in reversed(teclas): teclado.release(tecla) # soltar teclas
 
 
 def digitar_teclado (texto: str) -> None:
