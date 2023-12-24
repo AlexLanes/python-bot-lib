@@ -81,9 +81,10 @@ class LeitorOCR:
         confianca: float = float(confianca)
         self.__confianca = max(0.0, min(1.0, confianca))
     
-    def ler_tela (self, regiao: Coordenada = None) -> list[bot.tipagem.TextoCoordenada]:
+    def ler_tela (self, regiao: Coordenada = None) -> list[tuple[str, Coordenada]]:
         """Extrair texto e coordenadas da tela na posição `coordenada` 
-        - `regiao` vazia para ler a tela inteira"""
+        - `regiao` vazia para ler a tela inteira
+        - `for texto, coordenada in leitor.ler_tela()`"""
         inicio = perf_counter()
         bot.logger.debug("Iniciado o processo de extração de textos e coordenadas da tela")
         
@@ -91,16 +92,18 @@ class LeitorOCR:
         extracoes = self.__extrair(imagem)
 
         # corrigir offset com a regiao informada
-        for extracao in extracoes:
-            extracao.coordenada.x += regiao.x if regiao else 0
-            extracao.coordenada.y += regiao.y if regiao else 0
+        for _, coordenada in extracoes:
+            if not regiao: break # região não foi informada, não há o que corrigir
+            coordenada.x += regiao.x
+            coordenada.y += regiao.y
 
         bot.logger.debug(f"Extração realizada em {perf_counter() - inicio:.2f} segundos")
         return extracoes
 
-    def ler_imagem (self, imagem: bot.tipagem.caminho | Image.Image) -> list[bot.tipagem.TextoCoordenada]:
+    def ler_imagem (self, imagem: bot.tipagem.caminho | Image.Image) -> list[tuple[str, Coordenada]]:
         """Extrair texto e coordenadas de uma imagem
-        - `imagem` pode ser o camnho até o arquivo ou `Image` do módulo `pillow`"""
+        - `imagem` pode ser o camnho até o arquivo ou `Image` do módulo `pillow`
+        - `for texto, coordenada in leitor.ler_imagem()`"""
         inicio = perf_counter()
         bot.logger.debug("Iniciado o processo de extração de textos e coordenadas de uma imagem")
         
@@ -110,9 +113,9 @@ class LeitorOCR:
         bot.logger.debug(f"Extração realizada em {perf_counter() - inicio:.2f} segundos")
         return extracoes
 
-    def __extrair (self, imagem: Image.Image) -> list[bot.tipagem.TextoCoordenada]:
+    def __extrair (self, imagem: Image.Image) -> list[tuple[str, Coordenada]]:
         """Receber a imagem e extrair os dados"""
-        extracoes: list[bot.tipagem.TextoCoordenada] = []
+        extracoes: list[tuple[str, Coordenada]] = []
         imagem: np.ndarray = np.asarray(imagem)
         dados: list[tuple[ list[list[int]], str, float ]] = self.__reader.readtext(imagem)
 
@@ -120,8 +123,7 @@ class LeitorOCR:
             if confianca < self.__confianca: continue
             x, y = box[0]
             comprimento, altura = box[1][0] - x, box[2][1] - y
-            coordenada = Coordenada(int(x), int(y), int(comprimento), int(altura))
-            extracoes.append(bot.tipagem.TextoCoordenada(texto, coordenada))
+            extracoes.append((texto, Coordenada(int(x), int(y), int(comprimento), int(altura))))
 
         return extracoes
 

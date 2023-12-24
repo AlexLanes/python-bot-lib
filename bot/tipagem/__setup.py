@@ -100,15 +100,6 @@ class Diretorio:
     """Lista contendo o caminho de cada arquivo do diretório"""
 
 
-@dataclass 
-class TextoCoordenada:
-    """Item extraído pelo LeitorOCR"""
-    texto: str
-    """Texto extraído pelo OCR"""
-    coordenada: Coordenada
-    """Coordenada do texto"""
-
-
 @dataclass
 class ResultadoSQL:
     """Classe utilizada no retorno da execução do sqlite"""
@@ -177,6 +168,5 @@ __all__ = [
     "parametrosSQL",
     "BOTOES_TECLADO",
     "DIRECOES_SCROLL",
-    "TextoCoordenada",
     "ESTRATEGIAS_WEBELEMENT"
 ]
