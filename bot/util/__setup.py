@@ -58,7 +58,7 @@ def aguardar (condicao: Callable[[], bool], timeout: int, erro: Exception = None
 def index_melhor_match (texto: str, opcoes: list[str]) -> int:
     """Encontrar o index da melhor opção nas `opcoes` que seja parecido com o `texto`
     - Se o index for -1, significa que nenhuma opção gerou um resultado satisfatório"""
-    assert len(opcoes) >= 1, f"Nenhuma opção informada para o texto '{texto}'"
+    assert len(opcoes) >= 1, f"Nenhuma opção informada para o texto '{ texto }'"
 
     texto, scores = normalizar(texto), []
     for opcao in opcoes:
