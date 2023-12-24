@@ -56,21 +56,17 @@ def procurar_imagens (imagem: bot.tipagem.caminho | Image.Image, confianca: bot.
     return coordenadas
 
 
-def cores_imagem (imagem: bot.tipagem.caminho | Image.Image, limite: int = None) -> list[bot.tipagem.FrequenciaCor]:
+def cores_imagem (imagem: bot.tipagem.caminho | Image.Image, limite: int | slice = 10) -> list[tuple[int, tuple[int, int, int]]]:
     """Obter as cores RGB e frequencia de cada pixel da `imagem`
-    - `imagem` pode ser o camnho até o arquivo ou `Image` do módulo `pillow`
-    - `limite` quantidade que será retornada dos mais frequentes"""
-    imagem = Image.open(imagem) if isinstance(imagem, str) else imagem
-    itens: list[tuple[int, tuple[int, int, int]]] = imagem.getcolors()
+    - `imagem` pode ser o caminho até o arquivo ou `Image` do módulo `pillow`
+    - `limite` quantidade que será retornada dos mais frequentes
+    - `for (frequencia, cor) in cores_imagem()`"""
+    if limite != None and limite <= 0: return []
+    imagem = Image.open(imagem) if isinstance(imagem, str) else imagem # abrir imagem se for string
+    itens: list[tuple[int, tuple[int, int, int]]] = imagem.getcolors(10000) # extrair cores
     itens.sort(key=lambda item: item[0], reverse=True) # ordernar pelos mais frequentes
-
-    cores: list[bot.tipagem.FrequenciaCor] = []
-    if limite != None and limite <= 0: return cores
-
-    for frequencia, cor in itens:
-        cores.append(bot.tipagem.FrequenciaCor(frequencia, cor))
-        if len(cores) == limite: break
-    return cores
+    limite = limite if isinstance(limite, slice) else slice(limite) # criar o slice de limite
+    return itens[limite]
 
 
 class LeitorOCR:

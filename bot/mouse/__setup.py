@@ -43,10 +43,10 @@ def scroll_vertical (quantidade: int, direcao: bot.tipagem.DIRECOES_SCROLL = "ba
     mouse.scroll(0, -quantidade if direcao == "baixo" else quantidade)
 
 
-def rgb_mouse () -> bot.tipagem.FrequenciaCor:
-    """Obter o RGB da coordenada atual do mouse"""
-    rgb = pixel(*posicao_mouse())
-    return bot.tipagem.FrequenciaCor(1, rgb)
+def rgb_mouse () -> tuple[int, int, int]:
+    """Obter o RGB da coordenada atual do mouse
+    - `r, g, b = rgb_mouse()`"""
+    return pixel(*posicao_mouse())
 
 
 __all__ = [

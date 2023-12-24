@@ -110,15 +110,6 @@ class TextoCoordenada:
 
 
 @dataclass
-class FrequenciaCor:
-    """Armazena a cor e a quantidade que a cor apareceu na imagem/tela"""
-    frequencia: int
-    """Quantidade de pixeis contendo a cor"""
-    cor: tuple[int, int, int]
-    """Cor (R, G, B)"""
-
-
-@dataclass
 class ResultadoSQL:
     """Classe utilizada no retorno da execução do sqlite"""
     qtd_linhas_afetadas: int | None
@@ -184,7 +175,6 @@ __all__ = [
     "PORCENTAGENS",
     "ResultadoSQL",
     "parametrosSQL",
-    "FrequenciaCor",
     "BOTOES_TECLADO",
     "DIRECOES_SCROLL",
     "TextoCoordenada",
