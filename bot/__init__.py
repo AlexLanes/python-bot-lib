@@ -2,6 +2,7 @@
 
 
 # interno
+import bot.xml as xml
 import bot.util as util
 import bot.rest as rest
 import bot.mouse as mouse
