@@ -72,7 +72,8 @@ class ElementoXML:
 
     @property
     def elementos (self) -> list[ElementoXML]:
-        """Elementos filhos do elemento"""
+        """Elementos filhos do elemento
+        - Para remover ou adicionar elementos, utilizar as funções próprias"""
         return [ElementoXML(e) for e in self.__e]
 
     @property
