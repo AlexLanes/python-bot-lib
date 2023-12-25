@@ -39,6 +39,10 @@ class ElementoXML:
         """Iterator dos elementos"""
         for e in self.elementos: yield e
 
+    def __getitem__ (self, index: int) -> ElementoXML:
+        """Obter o elemento filho na posição `index` de acordo com o `self.elementos`"""
+        return self.elementos[index]
+
     @property
     def __dict__ (self) -> dict[str, str | list[dict]]:
         """Versão `dict` do `ElementoXML`"""
