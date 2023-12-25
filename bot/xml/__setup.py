@@ -20,39 +20,8 @@ class ElementoXML:
         if isinstance(xml, str): # criação exposta do __init__
             xml = xml.lstrip() # remover espaços vazios no começo
             self.__e = xml_from_string(xml) if xml.startswith("<") else xml_from_file(xml).getroot() # parse
-            for e in self.__e: ElementoXML(e) # recursão dos elementos
-        elif isinstance(xml, Element): self.__e = xml # comportamento interno na criação dos elementos
+        elif isinstance(xml, Element): self.__e = xml # comportamento interno na criação e iteração dos elementos
         else: raise TypeError(f"Tipo '{ type(xml) }' inesperado para o xml")
-
-    @property
-    def nome (self) -> str:
-        """Nome do elemento"""
-        return self.__e.tag
-
-    @nome.setter
-    def nome (self, valor: str | None) -> None:
-        """Settar nome"""
-        self.__e.tag = valor
-
-    @property
-    def texto (self) -> str | None:
-        """Texto do elemento"""
-        return self.__e.text
-
-    @texto.setter
-    def texto (self, valor: str | None) -> None:
-        """Settar texto"""
-        self.__e.text = valor
-
-    @property
-    def elementos (self) -> list[ElementoXML]:
-        """Elementos filhos do elemento"""
-        return [ElementoXML(e) for e in self.__e]
-
-    @property
-    def atributos (self) -> dict[str, str]:
-        """Atributos do elemento"""
-        return self.__e.attrib
 
     def __str__ (self) -> str:
         """Versão `text/xml` do ElementoXML"""
@@ -74,8 +43,38 @@ class ElementoXML:
     def __dict__ (self) -> dict[str, str | list[dict]]:
         """Versão `dict` do `ElementoXML`"""
         d = { f"@{ nome }": valor for nome, valor in self.atributos.items() }
-        d[self.nome] = self.texto if not len(self) else [e for e in self]
+        d[self.nome] = self.texto if not len(self) else [e.__dict__ for e in self]
         return d
+
+    @property
+    def nome (self) -> str:
+        """Nome do elemento"""
+        return self.__e.tag
+
+    @nome.setter
+    def nome (self, valor: str | None) -> None:
+        """Setar nome"""
+        self.__e.tag = valor
+
+    @property
+    def texto (self) -> str | None:
+        """Texto do elemento"""
+        return self.__e.text
+
+    @texto.setter
+    def texto (self, valor: str | None) -> None:
+        """Setar texto"""
+        self.__e.text = valor
+
+    @property
+    def elementos (self) -> list[ElementoXML]:
+        """Elementos filhos do elemento"""
+        return [ElementoXML(e) for e in self.__e]
+
+    @property
+    def atributos (self) -> dict[str, str]:
+        """Atributos do elemento"""
+        return self.__e.attrib
 
     def encontrar (self, xpath: str, namespaces: dict[str, str] = None) -> list[ElementoXML]:
         """Encontrar elementos que resultem no `xpath` informado
