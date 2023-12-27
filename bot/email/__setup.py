@@ -19,7 +19,7 @@ from datetime import (
 import bot
 
 
-def enviar (para: list[bot.tipagem.email], assunto="", conteudo="", anexos: list[bot.tipagem.caminho] = []) -> None | Exception:
+def enviar_email (para: list[bot.tipagem.email], assunto="", conteudo="", anexos: list[bot.tipagem.caminho] = []) -> None | Exception:
     """Enviar email
     - Variáveis `email.enviar` [user, password, host]"""
     bot.logger.informar(f"Enviando e-mail '{ assunto }' para { str(para) }")
@@ -88,7 +88,7 @@ def extrair_datetime (datetime: str | None) -> DateTime:
         return DateTime.now(brt)
 
 
-def obter (limite: int | slice = None, query="ALL", visualizar=False) -> Generator[bot.tipagem.Email, None, None]:
+def obter_email (limite: int | slice = None, query="ALL", visualizar=False) -> Generator[bot.tipagem.Email, None, None]:
     """Obter e-mails de uma `Inbox`
     - Abstração `imaplib`
     - `visualizar` Flag caso queria marcar o e-mail como a flag de visualizado
@@ -149,6 +149,6 @@ def obter (limite: int | slice = None, query="ALL", visualizar=False) -> Generat
 
 
 __all__ = [
-    "obter",
-    "enviar"
+    "obter_email",
+    "enviar_email"
 ]
