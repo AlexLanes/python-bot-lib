@@ -1,5 +1,6 @@
 # std
 from abc import ABC
+from enum import Enum
 # interno
 import bot
 # externo
@@ -58,14 +59,16 @@ class Navegador (ABC):
 
         bot.logger.alertar(f"Nenhuma aba encontrada que possua o título '{ titulo }' foi encontrada")
 
-    def encontrar_elemento (self, estrategia: bot.tipagem.ESTRATEGIAS_WEBELEMENT, localizador: str) -> WebElement | None:
+    def encontrar_elemento (self, estrategia: bot.tipagem.ESTRATEGIAS_WEBELEMENT, localizador: str | Enum) -> WebElement | None:
         """Encontrar elemento(s) na aba atual com base em um `localizador` para a `estrategia` selecionada"""
+        localizador: str = localizador if isinstance(localizador, str) else str(localizador.value)
         bot.logger.debug(f"Procurando elemento no navegador ('{ estrategia }', '{ localizador }')")
         elemento = self.driver.find_element(estrategia, localizador)
         return elemento
 
-    def encontrar_elementos (self, estrategia: bot.tipagem.ESTRATEGIAS_WEBELEMENT, localizador: str) -> list[WebElement] | None:
+    def encontrar_elementos (self, estrategia: bot.tipagem.ESTRATEGIAS_WEBELEMENT, localizador: str | Enum) -> list[WebElement] | None:
         """Encontrar elemento(s) na aba atual com base em um `localizador` para a `estrategia` selecionada"""
+        localizador = localizador if isinstance(localizador, str) else str(localizador.value)
         bot.logger.debug(f"Procurando elementos no navegador ('{ estrategia }', '{ localizador }')")
         elementos = self.driver.find_elements(estrategia, localizador)
         return elementos if len(elementos) else None
