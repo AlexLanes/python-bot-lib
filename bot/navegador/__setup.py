@@ -26,22 +26,25 @@ class Navegador (ABC):
         """ID das abas/janelas abertas do driver atual do navegador"""
         return self.driver.window_handles
 
-    def pesquisar (self, url: str) -> None:
+    def pesquisar (self, url: str):
         """Pesquisar o url na aba focada"""
         bot.logger.informar(f"Pesquisado o url '{ url }'")
         self.driver.get(url)
+        return self
 
-    def nova_aba (self) -> None:
+    def nova_aba (self):
         """Abrir uma nova aba e alterar o foco para ela"""
         self.driver.switch_to.new_window("tab")
         bot.logger.informar("Aberto uma nova aba")
+        return self
 
-    def fechar_aba (self) -> None:
+    def fechar_aba (self):
         """Fechar a aba focada e alterar o foco para a anterior"""
         titulo = self.driver.title
         self.driver.close()
         self.driver.switch_to.window(self.abas[-1])
         bot.logger.informar(f"Fechado a aba '{ titulo }'")
+        return self
     
     def focar_aba (self, titulo: str = None) -> None:
         """Focar na aba que contem o `titulo`
