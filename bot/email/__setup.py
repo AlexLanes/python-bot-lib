@@ -35,7 +35,8 @@ def enviar (para: list[bot.tipagem.email], assunto="", conteudo="", anexos: list
     mensagem['From'] = _from
     mensagem['To'] = ', '.join(para)
     mensagem['Subject'] = assunto
-    mensagem.attach(MIMEText(conteudo)) 
+    conteudo = conteudo.lstrip() # remoção dos campos vazios no início
+    mensagem.attach(MIMEText(conteudo, "html" if conteudo.startswith("<") else "plain")) # html se começar com "<", se não texto
 
     # anexos
     for caminho in anexos:
