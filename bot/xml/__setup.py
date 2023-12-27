@@ -71,15 +71,15 @@ class ElementoXML:
         self.__e.text = valor
 
     @property
+    def atributos (self) -> dict[str, str]:
+        """Atributos do elemento"""
+        return self.__e.attrib
+
+    @property
     def elementos (self) -> list[ElementoXML]:
         """Elementos filhos do elemento
         - Para remover ou adicionar elementos, utilizar as funções próprias"""
         return [ElementoXML(e) for e in self.__e]
-
-    @property
-    def atributos (self) -> dict[str, str]:
-        """Atributos do elemento"""
-        return self.__e.attrib
 
     def encontrar (self, xpath: str, namespaces: dict[str, str] = None) -> list[ElementoXML]:
         """Encontrar elementos que resultem no `xpath` informado
