@@ -13,7 +13,7 @@ nomeado: TypeAlias = dict[str, tiposSQL]
 """Parâmetros necessários quando o SQL é nomeado ':nome'"""
 posicional: TypeAlias = Iterable[tiposSQL]
 """Parâmetros necessários quando o SQL é posicionail '?'"""
-parametrosSQL: TypeAlias = Iterable[nomeado | posicional]
+parametrosSQL: TypeAlias = Iterable[nomeado] | Iterable[posicional]
 """Iterabela de parâmetros utilizados quando for ser executado mais de 1 vez"""
 
 char: TypeAlias = str
@@ -28,7 +28,7 @@ caminhos: TypeAlias = list[str]
 
 
 DIRECOES_SCROLL = Literal["cima", "baixo"]
-"""Direções do scroll do mouse"""
+"""Direções de scroll do mouse"""
 BOTOES_MOUSE = Literal["left", "middle", "right"]
 """Botões aceitos pelo `pynput`"""
 PORCENTAGENS = Literal["0.9", "0.8", "0.7", "0.6", "0.5", "0.4", "0.3", "0.2", "0.1"]
