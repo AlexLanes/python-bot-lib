@@ -37,11 +37,8 @@ class Sqlite:
     def tabelas (self) -> dict[str, int]:
         """Mapa dos nomes das tabelas e quantidade de linhas"""
         obter_count = lambda tabela: list(self.execute( f"SELECT count(*) FROM {tabela}" ))[0][0]
-        resultado = self.execute("""SELECT name AS tabela 
-                                    FROM sqlite_schema 
-                                    WHERE type = 'table' AND name NOT LIKE 'sqlite_%'""")
-
-        return { tabela: obter_count(tabela) for tabela, *_ in resultado }
+        tabelas = self.execute("""SELECT name AS tabela FROM sqlite_schema WHERE type = 'table' AND name NOT LIKE 'sqlite_%'""")
+        return { tabela: obter_count(tabela) for tabela, *_ in tabelas }
 
     def execute (self, sql: str, parametros: bot.tipagem.nomeado | bot.tipagem.posicional = None) -> bot.tipagem.ResultadoSQL:
         """Executar uma única instrução SQL
@@ -50,7 +47,7 @@ class Sqlite:
         cursor = self.conexao.execute(sql, parametros) if parametros else self.conexao.execute(sql)
         colunas = [coluna for coluna, *_ in cursor.description] if cursor.description else []
         gerador = ([valor for valor in linha] for linha in cursor)
-        return bot.tipagem.ResultadoSQL(cursor.rowcount if cursor.rowcount >= 0 else None, gerador, colunas)
+        return bot.tipagem.ResultadoSQL(cursor.rowcount if cursor.rowcount >= 0 else None, colunas, gerador)
 
     def execute_many (self, sql: str, parametros: bot.tipagem.parametrosSQL) -> bot.tipagem.ResultadoSQL:
         """Executar uma ou mais instruções SQL
@@ -59,16 +56,14 @@ class Sqlite:
         cursor = self.conexao.executemany(sql, parametros)
         colunas = [coluna for coluna, *_ in cursor.description] if cursor.description else []
         gerador = ([valor for valor in linha] for linha in cursor)
-        return bot.tipagem.ResultadoSQL(cursor.rowcount if cursor.rowcount >= 0 else None, gerador, colunas)
+        return bot.tipagem.ResultadoSQL(cursor.rowcount if cursor.rowcount >= 0 else None, colunas, gerador)
 
     def to_excel (self, caminho="resultado.xlsx") -> None:
         """Salvar as linhas de todas as tabelas da conexão em um arquivo excel"""
         with pandas.ExcelWriter(caminho) as arquivo:
-            for tabela in self.tabelas:
-                self.execute(f"SELECT * FROM { tabela }")\
-                    .to_dataframe()\
-                    .to_excel(arquivo, tabela, index=False)
-
+            for tabela in self.tabelas: self.execute(f"SELECT * FROM { tabela }")\
+                                            .to_dataframe()\
+                                            .to_excel(arquivo, tabela, index=False)
             ajustar_colunas_excel(arquivo)
 
 
