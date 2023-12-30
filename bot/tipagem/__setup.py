@@ -103,8 +103,9 @@ class Diretorio:
 @dataclass
 class ResultadoSQL:
     """Classe utilizada no retorno da execução do sqlite"""
-    qtd_linhas_afetadas: int | None
-    """Quantidade de linhas afetadas pelo comando sql (None indica que não se aplica para o comando sql)"""
+    linhas_afetadas: int | None
+    """Quantidade de linhas afetadas pelo comando sql
+    - `None` indica que não se aplica para o comando sql"""
     colunas: list[str]
     """Colunas das linhas retornadas (se houver)"""
     linhas: Generator[list, None, None]
