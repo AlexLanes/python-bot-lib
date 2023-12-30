@@ -1,3 +1,11 @@
+# python cache
 **/__pycache__
+
+# log e configfile
 *.log
 .ini
+
+# pyinstaller
+/build
+/dist
+**.spec

@@ -1,23 +1,23 @@
 # std
 from configparser import ConfigParser
 # interno
-import bot
+from bot.windows import diretorio_execucao, path
 
 
 config = ConfigParser()
-arquivos = bot.windows.diretorio_execucao().arquivos
-if nomes := [bot.windows.path.basename(caminho) for caminho in arquivos if caminho.endswith(".ini")]:
-    [config.read(nome, encoding="utf-8") for nome in nomes]
+for arquivo in diretorio_execucao().arquivos:
+    if not arquivo.endswith(".ini"): continue
+    config.read(path.basename(arquivo), encoding="utf-8")
 
 
-get = config.get
-options = config.options
-sections = config.sections
-has_option = config.has_option
-has_section = config.has_section
+obter_opcao = config.get
+opcoes_secao = config.options
+obter_secoes = config.sections
+possui_opcao = config.has_option
+possui_secao = config.has_section
 
 
-def has_options (secao: str, opcoes: list[str]) -> bool:
+def possui_opcoes (secao: str, opcoes: list[str]) -> bool:
     """Versão do `has_option` que aceita uma lista de `opcoes`"""
     return all(config.has_option(secao, opcao) for opcao in opcoes)
 
@@ -27,17 +27,17 @@ def obter_opcoes (secao: str, opcoes: list[str]) -> tuple[str, ...]:
     - Versão do `get` que aceita uma lista de `opcoes`
     - `AssertionError` caso a `secao` ou alguma `opcao` não exista
     - `tuple` de retorno terá os valores na mesma ordem que as `opcoes`"""
-    assert has_section(secao), f"Seção do configfile '{ secao }' não foi configurada"
-    assert has_options(secao, opcoes), f"Variáveis do configfile { str(opcoes) } não foram configuradas para a seção '{ secao }'"
-    return tuple(str(get(secao, opcao)) for opcao in opcoes)
+    assert possui_secao(secao), f"Seção do configfile '{ secao }' não foi configurada"
+    assert possui_opcoes(secao, opcoes), f"Variáveis do configfile { str(opcoes) } não foram configuradas para a seção '{ secao }'"
+    return tuple(str(obter_opcao(secao, opcao)) for opcao in opcoes)
 
 
 __all__ = [
-    "get",
-    "options",
-    "sections",
-    "has_option",
-    "has_options",
-    "has_section",
-    "obter_opcoes"
+    "obter_opcao",
+    "opcoes_secao",
+    "obter_secoes",
+    "possui_opcao",
+    "possui_secao",
+    "obter_opcoes",
+    "possui_opcoes"
 ]
