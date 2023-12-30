@@ -41,7 +41,7 @@ def listar_diretorio (caminhoPasta: caminho) -> Diretorio:
 
 
 def diretorio_execucao () -> Diretorio:
-    """Obter o diretório de execução atual"""
+    """Obter informações do diretório de execução atual"""
     return listar_diretorio(get_cwd())
 
 
