@@ -46,9 +46,9 @@ class ElementoXML:
     @property
     def __dict__ (self) -> dict[str, str | list[dict]]:
         """Versão `dict` do `ElementoXML`"""
-        d = { f"@{ nome }": valor for nome, valor in self.atributos.items() }
-        d[self.nome] = self.texto if not len(self) else [e.__dict__ for e in self]
-        return d
+        mapa = { f"@{ nome }": valor for nome, valor in self.atributos.items() } # atributos
+        mapa[self.nome] = self.texto if not len(self) else [e.__dict__ for e in self] # elemento: filhos | texto
+        return mapa
 
     @property
     def nome (self) -> str:
