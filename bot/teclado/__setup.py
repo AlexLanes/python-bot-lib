@@ -16,7 +16,7 @@ def apertar_tecla (tecla: bot.tipagem.BOTOES_TECLADO, qtd=1) -> None:
     for _ in range(max(qtd, 1)): teclado.tap(tecla)
 
 
-def atalho_teclado (teclas: list[bot.tipagem.BOTOES_TECLADO]) -> None:
+def atalho_teclado (teclas: list[bot.tipagem.BOTOES_TECLADO] | bot.tipagem.char) -> None:
     """Apertar as `teclas` sequencialmente e depois soltá-las em ordem reversa
     - `tecla` pode ser do `BOTOES_TECLADO` ou um `char` a, 1, Ç, @"""
     # obter teclas do Enum(Key) se existir, se não char
@@ -27,13 +27,12 @@ def atalho_teclado (teclas: list[bot.tipagem.BOTOES_TECLADO]) -> None:
 
 def digitar_teclado (texto: str) -> None:
     """Digitar o texto pressionando cada tecla do texto e soltando em seguida"""
-    texto = str(texto)
-    teclado.type(texto)
+    teclado.type(str(texto))
 
 
 def copiar_texto (texto: str) -> None:
     """Substituir o texto copiado da área de transferência pelo `texto`"""
-    pyperclip.copy(texto)
+    pyperclip.copy(str(texto))
 
 
 def colar_texto () -> None:
