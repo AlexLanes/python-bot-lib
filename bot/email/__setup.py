@@ -30,21 +30,23 @@ def enviar_email (para: list[bot.tipagem.email], assunto="", conteudo="", anexos
     # from no-reply
     _from = f"no-reply <{ user }>"
 
-    # header e body do e-mail
     mensagem = MIMEMultipart()
+    # headers do e-mail
     mensagem['From'] = _from
     mensagem['To'] = ', '.join(para)
     mensagem['Subject'] = assunto
-    conteudo = conteudo.lstrip() # remoção dos campos vazios no início
-    mensagem.attach(MIMEText(conteudo, "html" if conteudo.startswith("<") else "plain")) # html se começar com "<", se não texto
+    # body do e-mail
+    conteudo = conteudo.lstrip() # remover espaços vazios no começo
+    conteudo = MIMEText(conteudo, "html" if conteudo.startswith("<") else "plain") # html se começar com "<"
+    mensagem.attach(conteudo)
 
     # anexos
     for caminho in anexos:
         if not bot.windows.path.exists(caminho) or not bot.windows.path.isfile(caminho): 
             bot.logger.alertar(f"Erro ao anexar '{ caminho }' no e-mail")
             continue
-        with open(caminho, 'rb') as anexo:
-            anexo = MIMEApplication(anexo.read())
+        with open(caminho, 'rb') as arquivo:
+            anexo = MIMEApplication(arquivo.read())
             nome = bot.windows.path.basename(caminho)
             anexo.add_header("Content-Disposition", rf"attachment; filename={ nome }")
             mensagem.attach(anexo)
