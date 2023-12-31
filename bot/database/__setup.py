@@ -1,5 +1,6 @@
 # std
 import re
+from typing import Iterable
 from sqlite3 import connect, Connection
 # interno
 import bot
@@ -49,7 +50,7 @@ class Sqlite:
         gerador = ([valor for valor in linha] for linha in cursor)
         return bot.tipagem.ResultadoSQL(cursor.rowcount if cursor.rowcount >= 0 else None, colunas, gerador)
 
-    def execute_many (self, sql: str, parametros: bot.tipagem.parametrosSQL) -> bot.tipagem.ResultadoSQL:
+    def execute_many (self, sql: str, parametros: Iterable[bot.tipagem.nomeado] | Iterable[bot.tipagem.posicional]) -> bot.tipagem.ResultadoSQL:
         """Executar uma ou mais instruções SQL
         - `sql` Comando que será executado. Pode ser parametrizado com argumentos nomeados `:nome` ou posicionais `?`
         - `parametros` Lista dos parâmetros presentes no `sql`"""
