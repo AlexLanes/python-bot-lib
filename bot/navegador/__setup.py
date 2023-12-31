@@ -1,6 +1,7 @@
 # std
 from abc import ABC
 from enum import Enum
+from typing import Self
 # interno
 import bot
 # externo
@@ -27,19 +28,19 @@ class Navegador (ABC):
         """ID das abas/janelas abertas do driver atual do navegador"""
         return self.driver.window_handles
 
-    def pesquisar (self, url: str):
+    def pesquisar (self, url: str) -> Self:
         """Pesquisar o url na aba focada"""
         bot.logger.informar(f"Pesquisado o url '{ url }'")
         self.driver.get(url)
         return self
 
-    def nova_aba (self):
+    def nova_aba (self) -> Self:
         """Abrir uma nova aba e alterar o foco para ela"""
         self.driver.switch_to.new_window("tab")
         bot.logger.informar("Aberto uma nova aba")
         return self
 
-    def fechar_aba (self):
+    def fechar_aba (self) -> Self:
         """Fechar a aba focada e alterar o foco para a anterior"""
         titulo = self.driver.title
         self.driver.close()
