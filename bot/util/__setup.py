@@ -19,6 +19,29 @@ def timeout (segundos: float):
     return decorator
 
 
+def ignorar (excecoes: list[Exception], default=None):
+    """Decorator\n-\nIgonorar `exceções` especificadas e retornar o `default` quando ignorado"""
+    def decorator (func):
+        def wrapper (*args, **kwargs):
+            try: return func(*args, **kwargs)
+            except Exception as erro: 
+                if any(isinstance(erro, excecao) for excecao in excecoes): return default
+                else: raise
+        return wrapper
+    return decorator
+
+
+def aguardar (condicao: Callable[[], bool], timeout: int, erro: Exception = None) -> bool | Exception:
+    """Repetir a função `condicao` por `timeout` segundos até que resulte em `True`
+    - `False` se a condição não for atendida após `timeout` ou `erro` se for informado"""
+    inicio = perf_counter()
+    while perf_counter() - inicio < timeout:
+        if condicao(): return True
+        else: sleep(0.25)
+    if erro != None: raise erro
+    return False
+
+
 def remover_acentuacao (string: str) -> str:
     """Remover a acentuação de uma string"""
     nfkd = normalize('NFKD', str(string))
@@ -34,25 +57,13 @@ def normalizar (string: str) -> str:
 
 
 def info_stack (index=1) -> InfoStack:
-    """Obter informações presente no stack dos callers.\n
+    """Obter informações presente no stack dos callers
     - `Default` Arquivo que chamou o info_stack()"""
     linha = stack()[index].lineno
     funcao = stack()[index].function
     filename = stack()[index].filename
     caminho, nome = filename.rsplit("\\", 1)
     return InfoStack(nome, caminho, funcao, linha)
-
-
-def aguardar (condicao: Callable[[], bool], timeout: int, erro: Exception = None) -> bool | Exception:
-    """Repetir a função `condicao` por `timeout` segundos até que resulte em `True`
-    - `False` se a condição não for atendida após `timeout` ou `erro` se for informado"""
-    inicio = perf_counter()
-    while perf_counter() - inicio < timeout:
-        if condicao(): return True
-        else: sleep(0.25)
-    
-    if erro != None: raise erro
-    return False
 
 
 def index_melhor_match (texto: str, opcoes: list[str]) -> int:
@@ -72,6 +83,7 @@ def index_melhor_match (texto: str, opcoes: list[str]) -> int:
 
 __all__ = [
     "timeout",
+    "ignorar",
     "aguardar",
     "normalizar",
     "info_stack",
