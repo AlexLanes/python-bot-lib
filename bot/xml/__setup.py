@@ -7,6 +7,16 @@ from xml.etree.ElementTree import (
     tostring as xml_to_string,
     fromstring as xml_from_string
 )
+# interno
+from bot import tipagem
+
+
+def nome_namespace (tag: str) -> tuple[str, tipagem.url | None]:
+    """Extrair nome e namespace da tag"""
+    if tag.startswith("{") and "}" in tag:
+        idx = tag.index("}")
+        return (tag[idx + 1 :], tag[1 : idx])
+    else: return (tag, None)
 
 
 class ElementoXML:
@@ -44,21 +54,33 @@ class ElementoXML:
         return self.elementos[index]
 
     @property
-    def __dict__ (self) -> dict[str, str | list[dict]]:
+    def __dict__ (self) -> dict[str, str | None | list[dict]]:
         """Versão `dict` do `ElementoXML`"""
         mapa = { f"@{ nome }": valor for nome, valor in self.atributos.items() } # atributos
-        mapa[self.nome] = self.texto if not len(self) else [e.__dict__ for e in self] # elemento: filhos | texto
+        mapa["xmlns"] = self.namespace # namespace
+        mapa[self.nome] = [e.__dict__ for e in self] if len(self) else self.texto # elemento: filhos | texto
         return mapa
 
     @property
     def nome (self) -> str:
         """Nome do elemento"""
-        return self.__e.tag
+        return nome_namespace(self.__e.tag)[0]
 
     @nome.setter
-    def nome (self, valor: str | None) -> None:
-        """Setar nome"""
-        self.__e.tag = valor
+    def nome (self, nome: str) -> None:
+        """Setar nome do elemento"""
+        self.__e.tag = nome
+    
+    @property
+    def namespace (self) -> tipagem.url | None:
+        """Namespace do elemento"""
+        return nome_namespace(self.__e.tag)[1]
+
+    @namespace.setter
+    def namespace (self, namespace: tipagem.url | None) -> None:
+        """Setar namespace do elemento"""
+        nome = nome_namespace(self.__e.tag)[0]
+        self.__e.tag = f"{{{ namespace }}}{ nome }" if namespace else nome
 
     @property
     def texto (self) -> str | None:
@@ -74,7 +96,7 @@ class ElementoXML:
     def atributos (self) -> dict[str, str]:
         """Atributos do elemento"""
         return self.__e.attrib
-
+    
     @property
     def elementos (self) -> list[ElementoXML]:
         """Elementos filhos do elemento
@@ -100,9 +122,10 @@ class ElementoXML:
         return ElementoXML(str(self))
 
     @staticmethod
-    def criar (nome: str, texto: str = None, atributos: dict[str, str] = {}) -> ElementoXML:
+    def criar (nome: str, texto: str = None, namespace: tipagem.url = None, atributos: dict[str, str] = {}) -> ElementoXML:
         """Criar um `ElementoXML` simples
         - `@staticmethod`"""
+        nome = f"{{{ namespace }}}{ nome }" if namespace else nome
         elemento = Element(nome, atributos)
         elemento.text = texto
         return ElementoXML(elemento)

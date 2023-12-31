@@ -14,6 +14,8 @@ nomeado: TypeAlias = dict[str, tiposSQL]
 posicional: TypeAlias = Iterable[tiposSQL]
 """Parâmetros necessários quando o SQL é posicionail '?'"""
 
+url: TypeAlias = str
+"""String formato url"""
 char: TypeAlias = str
 """String com 1 caractere"""
 email: TypeAlias = str
@@ -150,6 +152,7 @@ class Email:
 
 
 __all__ = [
+    "url",
     "char",
     "email",
     "Email",
