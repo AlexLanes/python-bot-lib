@@ -125,7 +125,7 @@ class LeitorOCR:
         """Receber a imagem e extrair os dados"""
         extracoes: list[tuple[str, Coordenada]] = []
         imagem: np.ndarray = np.asarray(imagem)
-        dados: list[tuple[ list[list[int]], str, float ]] = self.__reader.readtext(imagem)
+        dados: list[tuple[ list[list[int]], str, float ]] = self.__reader.readtext(imagem, width_ths=0.7, mag_ratio=2, min_size=10)
 
         for box, texto, confianca in dados:
             if confianca < self.__confianca: continue
