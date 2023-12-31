@@ -1,27 +1,27 @@
 # bot.database
-pandas     == 2.0.3
-xlsxwriter == 3.1.6
+pandas
+xlsxwriter
 
 # bot.imagem
-numpy     == 1.25.0
-pillow    == 9.5.0
-easyocr   == 1.7.1
-PyScreeze == 0.1.30
+numpy
+pillow
+easyocr
+PyScreeze
 
 # bot.mensagem
-PyMsgBox  == 1.0.9
+PyMsgBox
 
 # bot.teclado e bot.mouse
-pynput    == 1.7.6
-pyperclip == 1.8.2
+pynput
+pyperclip
 
 # bot.navegador
-selenium == 4.16.0
+selenium
 
 # bot.rest
-httpx      == 0.25.2
-jsonschema == 4.20.0
+httpx
+jsonschema
 
 # bot.windows
-pywinauto   == 0.6.8
-PyGetWindow == 0.0.9
+pywinauto
+PyGetWindow
