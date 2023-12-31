@@ -1,9 +1,11 @@
 # std
+from typing import Any
 from json import (
     dumps as json_dumps, 
     loads as json_parse
 )
 # externo
+import yaml
 from httpx import request
 from jsonschema import validate
 
@@ -29,9 +31,21 @@ def validar_schema (item, schema: dict) -> tuple[bool, str | None]:
         return (False, erro.message if hasattr(erro, "message") else "Erro na validação do jsonschema")
 
 
+def yaml_stringify (item) -> str:
+    """Transforma o `item` em uma string YAML"""
+    return yaml.dump(json_parse(json_stringify(item)), sort_keys=False, indent=4)
+
+
+def yaml_parse (string: str) -> Any:
+    """Realizar o parse de uma string YAML"""
+    return yaml.load(string, yaml.FullLoader)
+
+
 __all__ = [
     "request",
+    "yaml_parse",
     "json_parse",
     "json_stringify",
-    "validar_schema"
+    "yaml_stringify",
+    "validar_schema",
 ]

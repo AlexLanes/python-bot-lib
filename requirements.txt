@@ -20,6 +20,7 @@ selenium
 
 # bot.rest
 httpx
+PyYAML
 jsonschema
 
 # bot.windows
