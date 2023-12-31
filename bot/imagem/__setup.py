@@ -51,10 +51,8 @@ def procurar_imagens (imagem: bot.tipagem.caminho | Image.Image | bytes, confian
     - `regiao` especifica uma parte da tela
     - `cinza` compara ambas imagem como grayscale"""
     imagem = transformar_pillow(imagem)
-    boxes = list(pyscreeze.locateAllOnScreen(imagem, 
-                                             grayscale=cinza,
-                                             confidence=confianca,
-                                             region=tuple(regiao) if regiao else None))
+    regiao = tuple(regiao) if regiao else None
+    boxes = [*pyscreeze.locateAllOnScreen(imagem, grayscale=cinza, confidence=confianca, region=regiao)]
     if not boxes: return None # não encontrou
 
     coordenadas: list[Coordenada] = []

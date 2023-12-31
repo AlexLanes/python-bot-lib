@@ -36,7 +36,7 @@ class Sqlite:
     @property
     def tabelas (self) -> dict[str, int]:
         """Mapa dos nomes das tabelas e quantidade de linhas"""
-        obter_count = lambda tabela: list(self.execute( f"SELECT count(*) FROM {tabela}" ))[0][0]
+        obter_count = lambda tabela: [*self.execute(f"SELECT count(*) FROM { tabela }")][0][0]
         tabelas = self.execute("""SELECT name AS tabela FROM sqlite_schema WHERE type = 'table' AND name NOT LIKE 'sqlite_%'""")
         return { tabela: obter_count(tabela) for tabela, *_ in tabelas }
 

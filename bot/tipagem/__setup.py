@@ -14,7 +14,7 @@ nomeado: TypeAlias = dict[str, tiposSQL]
 posicional: TypeAlias = Iterable[tiposSQL]
 """Parâmetros necessários quando o SQL é posicionail '?'"""
 parametrosSQL: TypeAlias = Iterable[nomeado] | Iterable[posicional]
-"""Iterabela de parâmetros utilizados quando for ser executado mais de 1 vez"""
+"""Iterable de parâmetros utilizados quando for ser executado mais de 1 vez"""
 
 char: TypeAlias = str
 """String com 1 caractere"""

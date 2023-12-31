@@ -111,7 +111,7 @@ def obter_email (limite: int | slice = None, query="ALL", visualizar=False) -> G
         # obter os ids da query
         uids: bytes = imap.search(None, query)[1][0] # ids em byte
         uids: list[str] = uids.decode().split(" ") # transformar para uma lista de ids em string
-        uids = list(reversed(uids))[limite] # inverter e aplicar o slice nos ids
+        uids = [*reversed(uids)][limite] # inverter e aplicar o slice nos ids
 
         for uid in uids:
             email = bot.tipagem.Email(int(uid), "", [], "", None, None, None, []) # armazenará as informações extraídas
