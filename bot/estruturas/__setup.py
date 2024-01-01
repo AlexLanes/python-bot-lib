@@ -1,6 +1,10 @@
 # std
 from __future__ import annotations
-from typing import Generator
+from typing import Generator, Any
+from json import (
+    dumps as json_dumps, 
+    loads as json_parse
+)
 from xml.etree.ElementTree import (
     Element,
     parse as xml_from_file,
@@ -9,10 +13,32 @@ from xml.etree.ElementTree import (
 )
 # interno
 from bot import tipagem
+# externo
+import yaml
+
+
+def json_stringify (item: Any, indentar=True) -> str:
+    """Transforma o `item` em uma string JSON"""
+    def tratamentos (obj):
+        if isinstance(obj, set): return [x for x in obj]
+        if hasattr(obj, "__dict__"): return obj.__dict__
+        if hasattr(obj, "__str__"): return obj.__str__()
+        raise TypeError(f"Item de tipo inesperado para ser transformado em json: '{ type(item) }'")
+    return json_dumps(item, ensure_ascii=False, default=tratamentos, indent=4 if indentar else None)
+
+
+def yaml_stringify (item: Any) -> str:
+    """Transforma o `item` em uma string YAML"""
+    return yaml.dump(json_parse(json_stringify(item)), sort_keys=False, indent=4)
+
+
+def yaml_parse (string: str) -> Any:
+    """Realizar o parse de uma string YAML"""
+    return yaml.load(string, yaml.FullLoader)
 
 
 def nome_namespace (tag: str) -> tuple[str, tipagem.url | None]:
-    """Extrair nome e namespace da tag"""
+    """Extrair nome e namespace de uma tag xml"""
     if tag.startswith("{") and "}" in tag:
         idx = tag.index("}")
         return (tag[idx + 1 :], tag[1 : idx])
@@ -20,7 +46,8 @@ def nome_namespace (tag: str) -> tuple[str, tipagem.url | None]:
 
 
 class ElementoXML:
-    """Classe de manipulação do XML"""
+    """Classe de manipulação do XML
+    - Abstração do módulo `xml.etree.ElementTree`"""
 
     __e: Element
 
@@ -139,5 +166,9 @@ class ElementoXML:
 
 
 __all__ = [
-    "ElementoXML"
+    "yaml_parse",
+    "json_parse",
+    "ElementoXML",
+    "json_stringify",
+    "yaml_stringify"
 ]

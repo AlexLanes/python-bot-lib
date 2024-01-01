@@ -1,4 +1,3 @@
-"""Módulo para realizar requests e demais ações restful
-- Abstração do módulo `httpx`"""
+"""Módulo para realizar ações http rest"""
 
 from .__setup import *

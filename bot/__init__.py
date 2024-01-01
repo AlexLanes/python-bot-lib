@@ -2,7 +2,6 @@
 
 
 # interno
-import bot.xml as xml
 import bot.util as util
 import bot.rest as rest
 import bot.mouse as mouse
@@ -15,4 +14,5 @@ import bot.windows as windows
 import bot.database as database
 import bot.mensagem as mensagem
 import bot.navegador as navegador
+import bot.estruturas as estruturas
 import bot.configfile as configfile
