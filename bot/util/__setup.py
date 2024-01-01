@@ -44,9 +44,9 @@ def aguardar (condicao: Callable[[], bool], timeout: int, erro: Exception = None
 
 def remover_acentuacao (string: str) -> str:
     """Remover a acentuação de uma string"""
-    nfkd = normalize('NFKD', str(string))
-    ascii = nfkd.encode('ASCII', 'ignore')
-    return ascii.decode("utf8")
+    nfkd = normalize("NFKD", str(string))
+    ascii = nfkd.encode("ASCII", "ignore")
+    return ascii.decode("utf-8", "ignore")
 
 
 def normalizar (string: str) -> str:
