@@ -49,9 +49,15 @@ class ElementoXML:
         """Iterator dos elementos"""
         for e in self.elementos: yield e
 
-    def __getitem__ (self, index: int) -> ElementoXML:
-        """Obter o elemento filho na posição `index` de acordo com o `self.elementos`"""
-        return self.elementos[index]
+    def __getitem__ (self, valor: int | str) -> ElementoXML:
+        """Obter o elemento filho na posição `int` ou o primeiro elemento de nome `str`"""
+        if isinstance(valor, int): 
+            if valor >= len(self): raise IndexError(f"Elemento possui apenas '{ len(self) }' filho(s)")
+            return self.elementos[valor]
+        if isinstance(valor, str):
+            if not any(e.nome == valor for e in self): raise KeyError(f"Nome do elemento '{ valor }' inexistente nos filhos")
+            return [e for e in self if e.nome == valor][0]
+        raise TypeError(f"Tipo do valor inesperado '{ type(valor) }'")
 
     @property
     def __dict__ (self) -> dict[str, str | None | list[dict]]:
@@ -69,8 +75,9 @@ class ElementoXML:
     @nome.setter
     def nome (self, nome: str) -> None:
         """Setar nome do elemento"""
-        self.__e.tag = nome
-    
+        _, namespace = nome_namespace(self.__e.tag)
+        self.__e.tag = f"{{{ namespace }}}{ nome }" if namespace else nome
+
     @property
     def namespace (self) -> tipagem.url | None:
         """Namespace do elemento"""
