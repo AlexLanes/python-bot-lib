@@ -8,9 +8,6 @@ pillow
 easyocr
 PyScreeze
 
-# bot.mensagem
-PyMsgBox
-
 # bot.teclado e bot.mouse
 pynput
 pyperclip

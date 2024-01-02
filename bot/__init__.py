@@ -12,7 +12,6 @@ import bot.tipagem as tipagem
 import bot.teclado as teclado
 import bot.windows as windows
 import bot.database as database
-import bot.mensagem as mensagem
 import bot.navegador as navegador
 import bot.estruturas as estruturas
 import bot.configfile as configfile
