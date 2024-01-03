@@ -52,11 +52,13 @@ def salvar_log (caminho: bot.tipagem.caminho = CAMINHO_PASTA_LOGS) -> None:
     bot.windows.copiar_arquivo(NOME_ARQUIVO, f"{ caminho }/{ nome }")
 
 
-def limpar_logs (limite = timedelta(weeks=2)) -> None:
+def limpar_logs (caminho: bot.tipagem.caminho = CAMINHO_PASTA_LOGS, limite = timedelta(weeks=2)) -> None:
     """Limpar os logs que ultrapassaram a data limite
     - espera que os logs tenham o nome no formato `FORMATO_NOME_LOG`"""
     agora = datetime.now().replace(microsecond=0)
-    for arquivo in bot.windows.listar_diretorio(CAMINHO_PASTA_LOGS).arquivos:
+    caminho = bot.windows.path.abspath(caminho)
+    if not bot.windows.path.exists(caminho): return
+    for arquivo in bot.windows.listar_diretorio(caminho).arquivos:
         nome = bot.windows.path.basename(arquivo)
         data = datetime.strptime(nome, FORMATO_NOME_LOG)
         diferenca = agora - data
