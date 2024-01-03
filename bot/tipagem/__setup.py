@@ -102,19 +102,36 @@ class Diretorio:
 
 @dataclass
 class ResultadoSQL:
-    """Classe utilizada no retorno da execução do sqlite"""
+    """Classe utilizada no retorno da execução do banco de dados"""
     linhas_afetadas: int | None
     """Quantidade de linhas afetadas pelo comando sql
     - `None` indica que não se aplica para o comando sql"""
-    colunas: list[str]
+    colunas: tuple[str, ...]
     """Colunas das linhas retornadas (se houver)"""
-    linhas: Generator[list, None, None]
+    linhas: Generator[tuple[tiposSQL, ...], None, None]
     """Generator das linhas retornadas (se houver)"""
 
-    def __iter__ (self) -> Generator[list, None, None]:
+    def __iter__ (self) -> Generator[tuple[tiposSQL, ...], None, None]:
         """Generator do self.linhas"""
         for linha in self.linhas: yield linha
-    
+
+    def __repr__ (self) -> str:
+        "Representação da classe"
+        tipo = f"com '{ self.linhas_afetadas }' linha(s) afetada(s)" if self.linhas_afetadas != None\
+          else f"com '{ len(self.colunas) }' colunas" if self.colunas\
+          else f"vazio"
+        return f"<ResultadoSQL { tipo }>"
+
+    @property
+    def __dict__ (self) -> dict[str, int | None | list[dict]]:
+        """Representação formato dicionário"""
+        linhas = [*self] # linhas do gerador
+        self.linhas = (linha for linha in linhas) # recriar gerador
+        return {
+            "linhas_afetadas": self.linhas_afetadas,
+            "resultados": [{ coluna: valor for coluna, valor in zip(self.colunas, linha) } for linha in linhas]
+        }
+
     def to_dataframe (self) -> DataFrame:
         """Salvar o resultado em um pandas DataFrame"""
         return DataFrame(self, columns=self.colunas)
