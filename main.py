@@ -21,6 +21,4 @@ def main():
 
 
 if __name__ == "__main__":
-    bot.logger.informar("### Iniciado execução do fluxo ###")
     main()
-    bot.logger.informar("### Finalizado execução com sucesso ###")

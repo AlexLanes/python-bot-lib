@@ -1,9 +1,12 @@
 # std
+from shutil import copy as copiar_arquivo
 from os import (
     path,
     system,
     getcwd as get_cwd,
-    listdir as list_dir
+    listdir as list_dir,
+    mkdir as criar_pasta,
+    remove as apagar_arquivo
 )
 # interno
 from bot.util import normalizar
@@ -112,6 +115,9 @@ __all__ = [
     "cmd",
     "path",
     "Janela",
+    "criar_pasta",
+    "apagar_arquivo",
+    "copiar_arquivo",
     "titulos_janelas",
     "listar_diretorio",
     "diretorio_execucao"

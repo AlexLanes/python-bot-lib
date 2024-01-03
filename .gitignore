@@ -3,7 +3,11 @@
 
 # log e configfile
 *.log
+/log
 .ini
+
+# ambiente virtual
+/.venv
 
 # pyinstaller
 /build
