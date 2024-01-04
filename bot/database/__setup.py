@@ -2,7 +2,6 @@
 import re
 import sqlite3
 from typing import Iterable
-from collections import defaultdict
 # interno
 import bot
 # externo
@@ -35,16 +34,12 @@ class Database:
     conexao: pyodbc.Connection
     """Objeto de conexão com o database"""
 
-    def __init__ (self, odbc_driver: str, servidor: str, database: str, usuario: str = None, senha: str = None, /, **kwargs) -> None:
+    def __init__ (self, odbc_driver: str, /, **kwargs) -> None:
         """Inicializar a conexão com o driver odbc
-        - Demais configurações de conexão podem ser especificadas no `kwargs`"""
+        - Demais configurações para a conexão podem ser informadas no `**kwargs`"""
         bot.logger.debug(f"Iniciando conexão com o database '{ odbc_driver }'")
-
-        conexao = f"driver={ odbc_driver };server={ servidor };database={ database };"
-        if usuario: conexao += f"uid={ usuario };"
-        if senha: conexao += f"pwd={ senha };"
+        conexao = f"driver={ odbc_driver };"
         for chave in kwargs: conexao += f"{ chave }={ kwargs[chave] };"
-
         self.conexao = pyodbc.connect(conexao, autocommit=False, timeout=5)
 
     def __del__ (self) -> None:
@@ -89,11 +84,12 @@ class Database:
     @property
     def tabelas (self) -> dict[str, list[str]]:
         """Mapa dos nomes das tabelas e colunas"""
-        mapa = defaultdict(list)
-        for _, schema, tabela, coluna, *_ in self.conexao.cursor().columns():
-            chave = f"{ schema }.{ tabela }" if schema else tabela
-            mapa[chave].append(coluna)
-        return mapa
+        cursor = self.conexao.cursor()
+        schemas_tabelas = [(str(schema), str(tabela))
+                           for _, schema, tabela, tipo, *_ in cursor.tables()
+                           if str(tipo).lower() == "table"]
+        return { f"{ schema }.{ tabela }" if schema else tabela: [item[3] for item in cursor.columns(tabela)]
+                 for schema, tabela in schemas_tabelas }
 
     def to_excel (self, caminho="resultado.xlsx") -> None:
         """Salvar as linhas de todas as tabelas da conexão em um arquivo excel"""
@@ -102,6 +98,12 @@ class Database:
                                             .to_dataframe()\
                                             .to_excel(arquivo, tabela, index=False)
             ajustar_colunas_excel(arquivo)
+
+    @staticmethod
+    def listar_drivers () -> None:
+        """Listar os ODBC drivers existentes no sistema
+        - `@staticmethod`"""
+        return pyodbc.drivers()
 
 
 class Sqlite (Database):
