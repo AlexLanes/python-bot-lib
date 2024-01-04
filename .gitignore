@@ -7,7 +7,7 @@
 .ini
 
 # ambiente virtual
-/.venv
+/venv
 
 # pyinstaller
 /build
