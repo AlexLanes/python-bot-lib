@@ -43,7 +43,7 @@ def erro (mensagem: str) -> None:
 
 
 def salvar_log (caminho: bot.tipagem.caminho = CAMINHO_PASTA_LOGS) -> None:
-    """Salvar o arquivo log para a pasta informada
+    """Salvar o arquivo log na pasta informada
     - o nome do arquivo é o datetime atual"""
     caminho = bot.windows.path.abspath(caminho)
     if not bot.windows.path.exists(caminho):
