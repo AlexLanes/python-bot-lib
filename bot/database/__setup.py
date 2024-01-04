@@ -1,12 +1,13 @@
 # std
 import re
 import sqlite3
-from typing import Iterable, Any
-from abc import ABC, abstractmethod
+from typing import Iterable
+from collections import defaultdict
 # interno
 import bot
 # externo
 import pandas
+import pyodbc
 from xlsxwriter.worksheet import Worksheet
 
 
@@ -26,23 +27,34 @@ def ajustar_colunas_excel (excel: pandas.ExcelWriter) -> None:
         planilha.autofit()
 
 
-class Database (ABC):
-    """Interface com o padrão a ser seguido
-    - `@abstractmethod` obrigado implementar
-    - demais podem ser feito o override se necessário"""
+class Database:
+    """Classe para manipulação de Database ODBC
+    - Necessário possuir o driver instalado em `ODBC Data Sources`
+    - Abstração do `pyodbc`"""
 
-    conexao: Any
+    conexao: pyodbc.Connection
     """Objeto de conexão com o database"""
 
-    def __del__ (self):
+    def __init__ (self, odbc_driver: str, servidor: str, database: str, usuario: str = None, senha: str = None, /, **kwargs) -> None:
+        """Inicializar a conexão com o driver odbc
+        - Demais configurações de conexão podem ser especificadas no `kwargs`"""
+        bot.logger.debug(f"Iniciando conexão com o database '{ odbc_driver }'")
+
+        conexao = f"driver={ odbc_driver };server={ servidor };database={ database };"
+        if usuario: conexao += f"uid={ usuario };"
+        if senha: conexao += f"pwd={ senha };"
+        for chave in kwargs: conexao += f"{ chave }={ kwargs[chave] };"
+
+        self.conexao = pyodbc.connect(conexao, autocommit=False, timeout=5)
+
+    def __del__ (self) -> None:
         """Fechar a conexão quando sair do escopo"""
         bot.logger.debug(f"Encerrando conexão com o database")
-        if hasattr(self.conexao, "close") and callable(self.conexao.close): self.conexao.close()
-        else: del self.conexao
-    
+        if hasattr(self, "conexao") and hasattr(self.conexao, "close") and callable(self.conexao.close): self.conexao.close()
+        else: del self
+
     def __repr__(self) -> str:
-        nomefilho = super().__repr__().split(" ")[0].split(".")[-1]
-        return f"<Database '{ nomefilho }'>"
+        return f"<Database ODBC>"
 
     def commit (self) -> None:
         """Commitar alterações feitas na conexão"""
@@ -52,22 +64,36 @@ class Database (ABC):
         """Reverter as alterações, pós commit, feitas na conexão"""
         self.conexao.rollback()
 
-    @abstractmethod
     def execute (self, sql: str, parametros: bot.tipagem.nomeado | bot.tipagem.posicional = None) -> bot.tipagem.ResultadoSQL:
         """Executar uma única instrução SQL
-        - `sql` Comando que pode ser parametrizado com argumentos nomeados `:nome` ou posicionais `?` (Varia de acordo com os databases)
+        - `sql` Comando que será executado. Pode ser parametrizado com argumentos nomeados `:nome` ou posicionais `?`
         - `parametros` Parâmetros presentes no `sql`"""
+        cursor = self.conexao.execute(sql, parametros) if parametros else self.conexao.execute(sql)
+        colunas = tuple(coluna[0] for coluna in cursor.description) if cursor.description else tuple()
+        linhas_afetadas = cursor.rowcount if cursor.rowcount >= 0 and not colunas else None
+        gerador = (linha for linha in cursor)
+        return bot.tipagem.ResultadoSQL(linhas_afetadas, colunas, gerador)
 
-    @abstractmethod
     def execute_many (self, sql: str, parametros: Iterable[bot.tipagem.nomeado] | Iterable[bot.tipagem.posicional]) -> bot.tipagem.ResultadoSQL:
         """Executar uma ou mais instruções SQL
-        - `sql` Comando que pode ser parametrizado com argumentos nomeados `:nome` ou posicionais `?` (Varia de acordo com os databases)
-        - `parametros` Iterable com parâmetros presentes no `sql`"""
-    
+        - utilizar apenas para saber a quantidade de `linhas_afetadas`
+        - `sql` Comando que será executado. Pode ser parametrizado com argumentos nomeados `:nome` ou posicionais `?`
+        - `parametros` Lista dos parâmetros presentes no `sql`"""
+        # executemany do `pyodbc` não retorna o rowcount
+        linhas_afetadas = 0
+        for parametro in parametros:
+            cursor = self.conexao.execute(sql, parametro)
+            if cursor.rowcount > 0: linhas_afetadas += cursor.rowcount
+        return bot.tipagem.ResultadoSQL(linhas_afetadas, tuple(), (x for x in []))
+
     @property
-    @abstractmethod
-    def tabelas (self) -> dict[str, int]:
-        """Mapa dos nomes das tabelas e quantidade de linhas"""
+    def tabelas (self) -> dict[str, list[str]]:
+        """Mapa dos nomes das tabelas e colunas"""
+        mapa = defaultdict(list)
+        for _, schema, tabela, coluna, *_ in self.conexao.cursor().columns():
+            chave = f"{ schema }.{ tabela }" if schema else tabela
+            mapa[chave].append(coluna)
+        return mapa
 
     def to_excel (self, caminho="resultado.xlsx") -> None:
         """Salvar as linhas de todas as tabelas da conexão em um arquivo excel"""
@@ -90,35 +116,28 @@ class Sqlite (Database):
         bot.logger.debug(f"Iniciando conexão com o database Sqlite")
         self.conexao = sqlite3.connect(database, 5)
     
-    @property
-    def tabelas (self) -> dict[str, int]:
-        """Mapa dos nomes das tabelas e quantidade de linhas"""
-        obter_count = lambda tabela: [*self.execute(f"SELECT count(*) FROM { tabela }")][0][0]
-        tabelas = self.execute("""SELECT name AS tabela FROM sqlite_schema WHERE type = 'table' AND name NOT LIKE 'sqlite_%'""")
-        return { tabela: obter_count(tabela) for tabela, *_ in tabelas }
-
-    def execute (self, sql: str, parametros: bot.tipagem.nomeado | bot.tipagem.posicional = None) -> bot.tipagem.ResultadoSQL:
-        """Executar uma única instrução SQL
-        - `sql` Comando que será executado. Pode ser parametrizado com argumentos nomeados `:nome` ou posicionais `?`
-        - `parametros` Parâmetros presentes no `sql`"""
-        cursor = self.conexao.execute(sql, parametros) if parametros else self.conexao.execute(sql)
-        colunas = tuple(coluna[0] for coluna in cursor.description) if cursor.description else []
-        gerador = (linha for linha in cursor)
-        return bot.tipagem.ResultadoSQL(cursor.rowcount if cursor.rowcount >= 0 else None, colunas, gerador)
-
     def execute_many (self, sql: str, parametros: Iterable[bot.tipagem.nomeado] | Iterable[bot.tipagem.posicional]) -> bot.tipagem.ResultadoSQL:
         """Executar uma ou mais instruções SQL
         - `sql` Comando que será executado. Pode ser parametrizado com argumentos nomeados `:nome` ou posicionais `?`
         - `parametros` Lista dos parâmetros presentes no `sql`"""
         cursor = self.conexao.executemany(sql, parametros)
-        colunas = tuple(coluna[0] for coluna in cursor.description) if cursor.description else []
+        colunas = tuple(coluna[0] for coluna in cursor.description) if cursor.description else tuple()
+        linhas_afetadas = cursor.rowcount if cursor.rowcount >= 0 and not colunas else None
         gerador = (linha for linha in cursor)
-        return bot.tipagem.ResultadoSQL(cursor.rowcount if cursor.rowcount >= 0 else None, colunas, gerador)
+        return bot.tipagem.ResultadoSQL(linhas_afetadas, colunas, gerador)
+    
+    @property
+    def tabelas (self) -> dict[str, list[str]]:
+        """Mapa dos nomes das tabelas e colunas"""
+        obter_colunas = lambda tabela: [coluna for _, coluna, *_, in self.execute(f"PRAGMA table_info({ tabela })")]
+        tabelas = self.execute("""SELECT name AS tabela FROM sqlite_schema WHERE type = 'table' AND name NOT LIKE 'sqlite_%'""")
+        return { tabela: obter_colunas(tabela) for tabela, *_ in tabelas }
 
 
 __all__ = [
     "pandas",
     "Sqlite",
+    "Database",
     "mapear_dtypes",
     "ajustar_colunas_excel"
 ]

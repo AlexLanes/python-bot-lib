@@ -4,6 +4,7 @@ from csv import writer as CsvWriter
 from datetime import datetime as DateTime
 from typing import Literal, Generator, TypeAlias, Iterable
 # externo
+import numpy as np
 from pandas import DataFrame
 
 
@@ -134,7 +135,7 @@ class ResultadoSQL:
 
     def to_dataframe (self) -> DataFrame:
         """Salvar o resultado em um pandas DataFrame"""
-        return DataFrame(self, columns=self.colunas)
+        return DataFrame(np.asarray([*self]), columns=self.colunas)
 
     def to_csv (self, caminho="resultado.csv") -> None:
         """Salvar o resultado em um arquivo .csv
