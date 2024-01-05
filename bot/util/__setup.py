@@ -63,7 +63,7 @@ def info_stack (index=1) -> InfoStack:
     funcao = stack()[index].function
     filename = stack()[index].filename
     caminho, nome = filename.rsplit("\\", 1)
-    caminho = f"{ caminho[0].upper() }{ caminho[1:] }" # forçar upper no primeiro digito
+    caminho = f"{ caminho[0].upper() }{ caminho[1:] }" # forçar upper no primeiro char
     return InfoStack(nome, caminho, funcao, linha)
 
 
