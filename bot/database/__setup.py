@@ -149,7 +149,10 @@ class Sqlite (Database):
         - `database` caminho para o arquivo .db ou .sqlite. `None` para carregar na memória"""
         bot.logger.debug(f"Iniciando conexão com o database Sqlite")
         self.conexao = sqlite3.connect(database, 5)
-    
+
+    def __repr__(self) -> str:
+        return f"<Database Sqlite>"
+
     def execute_many (self, sql: str, parametros: Iterable[bot.tipagem.nomeado] | Iterable[bot.tipagem.posicional]) -> bot.tipagem.ResultadoSQL:
         """Executar uma ou mais instruções SQL
         - `sql` Comando que será executado. Pode ser parametrizado com argumentos nomeados `:nome` ou posicionais `?`
@@ -159,7 +162,7 @@ class Sqlite (Database):
         linhas_afetadas = cursor.rowcount if cursor.rowcount >= 0 and not colunas else None
         gerador = (linha for linha in cursor)
         return bot.tipagem.ResultadoSQL(linhas_afetadas, colunas, gerador)
-    
+
     @property
     def tabelas (self) -> dict[str, list[str]]:
         """Mapa dos nomes das tabelas e colunas"""
