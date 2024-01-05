@@ -155,14 +155,14 @@ class ElementoXML:
         """Criar uma cópia do `ElementoXML`"""
         return ElementoXML(str(self))
 
-    @staticmethod
-    def criar (nome: str, texto: str = None, namespace: tipagem.url = None, atributos: dict[str, str] = {}) -> ElementoXML:
+    @classmethod
+    def criar (cls, nome: str, texto: str = None, namespace: tipagem.url = None, atributos: dict[str, str] = {}) -> ElementoXML:
         """Criar um `ElementoXML` simples
-        - `@staticmethod`"""
+        - `@classmethod`"""
         nome = f"{{{ namespace }}}{ nome }" if namespace else nome
         elemento = Element(nome, atributos)
         elemento.text = texto
-        return ElementoXML(elemento)
+        return cls(elemento)
 
 
 __all__ = [
