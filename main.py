@@ -9,14 +9,14 @@ def main():
     try:
         pass
 
-    except TimeoutError as erro:
-        bot.logger.erro(f"Erro de timeout na espera de alguma condição/elemento/janela: { erro }")
+    except TimeoutError:
+        bot.logger.erro("Erro de timeout na espera de alguma condição/elemento/janela")
         exit(1)
-    except AssertionError as erro:
-        bot.logger.erro(f"Erro de validação pré-execução de algum passo no fluxo: { erro }")
+    except AssertionError:
+        bot.logger.erro("Erro de validação pré-execução de algum passo no fluxo")
         exit(1)
-    except Exception as erro:
-        bot.logger.erro(f"Erro inesperado no fluxo: { erro }")
+    except Exception:
+        bot.logger.erro("Erro inesperado no fluxo")
         exit(1)
 
 
