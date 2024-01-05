@@ -1,6 +1,6 @@
 # std
-import re
 import sqlite3
+import re as regex
 from typing import Iterable
 # interno
 import bot
@@ -14,7 +14,7 @@ def mapear_dtypes (df: pandas.DataFrame) -> dict:
     """Criar um dicionário { coluna: tipo } de um `pandas` dataframe"""
     mapa = {}
     for colunaTipo in df.dtypes.to_string().split("\n"):
-        coluna, tipo, *_ = re.split(r"\s+", colunaTipo)
+        coluna, tipo, *_ = regex.split(r"\s+", colunaTipo)
         mapa[coluna] = tipo
     return mapa
 
@@ -24,6 +24,21 @@ def ajustar_colunas_excel (excel: pandas.ExcelWriter) -> None:
     for nomePlanilha in excel.sheets:
         planilha: Worksheet = excel.sheets[nomePlanilha]
         planilha.autofit()
+
+
+def nomeado_para_posicional (sql: str, parametros: bot.tipagem.nomeado) -> tuple[str, bot.tipagem.posicional]:
+    """Transformar o sql e os parâmetros nomeados `:nome` para a forma posicional `?`
+    - `HELPER` `pyodbc` não aceita parâmetros nomeados"""
+    parametros = { chave.lower(): valor for chave, valor in parametros.items() }
+    parametros_existentes = [encontrado for encontrado in regex.findall(r":\w+", sql) 
+                             if encontrado.lower()[1:] in parametros]
+    parametros_transformado = [parametros[ existente.lower()[1:] ] for existente in parametros_existentes]
+
+    # reversed para o replace não dar problema `(:id, :idade) -> (?, ?ade)`
+    for existente in sorted(set(parametros_existentes), reverse=True): 
+        sql = sql.replace(existente, "?")
+    
+    return (sql, parametros_transformado)
 
 
 class Database:
@@ -36,7 +51,12 @@ class Database:
 
     def __init__ (self, odbc_driver: str, /, **kwargs) -> None:
         """Inicializar a conexão com o driver odbc
-        - Demais configurações para a conexão podem ser informadas no `**kwargs`"""
+        - Demais configurações para a conexão podem ser informadas no `**kwargs`
+            - uid = usario
+            - pwd = senha
+            - server = servidor
+            - port = porta
+            - database = nome do database"""
         bot.logger.debug(f"Iniciando conexão com o database '{ odbc_driver }'")
         conexao = f"driver={ odbc_driver };"
         for chave in kwargs: conexao += f"{ chave }={ kwargs[chave] };"
@@ -61,25 +81,37 @@ class Database:
 
     def execute (self, sql: str, parametros: bot.tipagem.nomeado | bot.tipagem.posicional = None) -> bot.tipagem.ResultadoSQL:
         """Executar uma única instrução SQL
-        - `sql` Comando que será executado. Pode ser parametrizado com argumentos nomeados `:nome` ou posicionais `?`
+        - `sql` Comando que será executado. Pode ser parametrizado com argumentos posicionais `?` ou nomeados `:nome`
         - `parametros` Parâmetros presentes no `sql`"""
+        # transformar para posicional se for nomeado
+        if isinstance(parametros, dict):
+            sql, parametros = nomeado_para_posicional(sql, parametros)
+
         cursor = self.conexao.execute(sql, parametros) if parametros else self.conexao.execute(sql)
         colunas = tuple(coluna[0] for coluna in cursor.description) if cursor.description else tuple()
         linhas_afetadas = cursor.rowcount if cursor.rowcount >= 0 and not colunas else None
         gerador = (linha for linha in cursor)
         return bot.tipagem.ResultadoSQL(linhas_afetadas, colunas, gerador)
 
-    def execute_many (self, sql: str, parametros: Iterable[bot.tipagem.nomeado] | Iterable[bot.tipagem.posicional]) -> bot.tipagem.ResultadoSQL:
+    def execute_many (self, sql: str, parametros: Iterable[bot.tipagem.nomeado] | Iterable[bot.tipagem.posicional]) -> tuple[bot.tipagem.ResultadoSQL, None | list[int]]:
         """Executar uma ou mais instruções SQL
-        - utilizar apenas para saber a quantidade de `linhas_afetadas`
-        - `sql` Comando que será executado. Pode ser parametrizado com argumentos nomeados `:nome` ou posicionais `?`
-        - `parametros` Lista dos parâmetros presentes no `sql`"""
+        - Utilizar apenas comandos SQL que resultem em `linhas_afetadas`
+        - `sql` Comando que será executado. Pode ser parametrizado com argumentos posicionais `?` ou nomeados `:nome`
+        - `parametros` Lista dos parâmetros presentes no `sql`
+        - `tuple[0]` ResultadoSQL e `tuple[1]` index dos parâmetros que apresentaram erro"""
         # executemany do `pyodbc` não retorna o rowcount
-        linhas_afetadas = 0
-        for parametro in parametros:
-            cursor = self.conexao.execute(sql, parametro)
-            if cursor.rowcount > 0: linhas_afetadas += cursor.rowcount
-        return bot.tipagem.ResultadoSQL(linhas_afetadas, tuple(), (x for x in []))
+        total_linhas_afetadas, indexes = 0, []
+
+        for index, parametro in enumerate(parametros):
+            try:
+                resultado = self.execute(sql, parametro)
+                if resultado.linhas_afetadas: total_linhas_afetadas += resultado.linhas_afetadas
+            except pyodbc.DatabaseError as erro: 
+                indexes.append(index)
+                bot.logger.alertar(f"Erro ao executar o parâmetro { parametro }\n\t{ [*erro.args] }")
+
+        return (bot.tipagem.ResultadoSQL(total_linhas_afetadas, tuple(), (x for x in [])), 
+                indexes if len(indexes) else None)
 
     @property
     def tabelas (self) -> dict[str, list[str]]:
