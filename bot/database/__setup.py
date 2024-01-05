@@ -85,7 +85,7 @@ class Database:
     def tabelas (self) -> dict[str, list[str]]:
         """Mapa dos nomes das tabelas e colunas"""
         cursor = self.conexao.cursor()
-        schemas_tabelas = [(str(schema), str(tabela))
+        schemas_tabelas = [(str(schema if schema else ""), str(tabela))
                            for _, schema, tabela, tipo, *_ in cursor.tables()
                            if str(tipo).lower() == "table"]
         return { f"{ schema }.{ tabela }" if schema else tabela: [item[3] for item in cursor.columns(tabela)]
