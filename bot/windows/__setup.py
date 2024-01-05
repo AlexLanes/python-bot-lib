@@ -105,10 +105,11 @@ class Janela:
         Application().connect(handle=self.janela._hWnd).top_window().set_focus()
         self.restaurar()
 
-
-def titulos_janelas () -> list[str]:
-    """Listar os titulos das janelas abertas"""
-    return sorted([ titulo for titulo in get_all_titles() if titulo != "" ])
+    @staticmethod
+    def titulos_janelas () -> list[str]:
+        """Listar os titulos das janelas abertas
+        - `@staticmethod`"""
+        return sorted([ titulo for titulo in get_all_titles() if titulo != "" ])
 
 
 __all__ = [
@@ -118,7 +119,6 @@ __all__ = [
     "criar_pasta",
     "apagar_arquivo",
     "copiar_arquivo",
-    "titulos_janelas",
     "listar_diretorio",
     "diretorio_execucao"
 ]
