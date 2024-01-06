@@ -4,11 +4,11 @@ from sys import exc_info
 from datetime import datetime, timedelta
 # interno
 import bot
-from bot.util import info_stack
+from bot.util import obter_info_stack
 from bot.windows import diretorio_execucao
 
 
-NOME_ARQUIVO = ".log"
+NOME_ARQUIVO_LOG = ".log"
 CAMINHO_PASTA_LOGS = "./logs"
 FORMATO_NOME_LOG = "%Y-%m-%dT%H-%M-%S.log"
 DIRETORIO_EXECUCAO = diretorio_execucao().caminho
@@ -18,7 +18,7 @@ logging.basicConfig(
     level=logging.DEBUG,
     format="%(asctime)s | id(%(process)d) | level(%(levelname)s) | %(message)s",
     datefmt="%Y-%m-%dT%H:%M:%S",
-    filename=NOME_ARQUIVO,
+    filename=NOME_ARQUIVO_LOG,
     encoding="utf-8",
     filemode="w"
 )
@@ -26,28 +26,28 @@ logging.basicConfig(
 
 def debug (mensagem: str) -> None:
     """Log nível 'DEBUG'"""
-    stack = info_stack(2)
+    stack = obter_info_stack(2)
     caminho = '\\'.join([ stack.caminho.replace(DIRETORIO_EXECUCAO, ''), stack.nome ]).lstrip("\\")
     logging.debug(f"arquivo({ caminho }) | função({ stack.funcao }) | linha({ stack.linha }) | { mensagem }")
 
     
 def informar (mensagem: str) -> None:
     """Log nível 'INFO'"""
-    stack = info_stack(2)
+    stack = obter_info_stack(2)
     caminho = '\\'.join([ stack.caminho.replace(DIRETORIO_EXECUCAO, ''), stack.nome ]).lstrip("\\")
     logging.info(f"arquivo({ caminho }) | função({ stack.funcao }) | linha({ stack.linha }) | { mensagem }")
 
 
 def alertar (mensagem: str) -> None:
     """Log nível 'WARNING'"""
-    stack = info_stack(2)
+    stack = obter_info_stack(2)
     caminho = '\\'.join([ stack.caminho.replace(DIRETORIO_EXECUCAO, ''), stack.nome ]).lstrip("\\")
     logging.warning(f"arquivo({ caminho }) | função({ stack.funcao }) | linha({ stack.linha }) | { mensagem }")
 
 
 def erro (mensagem: str) -> None:
     """Log nível 'ERROR'"""
-    stack = info_stack(2)
+    stack = obter_info_stack(2)
     caminho = '\\'.join([ stack.caminho.replace(DIRETORIO_EXECUCAO, ''), stack.nome ]).lstrip("\\")
     logging.error(f"arquivo({ caminho }) | função({ stack.funcao }) | linha({ stack.linha }) | { mensagem }", exc_info=exc_info())
 
@@ -55,11 +55,10 @@ def erro (mensagem: str) -> None:
 def salvar_log (caminho: bot.tipagem.caminho = CAMINHO_PASTA_LOGS) -> None:
     """Salvar o arquivo log na pasta informada
     - o nome do arquivo é o datetime atual"""
-    caminho = bot.windows.path.abspath(caminho)
-    if not bot.windows.path.exists(caminho):
-        bot.windows.criar_pasta(caminho)
     nome = datetime.now().strftime(FORMATO_NOME_LOG)
-    bot.windows.copiar_arquivo(NOME_ARQUIVO, f"{ caminho }/{ nome }")
+    caminho = bot.windows.path.abspath(caminho)
+    if not bot.windows.path.exists(caminho): bot.windows.criar_pasta(caminho)
+    bot.windows.copiar_arquivo(NOME_ARQUIVO_LOG, f"{ caminho }/{ nome }")
 
 
 def limpar_logs (caminho: bot.tipagem.caminho = CAMINHO_PASTA_LOGS, limite = timedelta(weeks=2)) -> None:
@@ -71,8 +70,7 @@ def limpar_logs (caminho: bot.tipagem.caminho = CAMINHO_PASTA_LOGS, limite = tim
     for arquivo in bot.windows.listar_diretorio(caminho).arquivos:
         nome = bot.windows.path.basename(arquivo)
         data = datetime.strptime(nome, FORMATO_NOME_LOG)
-        diferenca = agora - data
-        if diferenca > limite: bot.windows.apagar_arquivo(arquivo)
+        if agora - data > limite: bot.windows.apagar_arquivo(arquivo)
 
 
 __all__ = [
@@ -82,6 +80,6 @@ __all__ = [
     "informar",
     "salvar_log",
     "limpar_logs",
-    "NOME_ARQUIVO",
+    "NOME_ARQUIVO_LOG",
     "CAMINHO_PASTA_LOGS"
 ]

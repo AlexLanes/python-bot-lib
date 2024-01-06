@@ -64,7 +64,7 @@ def procurar_imagens (imagem: bot.tipagem.caminho | Image.Image | bytes, confian
     return coordenadas
 
 
-def cores_imagem (imagem: bot.tipagem.caminho | Image.Image | bytes, limite: int | slice = 10) -> list[tuple[int, tuple[int, int, int]]]:
+def obter_cores_imagem (imagem: bot.tipagem.caminho | Image.Image | bytes, limite: int | slice = 10) -> list[tuple[int, tuple[int, int, int]]]:
     """Obter as cores RGB e frequencia de cada pixel da `imagem`
     - `imagem` pode ser o caminho até o arquivo, bytes da image ou `Image` do módulo `pillow`
     - `limite` quantidade que será retornada dos mais frequentes
@@ -138,8 +138,8 @@ class LeitorOCR:
 
 __all__ = [
     "LeitorOCR",
-    "cores_imagem",
     "capturar_tela",
     "procurar_imagem",
-    "procurar_imagens"
+    "procurar_imagens",
+    "obter_cores_imagem"
 ]

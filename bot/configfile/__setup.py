@@ -18,13 +18,13 @@ possui_secao = config.has_section
 
 
 def possui_opcoes (secao: str, opcoes: list[str]) -> bool:
-    """Versão do `has_option` que aceita uma lista de `opcoes`"""
+    """Versão do `possui_opcao` que aceita uma lista de `opcoes`"""
     return all(config.has_option(secao, opcao) for opcao in opcoes)
 
 
 def obter_opcoes (secao: str, opcoes: list[str]) -> tuple[str, ...]:
     """Obter `opções` de uma `seção` do configfile
-    - Versão do `get` que aceita uma lista de `opcoes`
+    - Versão do `obter_opcao` que aceita uma lista de `opcoes`
     - `AssertionError` caso a `secao` ou alguma `opcao` não exista
     - `tuple` de retorno terá os valores na mesma ordem que as `opcoes`"""
     assert possui_secao(secao), f"Seção do configfile '{ secao }' não foi configurada"

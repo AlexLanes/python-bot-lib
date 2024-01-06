@@ -18,7 +18,7 @@ class Navegador (ABC):
     driver: WebDriverEdge | WebDriverChrome | WebDriverIe
     """Driver do `Selenium`"""
     
-    def __del__ (self):
+    def __del__ (self) -> None:
         """Encerrar o driver quando a variável do navegador sair do escopo"""
         self.driver.quit()
         bot.logger.informar("Navegador fechado")
@@ -86,7 +86,7 @@ class Edge (Navegador):
     driver: WebDriverEdge
     """Driver Edge"""
 
-    def __init__ (self, timeout=30.0):
+    def __init__ (self, timeout=30.0) -> None:
         """Inicializar o navegador Edge
         - `timeout` utilizado na espera do `implicitly_wait`"""
         options = EdgeOptions()
@@ -110,7 +110,7 @@ class Chrome (Navegador):
     driver: WebDriverChrome
     """Driver Chrome"""
     
-    def __init__ (self, timeout=30.0):
+    def __init__ (self, timeout=30.0) -> None:
         """Inicializar o navegador Chrome
         - `timeout` utilizado na espera do `implicitly_wait`"""
         options = ChromeOptions()
@@ -136,7 +136,7 @@ class Explorer (Navegador):
     driver: WebDriverIe
     """Driver Internet Explorer"""
 
-    def __init__ (self, timeout=30.0):
+    def __init__ (self, timeout=30.0) -> None:
         """Inicializar o navegador Edge no modo Internet Explorer
         - `timeout` utilizado na espera do `implicitly_wait`"""
         options = IeOptions()
