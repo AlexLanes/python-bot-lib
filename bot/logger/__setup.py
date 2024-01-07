@@ -4,19 +4,16 @@ from sys import exc_info
 from datetime import datetime, timedelta
 # interno
 import bot
-from bot.util import obter_info_stack
-from bot.windows import diretorio_execucao
 
 
 NOME_ARQUIVO_LOG = ".log"
 CAMINHO_PASTA_LOGS = "./logs"
 FORMATO_NOME_LOG = "%Y-%m-%dT%H-%M-%S.log"
-DIRETORIO_EXECUCAO = diretorio_execucao().caminho
 
 
 logging.basicConfig(
     level=logging.DEBUG,
-    format="%(asctime)s | id(%(process)d) | level(%(levelname)s) | %(message)s",
+    format="%(asctime)s | nome(%(name)s) | level(%(levelname)s) | %(message)s",
     datefmt="%Y-%m-%dT%H:%M:%S",
     filename=NOME_ARQUIVO_LOG,
     encoding="utf-8",
@@ -24,32 +21,36 @@ logging.basicConfig(
 )
 
 
+def extrair_stack () -> tuple[str, str, int]:
+    """Extrair informações do stack para formatar a mensagem de log
+    - `caminho, funcao, linha = extrair_stack()`"""
+    stack, diretorio_execucao = bot.util.obter_info_stack(3), bot.windows.diretorio_execucao().caminho
+    caminho = rf"{ stack.caminho.replace(diretorio_execucao, '') }\{ stack.nome }".lstrip("\\")
+    return (caminho, stack.funcao, stack.linha)
+
+
 def debug (mensagem: str) -> None:
     """Log nível 'DEBUG'"""
-    stack = obter_info_stack(2)
-    caminho = '\\'.join([ stack.caminho.replace(DIRETORIO_EXECUCAO, ''), stack.nome ]).lstrip("\\")
-    logging.debug(f"arquivo({ caminho }) | função({ stack.funcao }) | linha({ stack.linha }) | { mensagem }")
+    caminho, funcao, linha = extrair_stack()
+    logging.debug(f"arquivo({ caminho }) | função({ funcao }) | linha({ linha }) | { mensagem }")
 
     
 def informar (mensagem: str) -> None:
     """Log nível 'INFO'"""
-    stack = obter_info_stack(2)
-    caminho = '\\'.join([ stack.caminho.replace(DIRETORIO_EXECUCAO, ''), stack.nome ]).lstrip("\\")
-    logging.info(f"arquivo({ caminho }) | função({ stack.funcao }) | linha({ stack.linha }) | { mensagem }")
+    caminho, funcao, linha = extrair_stack()
+    logging.info(f"arquivo({ caminho }) | função({ funcao }) | linha({ linha }) | { mensagem }")
 
 
 def alertar (mensagem: str) -> None:
     """Log nível 'WARNING'"""
-    stack = obter_info_stack(2)
-    caminho = '\\'.join([ stack.caminho.replace(DIRETORIO_EXECUCAO, ''), stack.nome ]).lstrip("\\")
-    logging.warning(f"arquivo({ caminho }) | função({ stack.funcao }) | linha({ stack.linha }) | { mensagem }")
+    caminho, funcao, linha = extrair_stack()
+    logging.warning(f"arquivo({ caminho }) | função({ funcao }) | linha({ linha }) | { mensagem }")
 
 
 def erro (mensagem: str) -> None:
     """Log nível 'ERROR'"""
-    stack = obter_info_stack(2)
-    caminho = '\\'.join([ stack.caminho.replace(DIRETORIO_EXECUCAO, ''), stack.nome ]).lstrip("\\")
-    logging.error(f"arquivo({ caminho }) | função({ stack.funcao }) | linha({ stack.linha }) | { mensagem }", exc_info=exc_info())
+    caminho, funcao, linha = extrair_stack()
+    logging.error(f"arquivo({ caminho }) | função({ funcao }) | linha({ linha }) | { mensagem }", exc_info=exc_info())
 
 
 def salvar_log (caminho: bot.tipagem.caminho = CAMINHO_PASTA_LOGS) -> None:
