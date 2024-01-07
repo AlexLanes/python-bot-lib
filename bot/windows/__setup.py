@@ -31,7 +31,7 @@ def criar_pasta (caminho: caminho) -> caminho:
 def copiar_arquivo (de: caminho, para: caminho) -> caminho:
     """Copiar arquivo `de` um caminho `para` outro
     - Retorna o caminho para o qual foi copiado"""
-    return shutil.copyfile(de, para)
+    return caminho_absoluto(shutil.copyfile(de, para))
 
 
 def extrair_nome_base (caminho: caminho) -> str:
