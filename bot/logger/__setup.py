@@ -46,7 +46,8 @@ def alertar (mensagem: str) -> None:
 
 
 def erro (mensagem: str) -> None:
-    """Log nível 'ERROR'"""
+    """Log nível 'ERROR'
+    - Erro é informado automaticamente no log"""
     logger.error(criar_mensagem_padrao(mensagem), exc_info=exc_info())
 
 
