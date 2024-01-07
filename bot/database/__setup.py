@@ -96,28 +96,24 @@ class Database:
         cursor = self.conexao.execute(sql, parametros) if parametros else self.conexao.execute(sql)
         colunas = tuple(coluna[0] for coluna in cursor.description) if cursor.description else tuple()
         linhas_afetadas = cursor.rowcount if cursor.rowcount >= 0 and not colunas else None
-        gerador = (linha for linha in cursor)
+        gerador = (tuple(linha) for linha in cursor)
         return bot.tipagem.ResultadoSQL(linhas_afetadas, colunas, gerador)
 
-    def execute_many (self, sql: str, parametros: Iterable[bot.tipagem.nomeado] | Iterable[bot.tipagem.posicional]) -> tuple[bot.tipagem.ResultadoSQL, None | list[int]]:
+    def execute_many (self, sql: str, parametros: Iterable[bot.tipagem.nomeado] | Iterable[bot.tipagem.posicional]) -> bot.tipagem.ResultadoSQL:
         """Executar uma ou mais instruções SQL
         - Utilizar apenas comandos SQL que resultem em `linhas_afetadas`
         - `sql` Comando que será executado. Deve ser parametrizado com argumentos posicionais `?` ou nomeados `:nome`
         - `parametros` Lista dos parâmetros presentes no `sql`
-        - `tuple[0]` ResultadoSQL e `tuple[1]` index dos parâmetros que apresentaram erro"""
+        - Parâmetros que apresentaram erro será feito log de alerta"""
         # executemany do `pyodbc` não retorna o rowcount
-        total_linhas_afetadas, indexes = 0, []
-
-        for index, parametro in enumerate(parametros):
+        total_linhas_afetadas = 0
+        for parametro in parametros:
             try:
                 resultado = self.execute(sql, parametro)
                 if resultado.linhas_afetadas: total_linhas_afetadas += resultado.linhas_afetadas
             except pyodbc.DatabaseError as erro: 
-                indexes.append(index)
                 bot.logger.alertar(f"Erro ao executar o parâmetro { parametro }\n\t{ [*erro.args] }")
-
-        return (bot.tipagem.ResultadoSQL(total_linhas_afetadas, tuple(), (x for x in [])), 
-                indexes if len(indexes) else None)
+        return bot.tipagem.ResultadoSQL(total_linhas_afetadas, tuple(), (x for x in []))
 
     @property
     def tabelas (self) -> dict[str, list[str]]:

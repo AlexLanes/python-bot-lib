@@ -20,8 +20,9 @@ import yaml
 def json_stringify (item: Any, indentar=True) -> str:
     """Transforma o `item` em uma string JSON"""
     def tratamentos (obj):
-        if isinstance(obj, set): return [x for x in obj]
+        if type(obj) in (int, float, str, bool, type(None)): return obj
         if hasattr(obj, "__dict__"): return obj.__dict__
+        if hasattr(obj, "__iter__"): return [tratamentos(item) for item in obj]
         if hasattr(obj, "__str__"): return obj.__str__()
         raise TypeError(f"Item de tipo inesperado para ser transformado em json: '{ type(item) }'")
     return json_dumps(item, ensure_ascii=False, default=tratamentos, indent=4 if indentar else None)
