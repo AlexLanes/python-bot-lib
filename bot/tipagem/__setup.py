@@ -123,6 +123,10 @@ class ResultadoSQL:
           else f"vazio"
         return f"<ResultadoSQL { tipo }>"
 
+    def __bool__ (self) -> bool:
+        """Representação booleana"""
+        return "vazio" not in repr(self)
+
     @property
     def __dict__ (self) -> dict[str, int | None | list[dict]]:
         """Representação formato dicionário"""

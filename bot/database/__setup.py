@@ -10,13 +10,11 @@ import pyodbc
 from xlsxwriter.worksheet import Worksheet
 
 
-def mapear_dtypes (df: pandas.DataFrame) -> dict:
+def mapear_dtypes (df: pandas.DataFrame) -> dict[str, str]:
     """Criar um dicionário { coluna: tipo } de um `pandas` dataframe"""
-    mapa = {}
-    for colunaTipo in df.dtypes.to_string().split("\n"):
-        coluna, tipo, *_ = regex.split(r"\s+", colunaTipo)
-        mapa[coluna] = tipo
-    return mapa
+    linhas = [regex.split(r"\s+", linha)
+              for linha in df.dtypes.to_string().split("\n")]
+    return { coluna: tipo for coluna, tipo, *_ in linhas }
 
 
 def ajustar_colunas_excel (excel: pandas.ExcelWriter) -> None:
@@ -51,15 +49,22 @@ class Database:
 
     def __init__ (self, odbc_driver: str, /, **kwargs) -> None:
         """Inicializar a conexão com o driver odbc
+        - `odbc_driver` Não precisa ser exato mas deve estar em `Database.listar_drivers()`
         - Demais configurações para a conexão podem ser informadas no `**kwargs`
-            - uid = usario
+            - uid = usuário
             - pwd = senha
             - server = servidor
             - port = porta
             - database = nome do database"""
+        if not (drivers := [d for d in self.listar_drivers() if odbc_driver.lower() in d.lower()]): 
+            raise ValueError(f"Driver ODBC '{ odbc_driver }' não encontrado")
+
+        odbc_driver = unicode[0] if (unicode := [d for d in drivers if "unicode" in d.lower()]) \
+                                 else drivers[0]
         bot.logger.debug(f"Iniciando conexão com o database '{ odbc_driver }'")
+
         conexao = f"driver={ odbc_driver };"
-        for chave in kwargs: conexao += f"{ chave }={ kwargs[chave] };"
+        for configuracao in kwargs: conexao += f"{ configuracao }={ kwargs[configuracao] };"
         self.conexao = pyodbc.connect(conexao, autocommit=False, timeout=5)
 
     def __del__ (self) -> None:
@@ -83,6 +88,7 @@ class Database:
         """Executar uma única instrução SQL
         - `sql` Comando que será executado. Pode ser parametrizado com argumentos posicionais `?` ou nomeados `:nome`
         - `parametros` Parâmetros presentes no `sql`"""
+        # `pyodbc` não aceita parâmetros nomeados
         # transformar para posicional se for nomeado
         if isinstance(parametros, dict):
             sql, parametros = nomeado_para_posicional(sql, parametros)
@@ -96,7 +102,7 @@ class Database:
     def execute_many (self, sql: str, parametros: Iterable[bot.tipagem.nomeado] | Iterable[bot.tipagem.posicional]) -> tuple[bot.tipagem.ResultadoSQL, None | list[int]]:
         """Executar uma ou mais instruções SQL
         - Utilizar apenas comandos SQL que resultem em `linhas_afetadas`
-        - `sql` Comando que será executado. Pode ser parametrizado com argumentos posicionais `?` ou nomeados `:nome`
+        - `sql` Comando que será executado. Deve ser parametrizado com argumentos posicionais `?` ou nomeados `:nome`
         - `parametros` Lista dos parâmetros presentes no `sql`
         - `tuple[0]` ResultadoSQL e `tuple[1]` index dos parâmetros que apresentaram erro"""
         # executemany do `pyodbc` não retorna o rowcount
@@ -132,7 +138,7 @@ class Database:
             ajustar_colunas_excel(arquivo)
 
     @staticmethod
-    def listar_drivers () -> None:
+    def listar_drivers () -> list[str]:
         """Listar os ODBC drivers existentes no sistema
         - `@staticmethod`"""
         return pyodbc.drivers()
@@ -153,9 +159,19 @@ class Sqlite (Database):
     def __repr__(self) -> str:
         return f"<Database Sqlite>"
 
+    def execute (self, sql: str, parametros: bot.tipagem.nomeado | bot.tipagem.posicional = None) -> bot.tipagem.ResultadoSQL:
+        """Executar uma única instrução SQL
+        - `sql` Comando que será executado. Pode ser parametrizado com argumentos posicionais `?` ou nomeados `:nome`
+        - `parametros` Parâmetros presentes no `sql`"""
+        cursor = self.conexao.execute(sql, parametros) if parametros else self.conexao.execute(sql)
+        colunas = tuple(coluna[0] for coluna in cursor.description) if cursor.description else tuple()
+        linhas_afetadas = cursor.rowcount if cursor.rowcount >= 0 and not colunas else None
+        gerador = (linha for linha in cursor)
+        return bot.tipagem.ResultadoSQL(linhas_afetadas, colunas, gerador)
+
     def execute_many (self, sql: str, parametros: Iterable[bot.tipagem.nomeado] | Iterable[bot.tipagem.posicional]) -> bot.tipagem.ResultadoSQL:
         """Executar uma ou mais instruções SQL
-        - `sql` Comando que será executado. Pode ser parametrizado com argumentos nomeados `:nome` ou posicionais `?`
+        - `sql` Comando que será executado. Deve ser parametrizado com argumentos nomeados `:nome` ou posicionais `?`
         - `parametros` Lista dos parâmetros presentes no `sql`"""
         cursor = self.conexao.executemany(sql, parametros)
         colunas = tuple(coluna[0] for coluna in cursor.description) if cursor.description else tuple()
