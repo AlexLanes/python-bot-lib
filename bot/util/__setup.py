@@ -7,6 +7,7 @@ from unicodedata import normalize
 from time import sleep, perf_counter
 from multiprocessing.pool import ThreadPool
 # interno
+import bot
 from bot.tipagem import InfoStack
 
 
@@ -17,6 +18,15 @@ def setar_timeout (segundos: float):
             return ThreadPool(1).apply_async(func, args, kwargs).get(segundos) 
         return wrapper
     return decorator
+
+
+def tempo_execucao (func):
+    """Decorator\n-\nLoggar o tempo de execução da função em segundos"""
+    def tempo_execucao (*args, **kwargs):
+        inicio, resultado = perf_counter(), func(*args, **kwargs)
+        bot.logger.debug(f"Função({ func.__name__ }) executada em {perf_counter() - inicio:.2f} segundos")
+        return resultado
+    return tempo_execucao
 
 
 def ignorar_excecoes (excecoes: list[Exception], default=None):
@@ -86,6 +96,7 @@ def index_melhor_match (texto: str, opcoes: list[str]) -> int:
 __all__ = [
     "normalizar",
     "setar_timeout",
+    "tempo_execucao",
     "ignorar_excecoes",
     "obter_info_stack",
     "aguardar_condicao",
