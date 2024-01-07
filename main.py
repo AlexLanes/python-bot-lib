@@ -6,6 +6,8 @@ import bot
 
 def main():
     """Fluxo principal"""
+    bot.logger.debug("teste de log")
+    bot.windows.apagar_arquivo(r"./bot")
     pass
 
 

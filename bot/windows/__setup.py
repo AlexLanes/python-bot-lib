@@ -15,7 +15,9 @@ from pygetwindow import (
 
 
 def apagar_arquivo (caminho: caminho) -> None:
-    """"""
+    """Apagar um arquivo"""
+    if not confirmar_caminho(caminho): return
+    assert confirmar_arquivo(caminho), "O caminho informado não é de um arquivo"
     os.remove(caminho)
 
 
