@@ -1,13 +1,6 @@
 # std
-from shutil import copy as copiar_arquivo
-from os import (
-    path,
-    system,
-    getcwd as get_cwd,
-    listdir as list_dir,
-    mkdir as criar_pasta,
-    remove as apagar_arquivo
-)
+import os
+import shutil
 # interno
 from bot.util import normalizar
 from bot.tipagem import Diretorio, Coordenada, caminho
@@ -21,31 +14,74 @@ from pygetwindow import (
 )
 
 
+def apagar_arquivo (caminho: caminho) -> None:
+    """"""
+    os.remove(caminho)
+
+
+def criar_pasta (caminho: caminho) -> caminho:
+    """Criar pasta no `caminho` informado
+    - Retorna o caminho absoluto da pasta criada"""
+    os.mkdir(caminho)
+    return caminho_absoluto(caminho)
+
+
+def copiar_arquivo (de: caminho, para: caminho) -> caminho:
+    """Copiar arquivo `de` um caminho `para` outro
+    - Retorna o caminho para o qual foi copiado"""
+    return shutil.copyfile(de, para)
+
+
+def extrair_nome_base (caminho: caminho) -> str:
+    """Extrair a parte do nome e formato do `caminho`"""
+    return os.path.basename(caminho)
+
+
+def caminho_absoluto (caminho: caminho) -> caminho: 
+    """Retorna a forma de caminho absoluto para o `caminho` informado"""
+    return os.path.abspath(caminho)
+
+
+def confirmar_caminho (caminho: caminho) -> bool:
+    """Confirmar se `caminho` existe ou não"""
+    return os.path.exists(caminho)
+
+
+def confirmar_pasta (caminho: caminho) -> bool:
+    """Confirmar se o `caminho` informado é de um diretório"""
+    return os.path.isdir(caminho)
+
+
+def confirmar_arquivo (caminho: caminho) -> bool:
+    """Confirmar se o `caminho` informado é de um arquivo"""
+    return os.path.isfile(caminho)
+
+
 def cmd (comando: str) -> None | Exception:
     """Realizar um comando no `prompt`
     - Levar em consideração o diretório de execução atual
     - Lança exceção se o comando for inválido"""
-    system(comando)
+    os.system(comando)
 
 
 def listar_diretorio (caminhoPasta: caminho) -> Diretorio:
     """Lista os caminhos dos arquivos e pastas do `caminhoPasta`"""
-    assert path.exists(caminhoPasta), f"Caminho informado '{ caminhoPasta }' não existe"
-    assert path.isdir(caminhoPasta), f"Caminho informado '{ caminhoPasta }' não é de uma pasta"
+    assert confirmar_caminho(caminhoPasta), f"Caminho informado '{ caminhoPasta }' não existe"
+    assert confirmar_pasta(caminhoPasta), f"Caminho informado '{ caminhoPasta }' não é de uma pasta"
 
-    caminhoPasta = path.abspath(caminhoPasta)
+    caminhoPasta = caminho_absoluto(caminhoPasta)
     diretorio = Diretorio(caminhoPasta, [], [])
-    for item in list_dir(caminhoPasta):
+    for item in os.listdir(caminhoPasta):
         caminho = f"{ caminhoPasta }\\{ item }"
-        if path.isdir(caminho): diretorio.pastas.append(caminho)
-        elif path.isfile(caminho): diretorio.arquivos.append(caminho)
+        if confirmar_pasta(caminho): diretorio.pastas.append(caminho)
+        elif confirmar_arquivo(caminho): diretorio.arquivos.append(caminho)
 
     return diretorio
 
 
 def diretorio_execucao () -> Diretorio:
     """Obter informações do diretório de execução atual"""
-    return listar_diretorio(get_cwd())
+    return listar_diretorio(os.getcwd())
 
 
 class Janela:
@@ -114,11 +150,15 @@ class Janela:
 
 __all__ = [
     "cmd",
-    "path",
     "Janela",
     "criar_pasta",
     "apagar_arquivo",
     "copiar_arquivo",
+    "confirmar_pasta",
     "listar_diretorio",
+    "caminho_absoluto",
+    "confirmar_caminho",
+    "confirmar_arquivo",
+    "extrair_nome_base",
     "diretorio_execucao"
 ]

@@ -1,13 +1,13 @@
 # std
 from configparser import ConfigParser
 # interno
-from bot.windows import diretorio_execucao, path
+from bot.windows import diretorio_execucao, extrair_nome_base
 
 
 config = ConfigParser()
 for arquivo in diretorio_execucao().arquivos:
     if not arquivo.endswith(".ini"): continue
-    config.read(path.basename(arquivo), encoding="utf-8")
+    config.read(extrair_nome_base(arquivo), encoding="utf-8")
 
 
 obter_opcao = config.get
