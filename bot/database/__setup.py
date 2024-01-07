@@ -44,7 +44,7 @@ class Database:
     - Necessário possuir o driver instalado em `ODBC Data Sources`
     - Abstração do `pyodbc`"""
 
-    conexao: pyodbc.Connection
+    __conexao: pyodbc.Connection
     """Objeto de conexão com o database"""
 
     def __init__ (self, odbc_driver: str, /, **kwargs) -> None:
@@ -65,12 +65,12 @@ class Database:
 
         conexao = f"driver={ odbc_driver };"
         for configuracao in kwargs: conexao += f"{ configuracao }={ kwargs[configuracao] };"
-        self.conexao = pyodbc.connect(conexao, autocommit=False, timeout=5)
+        self.__conexao = pyodbc.connect(conexao, autocommit=False, timeout=5)
 
     def __del__ (self) -> None:
         """Fechar a conexão quando sair do escopo"""
         bot.logger.debug(f"Encerrando conexão com o database")
-        if hasattr(self, "conexao") and hasattr(self.conexao, "close") and callable(self.conexao.close): self.conexao.close()
+        if hasattr(self, "__conexao") and hasattr(self.__conexao, "close") and callable(self.__conexao.close): self.__conexao.close()
         else: del self
 
     def __repr__(self) -> str:
@@ -78,11 +78,11 @@ class Database:
 
     def commit (self) -> None:
         """Commitar alterações feitas na conexão"""
-        self.conexao.commit()
+        self.__conexao.commit()
 
     def rollback (self) -> None:
         """Reverter as alterações, pós commit, feitas na conexão"""
-        self.conexao.rollback()
+        self.__conexao.rollback()
 
     def execute (self, sql: str, parametros: bot.tipagem.nomeado | bot.tipagem.posicional = None) -> bot.tipagem.ResultadoSQL:
         """Executar uma única instrução SQL
@@ -93,7 +93,7 @@ class Database:
         if isinstance(parametros, dict):
             sql, parametros = nomeado_para_posicional(sql, parametros)
 
-        cursor = self.conexao.execute(sql, parametros) if parametros else self.conexao.execute(sql)
+        cursor = self.__conexao.execute(sql, parametros) if parametros else self.__conexao.execute(sql)
         colunas = tuple(coluna[0] for coluna in cursor.description) if cursor.description else tuple()
         linhas_afetadas = cursor.rowcount if cursor.rowcount >= 0 and not colunas else None
         gerador = (tuple(linha) for linha in cursor)
@@ -116,21 +116,21 @@ class Database:
         return bot.tipagem.ResultadoSQL(total_linhas_afetadas, tuple(), (x for x in []))
 
     @property
-    def tabelas (self) -> dict[str, list[str]]:
-        """Mapa dos nomes das tabelas e colunas"""
-        cursor = self.conexao.cursor()
+    def tabelas_colunas (self) -> dict[str, list[str]]:
+        """Mapa dos nomes das tabelas e colunas
+        - tabela pode vir com o schema atribuído caso possua"""
+        cursor = self.__conexao.cursor()
         schemas_tabelas = [(str(schema if schema else ""), str(tabela))
-                           for _, schema, tabela, tipo, *_ in cursor.tables()
-                           if str(tipo).lower() == "table"]
-        return { f"{ schema }.{ tabela }" if schema else tabela: [item[3] for item in cursor.columns(tabela)]
+                           for _, schema, tabela, *_ in cursor.tables(tableType="TABLE")]
+        return { f"{schema}.{tabela}" if schema else tabela: [item[3] for item in cursor.columns(tabela)]
                  for schema, tabela in schemas_tabelas }
 
     def to_excel (self, caminho="resultado.xlsx") -> None:
         """Salvar as linhas de todas as tabelas da conexão em um arquivo excel"""
         with pandas.ExcelWriter(caminho) as arquivo:
-            for tabela in self.tabelas: self.execute(f"SELECT * FROM { tabela }")\
-                                            .to_dataframe()\
-                                            .to_excel(arquivo, tabela, index=False)
+            for tabela in self.tabelas_colunas: self.execute(f"SELECT * FROM { tabela }")\
+                                                    .to_dataframe()\
+                                                    .to_excel(arquivo, tabela, index=False)
             ajustar_colunas_excel(arquivo)
 
     @staticmethod
@@ -143,14 +143,14 @@ class Database:
 class Sqlite (Database):
     """Classe de abstração do módulo `sqlite3`"""
 
-    conexao: sqlite3.Connection
+    __conexao: sqlite3.Connection
     """Conexão com o sqlite3"""
 
     def __init__ (self, database=":memory:") -> None:
         """Inicialização do banco de dados
         - `database` caminho para o arquivo .db ou .sqlite. `None` para carregar na memória"""
         bot.logger.debug(f"Iniciando conexão com o database Sqlite")
-        self.conexao = sqlite3.connect(database, 5)
+        self.__conexao = sqlite3.connect(database, 5)
 
     def __repr__(self) -> str:
         return f"<Database Sqlite>"
@@ -159,7 +159,7 @@ class Sqlite (Database):
         """Executar uma única instrução SQL
         - `sql` Comando que será executado. Pode ser parametrizado com argumentos posicionais `?` ou nomeados `:nome`
         - `parametros` Parâmetros presentes no `sql`"""
-        cursor = self.conexao.execute(sql, parametros) if parametros else self.conexao.execute(sql)
+        cursor = self.__conexao.execute(sql, parametros) if parametros else self.__conexao.execute(sql)
         colunas = tuple(coluna[0] for coluna in cursor.description) if cursor.description else tuple()
         linhas_afetadas = cursor.rowcount if cursor.rowcount >= 0 and not colunas else None
         gerador = (linha for linha in cursor)
@@ -169,14 +169,14 @@ class Sqlite (Database):
         """Executar uma ou mais instruções SQL
         - `sql` Comando que será executado. Deve ser parametrizado com argumentos nomeados `:nome` ou posicionais `?`
         - `parametros` Lista dos parâmetros presentes no `sql`"""
-        cursor = self.conexao.executemany(sql, parametros)
+        cursor = self.__conexao.executemany(sql, parametros)
         colunas = tuple(coluna[0] for coluna in cursor.description) if cursor.description else tuple()
         linhas_afetadas = cursor.rowcount if cursor.rowcount >= 0 and not colunas else None
         gerador = (linha for linha in cursor)
         return bot.tipagem.ResultadoSQL(linhas_afetadas, colunas, gerador)
 
     @property
-    def tabelas (self) -> dict[str, list[str]]:
+    def tabelas_colunas (self) -> dict[str, list[str]]:
         """Mapa dos nomes das tabelas e colunas"""
         obter_colunas = lambda tabela: [coluna for _, coluna, *_, in self.execute(f"PRAGMA table_info({ tabela })")]
         tabelas = self.execute("""SELECT name AS tabela FROM sqlite_schema WHERE type = 'table' AND name NOT LIKE 'sqlite_%'""")
