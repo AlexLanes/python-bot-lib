@@ -22,6 +22,11 @@ class Navegador (ABC):
         """Encerrar o driver quando a variável do navegador sair do escopo"""
         self.driver.quit()
         bot.logger.informar("Navegador fechado")
+    
+    @property
+    def titulo (self) -> str:
+        """Título da aba focada"""
+        return self.driver.title
 
     @property
     def abas (self) -> list[str]:
