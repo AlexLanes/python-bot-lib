@@ -56,7 +56,7 @@ def salvar_log (caminho: bot.tipagem.caminho = CAMINHO_PASTA_LOGS) -> None:
     - o nome do arquivo é o datetime atual"""
     nome = datetime.now().strftime(FORMATO_NOME_LOG)
     caminho = bot.windows.caminho_absoluto(caminho)
-    if not bot.windows.confirmar_caminho(caminho): bot.windows.criar_pasta(caminho)
+    if not bot.windows.caminho_existe(caminho): bot.windows.criar_pasta(caminho)
     bot.windows.copiar_arquivo(NOME_ARQUIVO_LOG, f"{ caminho }/{ nome }")
 
 
@@ -64,7 +64,7 @@ def limpar_logs (caminho: bot.tipagem.caminho = CAMINHO_PASTA_LOGS, limite = tim
     """Limpar os logs que ultrapassaram a data limite
     - espera que os logs tenham o nome no formato `FORMATO_NOME_LOG`"""
     caminho = bot.windows.caminho_absoluto(caminho)
-    if not bot.windows.confirmar_caminho(caminho): return
+    if not bot.windows.caminho_existe(caminho): return
     for caminho_log in bot.windows.listar_diretorio(caminho).arquivos:
         nome = bot.windows.extrair_nome_base(caminho_log)
         data = datetime.strptime(nome, FORMATO_NOME_LOG)

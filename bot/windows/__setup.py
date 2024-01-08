@@ -16,7 +16,7 @@ from pygetwindow import (
 
 def apagar_arquivo (caminho: caminho) -> None:
     """Apagar um arquivo"""
-    if not confirmar_caminho(caminho): return
+    if not caminho_existe(caminho): return
     assert confirmar_arquivo(caminho), "O caminho informado não é de um arquivo"
     os.remove(caminho)
 
@@ -44,7 +44,7 @@ def caminho_absoluto (caminho: caminho) -> caminho:
     return os.path.abspath(caminho)
 
 
-def confirmar_caminho (caminho: caminho) -> bool:
+def caminho_existe (caminho: caminho) -> bool:
     """Confirmar se `caminho` existe ou não"""
     return os.path.exists(caminho)
 
@@ -68,7 +68,7 @@ def cmd (comando: str) -> None | Exception:
 
 def listar_diretorio (caminhoPasta: caminho) -> Diretorio:
     """Lista os caminhos dos arquivos e pastas do `caminhoPasta`"""
-    assert confirmar_caminho(caminhoPasta), f"Caminho informado '{ caminhoPasta }' não existe"
+    assert caminho_existe(caminhoPasta), f"Caminho informado '{ caminhoPasta }' não existe"
     assert confirmar_pasta(caminhoPasta), f"Caminho informado '{ caminhoPasta }' não é de uma pasta"
 
     caminhoPasta = caminho_absoluto(caminhoPasta)
@@ -159,7 +159,7 @@ __all__ = [
     "confirmar_pasta",
     "listar_diretorio",
     "caminho_absoluto",
-    "confirmar_caminho",
+    "caminho_existe",
     "confirmar_arquivo",
     "extrair_nome_base",
     "diretorio_execucao"
