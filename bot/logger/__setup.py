@@ -1,6 +1,6 @@
 # std
+import sys
 import logging
-from sys import exc_info
 from datetime import datetime, timedelta
 # interno
 import bot
@@ -15,11 +15,12 @@ logger = logging.getLogger("BOT")
 logger.setLevel(logging.DEBUG)
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s | nome(%(name)s) | level(%(levelname)s) | %(message)s",
     datefmt="%Y-%m-%dT%H:%M:%S",
-    filename=NOME_ARQUIVO_LOG,
-    encoding="utf-8",
-    filemode="w"
+    format="%(asctime)s | nome(%(name)s) | level(%(levelname)s) | %(message)s",
+    handlers = [
+        logging.StreamHandler(sys.stdout),
+        logging.FileHandler(NOME_ARQUIVO_LOG, "w", "utf-8")
+    ]
 )
 
 
@@ -48,7 +49,7 @@ def alertar (mensagem: str) -> None:
 def erro (mensagem: str) -> None:
     """Log nível 'ERROR'
     - Erro é informado automaticamente no log"""
-    logger.error(criar_mensagem_padrao(mensagem), exc_info=exc_info())
+    logger.error(criar_mensagem_padrao(mensagem), exc_info=sys.exc_info())
 
 
 def salvar_log (caminho: bot.tipagem.caminho = CAMINHO_PASTA_LOGS) -> None:
