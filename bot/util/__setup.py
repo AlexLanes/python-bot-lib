@@ -24,7 +24,7 @@ def tempo_execucao (func):
     """Decorator\n-\nLoggar o tempo de execução da função em segundos"""
     def tempo_execucao (*args, **kwargs):
         inicio, resultado = perf_counter(), func(*args, **kwargs)
-        bot.logger.debug(f"Função({ func.__name__ }) executada em {perf_counter() - inicio:.2f} segundos")
+        bot.logger.informar(f"Função({ func.__name__ }) executada em {perf_counter() - inicio:.2f} segundos")
         return resultado
     return tempo_execucao
 
