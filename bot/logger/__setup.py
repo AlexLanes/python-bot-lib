@@ -1,7 +1,7 @@
 # std
 import sys
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 # interno
 import bot
 
@@ -9,6 +9,7 @@ import bot
 NOME_ARQUIVO_LOG = ".log"
 CAMINHO_PASTA_LOGS = "./logs"
 FORMATO_NOME_LOG = "%Y-%m-%dT%H-%M-%S.log"
+INICIALIZACAO = datetime.now(timezone(timedelta(hours=-3)))
 
 
 logger = logging.getLogger("BOT")
@@ -55,7 +56,7 @@ def erro (mensagem: str) -> None:
 def salvar_log (caminho: bot.tipagem.caminho = CAMINHO_PASTA_LOGS) -> None:
     """Salvar o arquivo log na pasta informada
     - o nome do arquivo é o datetime atual"""
-    nome = datetime.now().strftime(FORMATO_NOME_LOG)
+    nome = INICIALIZACAO.strftime(FORMATO_NOME_LOG)
     caminho = bot.windows.caminho_absoluto(caminho)
     if not bot.windows.caminho_existe(caminho): bot.windows.criar_pasta(caminho)
     bot.windows.copiar_arquivo(NOME_ARQUIVO_LOG, f"{ caminho }/{ nome }")
