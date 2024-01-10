@@ -38,14 +38,6 @@ def yaml_parse (string: str) -> Any:
     return yaml.load(string, yaml.FullLoader)
 
 
-def nome_namespace (tag: str) -> tuple[str, tipagem.url | None]:
-    """Extrair nome e namespace de uma tag xml"""
-    if tag.startswith("{") and "}" in tag:
-        idx = tag.index("}")
-        return (tag[idx + 1 :], tag[1 : idx])
-    else: return (tag, None)
-
-
 class ElementoXML:
     """Classe de manipulação do XML
     - Abstração do módulo `xml.etree.ElementTree`"""
@@ -95,26 +87,35 @@ class ElementoXML:
         mapa[self.nome] = [e.__dict__ for e in self] if len(self) else self.texto # elemento: filhos | texto
         return mapa
 
+    def __nome_namespace (self) -> tuple[str, tipagem.url | None]:
+        """Extrair nome e namespace do `Element` tag
+        - `nome, namespace = self.__nome_namespace()`"""
+        tag = self.__e.tag
+        if tag.startswith("{") and "}" in tag:
+            idx = tag.index("}")
+            return (tag[idx + 1 :], tag[1 : idx])
+        else: return (tag, None)
+
     @property
     def nome (self) -> str:
         """Nome do elemento"""
-        return nome_namespace(self.__e.tag)[0]
+        return self.__nome_namespace()[0]
 
     @nome.setter
     def nome (self, nome: str) -> None:
         """Setar nome do elemento"""
-        _, namespace = nome_namespace(self.__e.tag)
+        _, namespace = self.__nome_namespace()
         self.__e.tag = f"{{{ namespace }}}{ nome }" if namespace else nome
 
     @property
     def namespace (self) -> tipagem.url | None:
         """Namespace do elemento"""
-        return nome_namespace(self.__e.tag)[1]
+        return self.__nome_namespace()[1]
 
     @namespace.setter
     def namespace (self, namespace: tipagem.url | None) -> None:
         """Setar namespace do elemento"""
-        nome = nome_namespace(self.__e.tag)[0]
+        nome = self.__nome_namespace()[0]
         self.__e.tag = f"{{{ namespace }}}{ nome }" if namespace else nome
 
     @property

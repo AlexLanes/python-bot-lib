@@ -59,37 +59,6 @@ def enviar_email (para: list[bot.tipagem.email], assunto="", conteudo="", anexos
         if erro: bot.logger.alertar(f"Erro ao enviar e-mail: { bot.estruturas.json_stringify(erro) }")
 
 
-def extrair_email (email: str) -> bot.tipagem.email:
-    """Extrair apenas a parte do e-mail da string fornecida
-    - `email` pode conter o nome da pessoa antes do email"""
-    resultado = re_search(r"[\w\-\.]+@([\w\-]+\.)+[\w\-]{2,4}", bot.util.normalizar(email))
-    if resultado == None:
-        bot.logger.alertar(f"Uma extração de e-mail não retornou resultado: '{ email }'")
-        return ""
-    return resultado.group()
-
-
-def extrair_assunto (assunto: str) -> str:
-    """Extrair assunto do e-mail e realizar o decode quando necessário
-    - o subject pode vir em formatos não convencionais como `=?utf-8?B?Q29tbyBvIEhvbG1lcyByZWNlYmUgb3Mgbm92b3MgdXN1w6FyaW9z?=`"""
-    decoded = [mensagem.decode(charset) if charset else mensagem for (mensagem, charset) in decode_header(assunto)]
-    return " ".join(decoded)
-
-
-def extrair_datetime (datetime: str | None) -> DateTime:
-    """Extrair o datetime do e-mail e realizar o parse para o `DateTime` BRT
-    - Retorna o DateTime.now() BRT caso seja None ou ocorra algum erro"""
-    brt = TimeZone(TimeDelta(hours=-3))
-    try:
-        data: DateTime = parsedate_to_datetime(datetime)
-        assert isinstance(data, DateTime)
-        return data.astimezone(brt)
-
-    except:
-        bot.logger.alertar(f"Extração do datetime '{ datetime }' do email resultou em falha")
-        return DateTime.now(brt)
-
-
 def obter_email (limite: int | slice = None, query="ALL", visualizar=False) -> Generator[bot.tipagem.Email, None, None]:
     """Obter e-mails de uma `Inbox`
     - Abstração `imaplib`
@@ -104,6 +73,31 @@ def obter_email (limite: int | slice = None, query="ALL", visualizar=False) -> G
     # variaveis do configfile
     user, password, host = bot.configfile.obter_opcoes("email.obter", ["user", "password", "host"])
 
+    def extrair_email (email: str) -> bot.tipagem.email:
+        """Extrair apenas a parte do e-mail da string fornecida
+        - `email` pode conter o nome da pessoa antes do email"""
+        resultado = re_search(r"[\w\-\.]+@([\w\-]+\.)+[\w\-]{2,4}", bot.util.normalizar(email))
+        if resultado == None:
+            bot.logger.alertar(f"Uma extração de e-mail não retornou resultado: '{ email }'")
+            return ""
+        return resultado.group()
+    def extrair_assunto (assunto: str) -> str:
+        """Extrair assunto do e-mail e realizar o decode quando necessário
+        - o subject pode vir em formatos não convencionais como `=?utf-8?B?Q29tbyBvIEhvbG1lcyByZWNlYmUgb3Mgbm92b3MgdXN1w6FyaW9z?=`"""
+        decoded = [mensagem.decode(charset) if charset else mensagem for (mensagem, charset) in decode_header(assunto)]
+        return " ".join(decoded)
+    def extrair_datetime (datetime: str | None) -> DateTime:
+        """Extrair o datetime do e-mail e realizar o parse para o `DateTime` BRT
+        - Retorna o DateTime.now() BRT caso seja None ou ocorra algum erro"""
+        brt = TimeZone(TimeDelta(hours=-3))
+        try:
+            data: DateTime = parsedate_to_datetime(datetime)
+            assert isinstance(data, DateTime)
+            return data.astimezone(brt)
+        except:
+            bot.logger.alertar(f"Extração do datetime '{ datetime }' do email resultou em falha")
+            return DateTime.now(brt)
+
     with IMAP4_SSL(host) as imap:
         imap.login(user, password)
         imap.select(readonly=not visualizar) # Selecionar Inbox e método de visualização
@@ -111,7 +105,7 @@ def obter_email (limite: int | slice = None, query="ALL", visualizar=False) -> G
         # obter os ids da query
         uids: bytes = imap.search(None, query)[1][0] # ids em byte
         uids: list[str] = uids.decode().split(" ") # transformar para uma lista de ids em string
-        uids = [*reversed(uids)][limite] # inverter e aplicar o slice nos ids
+        uids = [*reversed(uids)][limite] # inverter para os mais recentes primeiro e aplicar o slice nos ids
 
         for uid in uids:
             email = bot.tipagem.Email(int(uid), "", [], "", None, None, None, []) # armazenará as informações extraídas
@@ -127,6 +121,7 @@ def obter_email (limite: int | slice = None, query="ALL", visualizar=False) -> G
             email.assunto = extrair_assunto(mensagem.get("Subject", ""))
             email.data = extrair_datetime(mensagem.get("Date"))
 
+            # navegar pelas partes do multipart/...
             # extrair o conteúdo e possíveis anexos
             for parte in mensagem.walk():
                 # extrair anexo
@@ -134,8 +129,7 @@ def obter_email (limite: int | slice = None, query="ALL", visualizar=False) -> G
                     nome = parte.get_filename("blob")
                     tipo = parte.get_content_type()
                     arquivo = parte.get_payload(decode=True)
-                    tamanho = len(arquivo)
-                    email.anexos.append((nome, tipo, tamanho, arquivo))
+                    email.anexos.append((nome, tipo, len(arquivo), arquivo))
                 # extrai o conteúdo como string
                 elif "text/plain" in parte.get_content_type():
                     payload: bytes = parte.get_payload(decode=True)

@@ -24,25 +24,11 @@ def ajustar_colunas_excel (excel: pandas.ExcelWriter) -> None:
         planilha.autofit()
 
 
-def nomeado_para_posicional (sql: str, parametros: bot.tipagem.nomeado) -> tuple[str, bot.tipagem.posicional]:
-    """Transformar o sql e os parâmetros nomeados `:nome` para a forma posicional `?`
-    - `HELPER` `pyodbc` não aceita parâmetros nomeados"""
-    parametros = { chave.lower(): valor for chave, valor in parametros.items() }
-    parametros_existentes = [encontrado for encontrado in regex.findall(r":\w+", sql) 
-                             if encontrado.lower()[1:] in parametros]
-    parametros_transformado = [parametros[ existente.lower()[1:] ] for existente in parametros_existentes]
-
-    # reversed para o replace não dar problema `(:id, :idade) -> (?, ?ade)`
-    for existente in sorted(set(parametros_existentes), reverse=True): 
-        sql = sql.replace(existente, "?")
-    
-    return (sql, parametros_transformado)
-
-
 class Database:
     """Classe para manipulação de Database ODBC
     - Necessário possuir o driver instalado em `ODBC Data Sources`
-    - Abstração do `pyodbc`"""
+    - Abstração do `pyodbc`
+    - Testado com PostgreSQL, MySQL e SQLServer"""
 
     __conexao: pyodbc.Connection
     """Objeto de conexão com o database"""
@@ -83,15 +69,21 @@ class Database:
     def rollback (self) -> None:
         """Reverter as alterações, pós commit, feitas na conexão"""
         self.__conexao.rollback()
-
+    
     def execute (self, sql: str, parametros: bot.tipagem.nomeado | bot.tipagem.posicional = None) -> bot.tipagem.ResultadoSQL:
         """Executar uma única instrução SQL
         - `sql` Comando que será executado. Pode ser parametrizado com argumentos posicionais `?` ou nomeados `:nome`
         - `parametros` Parâmetros presentes no `sql`"""
+        # Transformar o sql e os parâmetros nomeados `:nome` para a forma posicional `?`
         # `pyodbc` não aceita parâmetros nomeados
-        # transformar para posicional se for nomeado
         if isinstance(parametros, dict):
-            sql, parametros = nomeado_para_posicional(sql, parametros)
+            parametros = { chave.lower(): valor for chave, valor in parametros.items() }
+            parametros_existentes = [encontrado for encontrado in regex.findall(r":\w+", sql)
+                                     if encontrado.lower()[1:] in parametros]
+            parametros = [parametros[ existente.lower()[1:] ] for existente in parametros_existentes]
+            # reversed para o replace não dar problema `(:id, :idade) -> (?, ?ade)`
+            for existente in sorted(set(parametros_existentes), reverse=True): 
+                sql = sql.replace(existente, "?")
 
         cursor = self.__conexao.execute(sql, parametros) if parametros else self.__conexao.execute(sql)
         colunas = tuple(coluna[0] for coluna in cursor.description) if cursor.description else tuple()
