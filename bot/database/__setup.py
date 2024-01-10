@@ -24,8 +24,8 @@ def ajustar_colunas_excel (excel: pandas.ExcelWriter) -> None:
         planilha.autofit()
 
 
-class Database:
-    """Classe para manipulação de Database ODBC
+class DatabaseODBC:
+    """Classe para manipulação de Databases via drivers ODBC
     - Necessário possuir o driver instalado em `ODBC Data Sources`
     - Abstração do `pyodbc`
     - Testado com PostgreSQL, MySQL e SQLServer"""
@@ -33,7 +33,7 @@ class Database:
     __conexao: pyodbc.Connection
     """Objeto de conexão com o database"""
 
-    def __init__ (self, odbc_driver: str, /, **kwargs) -> None:
+    def __init__ (self, nomeDriver: str, /, **kwargs) -> None:
         """Inicializar a conexão com o driver odbc
         - `odbc_driver` Não precisa ser exato mas deve estar em `Database.listar_drivers()`
         - Demais configurações para a conexão podem ser informadas no `**kwargs`
@@ -42,14 +42,14 @@ class Database:
             - server = servidor
             - port = porta
             - database = nome do database"""
-        if not (drivers := [d for d in self.listar_drivers() if odbc_driver.lower() in d.lower()]): 
-            raise ValueError(f"Driver ODBC '{ odbc_driver }' não encontrado")
+        if not (drivers := [d for d in self.listar_drivers() if nomeDriver.lower() in d.lower()]): 
+            raise ValueError(f"Driver ODBC '{ nomeDriver }' não encontrado")
 
-        odbc_driver = unicode[0] if (unicode := [d for d in drivers if "unicode" in d.lower()]) \
-                                 else drivers[0]
-        bot.logger.debug(f"Iniciando conexão com o database '{ odbc_driver }'")
+        nomeDriver = unicode[0] if (unicode := [d for d in drivers if "unicode" in d.lower()]) \
+                                else drivers[0]
+        bot.logger.debug(f"Iniciando conexão com o database '{ nomeDriver }'")
 
-        conexao = f"driver={ odbc_driver };"
+        conexao = f"driver={ nomeDriver };"
         for configuracao in kwargs: conexao += f"{ configuracao }={ kwargs[configuracao] };"
         self.__conexao = pyodbc.connect(conexao, autocommit=False, timeout=5)
 
@@ -132,7 +132,7 @@ class Database:
         return pyodbc.drivers()
 
 
-class Sqlite (Database):
+class Sqlite (DatabaseODBC):
     """Classe de abstração do módulo `sqlite3`"""
 
     __conexao: sqlite3.Connection
@@ -140,7 +140,8 @@ class Sqlite (Database):
 
     def __init__ (self, database=":memory:") -> None:
         """Inicialização do banco de dados
-        - `database` caminho para o arquivo .db ou .sqlite. `None` para carregar na memória"""
+        - `database` caminho para o arquivo .db ou .sqlite, 
+        - Default carregar apenas na memória"""
         bot.logger.debug(f"Iniciando conexão com o database Sqlite")
         self.__conexao = sqlite3.connect(database, 5)
 
@@ -178,7 +179,7 @@ class Sqlite (Database):
 __all__ = [
     "pandas",
     "Sqlite",
-    "Database",
+    "DatabaseODBC",
     "mapear_dtypes",
     "ajustar_colunas_excel"
 ]

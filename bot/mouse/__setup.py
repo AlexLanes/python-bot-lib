@@ -45,7 +45,7 @@ def scroll_vertical (quantidade: int, direcao: bot.tipagem.DIRECOES_SCROLL = "ba
 
 def obter_rgb_mouse () -> tuple[int, int, int]:
     """Obter o RGB da posição atual do mouse
-    - `r, g, b = rgb_mouse()`"""
+    - `r, g, b = obter_rgb_mouse()`"""
     return pixel(*obter_posicao_mouse())
 
 
