@@ -59,7 +59,7 @@ class DatabaseODBC:
         if hasattr(self, "__conexao") and hasattr(self.__conexao, "close") and callable(self.__conexao.close): self.__conexao.close()
         else: del self
 
-    def __repr__(self) -> str:
+    def __repr__ (self) -> str:
         return f"<Database ODBC>"
 
     def commit (self) -> None:
@@ -145,7 +145,7 @@ class Sqlite (DatabaseODBC):
         bot.logger.debug(f"Iniciando conexão com o database Sqlite")
         self.__conexao = sqlite3.connect(database, 5)
 
-    def __repr__(self) -> str:
+    def __repr__ (self) -> str:
         return f"<Database Sqlite>"
 
     def execute (self, sql: str, parametros: bot.tipagem.nomeado | bot.tipagem.posicional = None) -> bot.tipagem.ResultadoSQL:

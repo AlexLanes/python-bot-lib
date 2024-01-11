@@ -1,6 +1,7 @@
 # bot.database
 pyodbc
 pandas
+openpyxl
 xlsxwriter
 
 # bot.imagem
