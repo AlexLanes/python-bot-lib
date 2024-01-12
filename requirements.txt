@@ -1,7 +1,6 @@
 # bot.database
 pyodbc
-polars
-xlsx2csv
+polars[xlsx2csv]
 
 # bot.imagem
 numpy
