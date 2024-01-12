@@ -154,12 +154,12 @@ __all__ = [
     "cmd",
     "Janela",
     "criar_pasta",
+    "caminho_existe",
     "apagar_arquivo",
     "copiar_arquivo",
     "confirmar_pasta",
     "listar_diretorio",
     "caminho_absoluto",
-    "caminho_existe",
     "confirmar_arquivo",
     "extrair_nome_base",
     "diretorio_execucao"

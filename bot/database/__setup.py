@@ -114,7 +114,7 @@ class DatabaseODBC:
         return pyodbc.drivers()
 
 
-class Sqlite (DatabaseODBC):
+class Sqlite:
     """Classe de abstração do módulo `sqlite3`"""
 
     __conexao: sqlite3.Connection
@@ -126,6 +126,12 @@ class Sqlite (DatabaseODBC):
         - Default carregar apenas na memória"""
         bot.logger.debug(f"Iniciando conexão com o database Sqlite")
         self.__conexao = sqlite3.connect(database, 5)
+    
+    def __del__ (self) -> None:
+        """Fechar a conexão quando sair do escopo"""
+        bot.logger.debug(f"Encerrando conexão com o database")
+        if hasattr(self, "__conexao") and hasattr(self.__conexao, "close") and callable(self.__conexao.close): self.__conexao.close()
+        else: del self
 
     def __repr__ (self) -> str:
         return f"<Database Sqlite>"
@@ -141,6 +147,14 @@ class Sqlite (DatabaseODBC):
         - `for coluna, tipo in database.colunas(tabela, schema)`"""
         return [(coluna, tipo) 
                 for _, coluna, tipo, *_, in self.execute(f"PRAGMA table_info({ tabela })")]
+
+    def commit (self) -> None:
+        """Commitar alterações feitas na conexão"""
+        self.__conexao.commit()
+
+    def rollback (self) -> None:
+        """Reverter as alterações, pós commit, feitas na conexão"""
+        self.__conexao.rollback()
 
     def execute (self, sql: str, parametros: bot.tipagem.nomeado | bot.tipagem.posicional = None) -> bot.tipagem.ResultadoSQL:
         """Executar uma única instrução SQL
