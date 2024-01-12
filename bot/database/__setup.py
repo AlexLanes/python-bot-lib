@@ -5,23 +5,8 @@ from typing import Iterable
 # interno
 import bot
 # externo
-import pandas
+import polars
 import pyodbc
-from xlsxwriter.worksheet import Worksheet
-
-
-def mapear_dtypes (df: pandas.DataFrame) -> dict[str, str]:
-    """Criar um dicionário { coluna: tipo } de um `pandas` dataframe"""
-    linhas = [regex.split(r"\s+", linha)
-              for linha in df.dtypes.to_string().split("\n")]
-    return { coluna: tipo for coluna, tipo, *_ in linhas }
-
-
-def ajustar_colunas_excel (excel: pandas.ExcelWriter) -> None:
-    """Ajustar a largura das colunas de todas as planilhas no excel"""
-    for nomePlanilha in excel.sheets:
-        planilha: Worksheet = excel.sheets[nomePlanilha]
-        planilha.autofit()
 
 
 class DatabaseODBC:
@@ -42,13 +27,14 @@ class DatabaseODBC:
             - server = servidor
             - port = porta
             - database = nome do database"""
+        # Verificar se o driver existe
         if not (drivers := [d for d in self.listar_drivers() if nomeDriver.lower() in d.lower()]): 
             raise ValueError(f"Driver ODBC '{ nomeDriver }' não encontrado")
-
+        # Pegar um driver dos encontrados. Preferência ao UNICODE
         nomeDriver = unicode[0] if (unicode := [d for d in drivers if "unicode" in d.lower()]) \
                                 else drivers[0]
         bot.logger.debug(f"Iniciando conexão com o database '{ nomeDriver }'")
-
+        # Montar a conexão
         conexao = f"driver={ nomeDriver };"
         for configuracao in kwargs: conexao += f"{ configuracao }={ kwargs[configuracao] };"
         self.__conexao = pyodbc.connect(conexao, autocommit=False, timeout=5)
@@ -62,6 +48,20 @@ class DatabaseODBC:
     def __repr__ (self) -> str:
         return f"<Database ODBC>"
 
+    @property
+    def tabelas (self) -> list[tuple[str, str | None]]:
+        """Nomes das tabelas e schemas disponíveis
+        - `for tabela, schema in database.tabelas()`"""
+        cursor = self.__conexao.cursor()
+        itens = [(tabela, schema if schema else None) for _, schema, tabela, *_ in cursor.tables(tableType="TABLE")]
+        return sorted(itens, key=lambda item: item[0])
+
+    def colunas (self, tabela: str, schema: str = None) -> list[tuple[str, str]]:
+        """Nomes das colunas e tipos da tabela
+        - `for coluna, tipo in database.colunas(tabela, schema)`"""
+        cursor = self.__conexao.cursor()
+        return [(item[3], item[5]) for item in cursor.columns(tabela, schema=schema)]
+
     def commit (self) -> None:
         """Commitar alterações feitas na conexão"""
         self.__conexao.commit()
@@ -69,7 +69,7 @@ class DatabaseODBC:
     def rollback (self) -> None:
         """Reverter as alterações, pós commit, feitas na conexão"""
         self.__conexao.rollback()
-    
+
     def execute (self, sql: str, parametros: bot.tipagem.nomeado | bot.tipagem.posicional = None) -> bot.tipagem.ResultadoSQL:
         """Executar uma única instrução SQL
         - `sql` Comando que será executado. Pode ser parametrizado com argumentos posicionais `?` ou nomeados `:nome`
@@ -107,24 +107,6 @@ class DatabaseODBC:
                 bot.logger.alertar(f"Erro ao executar o parâmetro { parametro }\n\t{ [*erro.args] }")
         return bot.tipagem.ResultadoSQL(total_linhas_afetadas, tuple(), (x for x in []))
 
-    @property
-    def tabelas_colunas (self) -> dict[str, list[str]]:
-        """Mapa dos nomes das tabelas e colunas
-        - tabela pode vir com o schema atribuído caso possua"""
-        cursor = self.__conexao.cursor()
-        schemas_tabelas = [(str(schema if schema else ""), str(tabela))
-                           for _, schema, tabela, *_ in cursor.tables(tableType="TABLE")]
-        return { f"{schema}.{tabela}" if schema else tabela: [item[3] for item in cursor.columns(tabela)]
-                 for schema, tabela in schemas_tabelas }
-
-    def to_excel (self, caminho="resultado.xlsx") -> None:
-        """Salvar as linhas de todas as tabelas da conexão em um arquivo excel"""
-        with pandas.ExcelWriter(caminho) as arquivo:
-            for tabela in self.tabelas_colunas: self.execute(f"SELECT * FROM { tabela }")\
-                                                    .to_dataframe()\
-                                                    .to_excel(arquivo, tabela, index=False)
-            ajustar_colunas_excel(arquivo)
-
     @staticmethod
     def listar_drivers () -> list[str]:
         """Listar os ODBC drivers existentes no sistema
@@ -148,6 +130,18 @@ class Sqlite (DatabaseODBC):
     def __repr__ (self) -> str:
         return f"<Database Sqlite>"
 
+    @property
+    def tabelas (self) -> list[str]:
+        """Nomes das tabelas disponíveis"""
+        sql = "SELECT name FROM sqlite_schema WHERE type = 'table' AND name NOT LIKE 'sqlite_%'"
+        return [coluna for coluna, *_ in self.execute(sql)]
+
+    def colunas (self, tabela: str) -> list[tuple[str, str]]:
+        """Nomes das colunas e tipos da tabela
+        - `for coluna, tipo in database.colunas(tabela, schema)`"""
+        return [(coluna, tipo) 
+                for _, coluna, tipo, *_, in self.execute(f"PRAGMA table_info({ tabela })")]
+
     def execute (self, sql: str, parametros: bot.tipagem.nomeado | bot.tipagem.posicional = None) -> bot.tipagem.ResultadoSQL:
         """Executar uma única instrução SQL
         - `sql` Comando que será executado. Pode ser parametrizado com argumentos posicionais `?` ou nomeados `:nome`
@@ -168,18 +162,16 @@ class Sqlite (DatabaseODBC):
         gerador = (linha for linha in cursor)
         return bot.tipagem.ResultadoSQL(linhas_afetadas, colunas, gerador)
 
-    @property
-    def tabelas_colunas (self) -> dict[str, list[str]]:
-        """Mapa dos nomes das tabelas e colunas"""
-        obter_colunas = lambda tabela: [coluna for _, coluna, *_, in self.execute(f"PRAGMA table_info({ tabela })")]
-        tabelas = self.execute("""SELECT name AS tabela FROM sqlite_schema WHERE type = 'table' AND name NOT LIKE 'sqlite_%'""")
-        return { tabela: obter_colunas(tabela) for tabela, *_ in tabelas }
+    def to_excel (self, caminho="resultado.xlsx") -> None:
+        """Salvar as linhas de todas as tabelas da conexão em um arquivo excel"""
+        for tabela in self.tabelas:
+            self.execute(f"SELECT * FROM { tabela }") \
+                .to_dataframe() \
+                .write_excel(caminho, tabela, autofit=True)
 
 
 __all__ = [
-    "pandas",
+    "polars",
     "Sqlite",
-    "DatabaseODBC",
-    "mapear_dtypes",
-    "ajustar_colunas_excel"
+    "DatabaseODBC"
 ]

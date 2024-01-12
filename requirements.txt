@@ -1,8 +1,7 @@
 # bot.database
 pyodbc
-pandas
-openpyxl
-xlsxwriter
+polars
+xlsx2csv
 
 # bot.imagem
 numpy

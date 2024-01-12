@@ -1,11 +1,9 @@
 # std
 from dataclasses import dataclass
-from csv import writer as CsvWriter
 from datetime import datetime as DateTime
 from typing import Literal, Generator, TypeAlias, Iterable
 # externo
-import numpy as np
-from pandas import DataFrame
+from polars import DataFrame
 
 
 tiposSQL: TypeAlias = str | int | float | None
@@ -138,17 +136,8 @@ class ResultadoSQL:
         }
 
     def to_dataframe (self) -> DataFrame:
-        """Salvar o resultado em um pandas DataFrame"""
-        return DataFrame(np.asarray([*self]), columns=self.colunas)
-
-    def to_csv (self, caminho="resultado.csv") -> None:
-        """Salvar o resultado em um arquivo .csv
-        - `caminho` pode conter o caminho que será salvo o arquivo. Pode conter o caminho + nome do arquivo + .csv ao fim"""
-        assert caminho.endswith(".csv"), "Caminho do arquivo deve terminar em '.csv'"
-        with open(caminho, "w", encoding="utf-8", newline="") as arquivo:
-            writer = CsvWriter(arquivo)
-            writer.writerow(self.colunas) # nome das colunas
-            writer.writerows(self.linhas) # linhas
+        """Salvar o resultado em um `polars.DataFrame`"""
+        return DataFrame(self.linhas, self.colunas, nan_to_null=True)
 
 
 @dataclass
