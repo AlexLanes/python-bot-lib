@@ -13,14 +13,14 @@ from bot.tipagem import InfoStack
 
 def setar_timeout (segundos: float):
     """Decorator\n-\nExecutar a função por `segundos` segundos até retornar ou `TimeoutError`"""
-    def decorator (func):
+    def decorator (func: Callable):
         def wrapper (*args, **kwargs):
             return ThreadPool(1).apply_async(func, args, kwargs).get(segundos) 
         return wrapper
     return decorator
 
 
-def tempo_execucao (func):
+def tempo_execucao (func: Callable):
     """Decorator\n-\nLoggar o tempo de execução da função em segundos"""
     def tempo_execucao (*args, **kwargs):
         inicio, resultado = perf_counter(), func(*args, **kwargs)
@@ -31,7 +31,7 @@ def tempo_execucao (func):
 
 def ignorar_excecoes (excecoes: list[Exception], default=None):
     """Decorator\n-\nIgonorar `exceções` especificadas e retornar o `default` quando ignorado"""
-    def decorator (func):
+    def decorator (func: Callable):
         def wrapper (*args, **kwargs):
             try: return func(*args, **kwargs)
             except Exception as erro: 
