@@ -1,11 +1,11 @@
 # std
 import os
 import shutil
+import ctypes
 # interno
 from bot.util import normalizar
 from bot.tipagem import Diretorio, Coordenada, caminho
 # externo
-from pywinauto.application import Application
 from pygetwindow import (
     Win32Window,
     getAllTitles as get_all_titles,
@@ -87,7 +87,8 @@ def diretorio_execucao () -> Diretorio:
 
 
 class Janela:
-    """Classe de interação com as janelas abertas. Abstração do pygetwindow"""
+    """Classe de interação com as janelas abertas. Abstração do pygetwindow
+    - Alguns aplicativos pode não funcionar os métodos `self.focar()` e `self.minimizada`"""
 
     janela: Win32Window
     """Handler da janela"""
@@ -140,8 +141,10 @@ class Janela:
     def focar (self) -> None:
         """Focar a janela"""
         if self.focada: return
-        Application().connect(handle=self.janela._hWnd).top_window().set_focus()
-        self.restaurar()
+        minimizada = self.minimizada
+        if minimizada: ctypes.windll.user32.ShowWindow(self.janela._hWnd, 5)
+        ctypes.windll.user32.SetForegroundWindow(self.janela._hWnd)
+        if minimizada: self.restaurar()
 
     @staticmethod
     def titulos_janelas () -> list[str]:

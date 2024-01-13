@@ -21,5 +21,4 @@ PyYAML
 jsonschema
 
 # bot.windows
-pywinauto
 PyGetWindow
