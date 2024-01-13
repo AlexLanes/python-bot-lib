@@ -68,7 +68,7 @@ def obter_cores_imagem (imagem: bot.tipagem.caminho | Image.Image | bytes, limit
     """Obter as cores RGB e frequencia de cada pixel da `imagem`
     - `imagem` pode ser o caminho até o arquivo, bytes da image ou `Image` do módulo `pillow`
     - `limite` quantidade que será retornada dos mais frequentes
-    - `for (frequencia, cor) in cores_imagem()`"""
+    - `for (frequencia, cor) in obter_cores_imagem()`"""
     if limite != None and limite <= 0: return []
     imagem = transformar_pillow(imagem)
     itens: list[tuple[int, tuple[int, int, int]]] = imagem.getcolors(10000) # extrair cores
