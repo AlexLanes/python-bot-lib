@@ -2,6 +2,9 @@
 pyodbc
 polars[xlsx2csv]
 
+# bot.estruturas
+pyyaml
+
 # bot.imagem
 numpy
 pillow
