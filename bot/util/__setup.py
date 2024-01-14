@@ -36,7 +36,7 @@ def perfil_execucao (func: Callable):
     def perfil_execucao (*args, **kwargs):
         cwd = bot.windows.diretorio_execucao().caminho
         cwd = f"{ cwd[0].lower() }{ cwd[1:] }"
-        
+
         with Profile() as profile: resultado = func(*args, **kwargs)
         stats = Stats(profile).get_stats_profile().func_profiles
 
