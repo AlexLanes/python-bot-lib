@@ -34,7 +34,7 @@ def clicar_mouse (coordenada: Coordenada | tuple[int, int] = None, botao: bot.ti
     - Default `botao` botão esquerdo do mouse
     - Default `quantidade` 1"""
     if coordenada: mover_mouse(coordenada) # mover mouse se requisitado
-    botao: int = Button.right if botao == "right" else Button.middle if botao == "middle" else Button.left # Enum do botão
+    botao: Button = Button[botao] # Enum do botão
     mouse.click(botao, max(1, quantidade)) # clicar
 
 
