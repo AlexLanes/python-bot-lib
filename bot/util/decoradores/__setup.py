@@ -56,7 +56,7 @@ def perfil_execucao (func: Callable):
         tempo = stats.total_tt
         stats = stats.func_profiles
         
-        # Loggar o Dataframe com alguns opções de formatação
+        # Loggar o Dataframe com algumas opções de formatação
         kwargs = { "tbl_rows": 1000, "tbl_hide_dataframe_shape": True, "fmt_str_lengths": 1000, "tbl_hide_column_data_types": True }
         with bot.database.polars.Config(**kwargs):
             bot.logger.debug("\n" * 2 + 

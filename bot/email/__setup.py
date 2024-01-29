@@ -55,8 +55,8 @@ def enviar_email (para: list[bot.tipagem.email], assunto="", conteudo="", anexos
     with SMTP(host, 587) as smtp:
         smtp.starttls()
         smtp.login(user, password)
-        erro = smtp.sendmail(_from, para, mensagem.as_string())
-        if erro: bot.logger.alertar(f"Erro ao enviar e-mail: { bot.estruturas.json_stringify(erro) }")
+        if erro := smtp.sendmail(_from, para, mensagem.as_string()): 
+            bot.logger.alertar(f"Erro ao enviar e-mail: { bot.estruturas.json_stringify(erro) }")
 
 
 def obter_email (limite: int | slice = None, query="ALL", visualizar=False) -> Generator[bot.tipagem.Email, None, None]:
