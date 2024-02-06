@@ -110,7 +110,6 @@ def obter_email (limite: int | slice = None, query="ALL", visualizar=False) -> G
         uids = [*reversed(uids)][limite] # inverter para os mais recentes primeiro e aplicar o slice nos ids
         
         if not uids or uids[0] == "": return
-        print(uids)
 
         for uid in uids:
             email = bot.tipagem.Email(int(uid), "", [], "", None, None, None, []) # armazenará as informações extraídas
