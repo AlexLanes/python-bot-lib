@@ -68,7 +68,8 @@ def obter_email (limite: int | slice = None, query="ALL", visualizar=False) -> G
         - ALL = Todos os emails
         - UNSEEN = Emails não vistos
         - FROM 'example@gmail.com' = Emails recebidos de
-        - (OR (TO 'example@gmail.com') (FROM 'example@gmail.com')) = Emails enviados para OU recebidos de"""
+        - (OR (TO 'example@gmail.com') (FROM 'example@gmail.com')) = Emails enviados para OU recebidos de
+    -  `query` pode variar de acordo com gmail e outlook. No outlook não é necessário as aspas simples em alguns casos"""
     limite = limite if isinstance(limite, slice) else slice(limite)
     # variaveis do configfile
     user, password, host = bot.configfile.obter_opcoes("email.obter", ["user", "password", "host"])
@@ -109,6 +110,7 @@ def obter_email (limite: int | slice = None, query="ALL", visualizar=False) -> G
         uids = [*reversed(uids)][limite] # inverter para os mais recentes primeiro e aplicar o slice nos ids
         
         if not uids or uids[0] == "": return
+        print(uids)
 
         for uid in uids:
             email = bot.tipagem.Email(int(uid), "", [], "", None, None, None, []) # armazenará as informações extraídas
