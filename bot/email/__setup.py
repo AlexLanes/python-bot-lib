@@ -84,8 +84,9 @@ def obter_email (limite: int | slice = None, query="ALL", visualizar=False) -> G
     def extrair_assunto (assunto: str) -> str:
         """Extrair assunto do e-mail e realizar o decode quando necessário
         - o subject pode vir em formatos não convencionais como `=?utf-8?B?Q29tbyBvIEhvbG1lcyByZWNlYmUgb3Mgbm92b3MgdXN1w6FyaW9z?=`"""
-        decoded = [mensagem.decode(charset) if charset else mensagem for (mensagem, charset) in decode_header(assunto)]
-        return " ".join(decoded)
+        decoded = [mensagem.decode(charset or "utf-8") if isinstance(mensagem, bytes) else mensagem 
+                   for (mensagem, charset) in decode_header(assunto)]
+        return "".join(decoded)
     def extrair_datetime (datetime: str | None) -> DateTime:
         """Extrair o datetime do e-mail e realizar o parse para o `DateTime` BRT
         - Retorna o DateTime.now() BRT caso seja None ou ocorra algum erro"""
