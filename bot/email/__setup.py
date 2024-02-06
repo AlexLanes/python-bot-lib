@@ -19,7 +19,7 @@ from datetime import (
 import bot
 
 
-def enviar_email (para: list[bot.tipagem.email], assunto="", conteudo="", anexos: list[bot.tipagem.caminho] = []) -> None | Exception:
+def enviar_email (para: list[bot.tipagem.email], assunto="", conteudo="", anexos: list[bot.tipagem.caminho] = []) -> None:
     """Enviar email
     - Variáveis `email.enviar` [user, password, host]"""
     bot.logger.informar(f"Enviando e-mail '{ assunto }' para { str(para) }")
