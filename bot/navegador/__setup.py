@@ -69,8 +69,8 @@ class Navegador (ABC):
         """Encontrar elemento(s) na aba atual com base em um `localizador` para a `estrategia` selecionada"""
         localizador: str = localizador if isinstance(localizador, str) else str(localizador.value)
         bot.logger.debug(f"Procurando elemento no navegador ('{ estrategia }', '{ localizador }')")
-        elemento = self.driver.find_element(estrategia, localizador)
-        return elemento
+        try: return self.driver.find_element(estrategia, localizador)
+        except: return None
 
     def encontrar_elementos (self, estrategia: bot.tipagem.ESTRATEGIAS_WEBELEMENT, localizador: str | Enum) -> list[WebElement] | None:
         """Encontrar elemento(s) na aba atual com base em um `localizador` para a `estrategia` selecionada"""
