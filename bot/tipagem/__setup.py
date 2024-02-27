@@ -1,7 +1,8 @@
 # std
 from dataclasses import dataclass
-from datetime import datetime as DateTime
+from os.path import getmtime as ultima_alteracao
 from typing import Literal, Generator, TypeAlias, Iterable
+from datetime import date as Date, datetime as DateTime
 # externo
 from polars import DataFrame
 
@@ -97,6 +98,20 @@ class Diretorio:
     """Lista contendo o caminho de cada pasta do diretório"""
     arquivos: caminhos
     """Lista contendo o caminho de cada arquivo do diretório"""
+
+    def query_data_alteracao_arquivos (self, inicio=Date.today(), fim=Date.today()) -> list[tuple[str, Date]]:
+        """Consultar arquivos do diretório com base na data de alteração
+        - Default: Dia de hoje
+        - Retorna uma lista `(caminho, data)` ordenado pelos mais recentes"""
+        arquivos = [] 
+        
+        for caminho in self.arquivos:
+            data = Date.fromtimestamp(ultima_alteracao(caminho))
+            if data < inicio or data > fim: continue
+            arquivos.append((caminho, data))
+            
+        arquivos.sort(key=lambda x: x[1], reverse=True)
+        return arquivos
 
 
 @dataclass
