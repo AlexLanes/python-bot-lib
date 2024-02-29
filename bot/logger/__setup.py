@@ -1,15 +1,25 @@
 # std
 import sys
 import logging
+from atexit import register as executar_no_fim
 from datetime import datetime, timedelta, timezone
 # interno
 import bot
+from bot import configfile as cf
 
 
-NOME_ARQUIVO_LOG = ".log"
-CAMINHO_PASTA_LOGS = "./logs"
+NOME_ARQUIVO_LOG = ".log" # útima execução
+CAMINHO_PASTA_LOGS  = "./logs"
 FORMATO_NOME_LOG = "%Y-%m-%dT%H-%M-%S.log"
-INICIALIZACAO = datetime.now(timezone(timedelta(hours=-3)))
+DATA_INICIALIZACAO = datetime.now(timezone(timedelta(hours=-3)))
+HANDLERS_LOG = [logging.StreamHandler(sys.stdout), logging.FileHandler(NOME_ARQUIVO_LOG, "w", "utf-8")]
+
+
+# adicionar a persistência do log. Default: True
+if not cf.possui_secao("logger") or not cf.possui_opcao("logger", "flag_persistencia") or cf.obter_opcao("logger", "flag_persistencia").lower() == "true":
+    nome = f"{ CAMINHO_PASTA_LOGS }/{ DATA_INICIALIZACAO.strftime(FORMATO_NOME_LOG) }"
+    if not bot.windows.caminho_existe(CAMINHO_PASTA_LOGS): bot.windows.criar_pasta(CAMINHO_PASTA_LOGS)
+    HANDLERS_LOG.append(logging.FileHandler(nome, "w", "utf-8"))
 
 
 logger = logging.getLogger("BOT")
@@ -18,10 +28,7 @@ logging.basicConfig(
     level=logging.INFO,
     datefmt="%Y-%m-%dT%H:%M:%S",
     format="%(asctime)s | nome(%(name)s) | level(%(levelname)s) | %(message)s",
-    handlers = [
-        logging.StreamHandler(sys.stdout),
-        logging.FileHandler(NOME_ARQUIVO_LOG, "w", "utf-8")
-    ]
+    handlers = HANDLERS_LOG
 )
 
 
@@ -53,20 +60,20 @@ def erro (mensagem: str) -> None:
     logger.error(criar_mensagem_padrao(mensagem), exc_info=sys.exc_info())
 
 
-def salvar_log (caminho: bot.tipagem.caminho = CAMINHO_PASTA_LOGS) -> None:
-    """Salvar o arquivo log na pasta informada
-    - o nome do arquivo é o datetime atual"""
-    nome = INICIALIZACAO.strftime(FORMATO_NOME_LOG)
-    caminho = bot.windows.caminho_absoluto(caminho)
-    if not bot.windows.caminho_existe(caminho): bot.windows.criar_pasta(caminho)
-    bot.windows.copiar_arquivo(NOME_ARQUIVO_LOG, f"{ caminho }/{ nome }")
-
-
-def limpar_logs (caminho: bot.tipagem.caminho = CAMINHO_PASTA_LOGS, limite = timedelta(weeks=2)) -> None:
+@executar_no_fim
+def limpar_logs () -> None:
     """Limpar os logs que ultrapassaram a data limite
-    - espera que os logs tenham o nome no formato `FORMATO_NOME_LOG`"""
-    caminho = bot.windows.caminho_absoluto(caminho)
+    - Função executada automaticamente ao fim da execução"""
+    # obter limite
+    args = ("logger", "dias_persistencia")
+    limite = timedelta(days=int(cf.obter_opcao(*args))) if cf.possui_secao(args[0]) and cf.possui_opcao(*args) \
+        else timedelta(weeks=2)
+
+    # checar caminho
+    caminho = bot.windows.caminho_absoluto(CAMINHO_PASTA_LOGS)
     if not bot.windows.caminho_existe(caminho): return
+
+    # limpar
     for caminho_log in bot.windows.listar_diretorio(caminho).arquivos:
         nome = bot.windows.extrair_nome_base(caminho_log)
         data = datetime.strptime(nome, FORMATO_NOME_LOG)
@@ -78,8 +85,5 @@ __all__ = [
     "debug", 
     "alertar",
     "informar",
-    "salvar_log",
-    "limpar_logs",
-    "NOME_ARQUIVO_LOG",
-    "CAMINHO_PASTA_LOGS"
+    "NOME_ARQUIVO_LOG"
 ]
