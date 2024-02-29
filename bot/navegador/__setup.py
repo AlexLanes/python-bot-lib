@@ -83,6 +83,17 @@ class Navegador (ABC):
         """Realizar a ação de `hover` no `elemento`"""
         bot.logger.debug(f"Realizando ação de hover no elemento '{ elemento }'")
         ActionChains(self.driver).move_to_element(elemento).perform()
+    
+    def acessar_iframe (self, estrategia: bot.tipagem.ESTRATEGIAS_WEBELEMENT, localizador: str | Enum) -> None:
+        """
+        Encontra o iframe e acessa o seu escopo
+
+        IMPORTANTE: A DOM é atualizada dentro de `IFRAMES`, portanto é necessário alternar o escopo do WebDriver entre os IFRAMEs antes de interagir com os elementos.
+        Use `navegador.driver.switch_to.default_content()` para voltar ao escopo global da página.
+        """
+        bot.logger.debug(f"Acessando escopo do IFRAME")
+        iframe = self.encontrar_elemento(estrategia, localizador)
+        self.driver.switch_to.frame(iframe)
 
 
 class Edge (Navegador):
