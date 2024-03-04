@@ -3,7 +3,7 @@
 
 # log e configfile
 *.log
-/log
+/logs
 .ini
 
 # ambiente virtual
