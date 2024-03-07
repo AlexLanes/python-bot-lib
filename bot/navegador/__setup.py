@@ -102,16 +102,17 @@ class Edge (Navegador):
     driver: WebDriverEdge
     """Driver Edge"""
 
-    def __init__ (self, timeout=30.0) -> None:
+    def __init__ (self, timeout=30.0, download=rf"./downloads") -> None:
         """Inicializar o navegador Edge
-        - `timeout` utilizado na espera do `implicitly_wait`"""
+        - `timeout` utilizado na espera do `implicitly_wait`
+        - `download` utilizado para informar a pasta de download de arquivos"""
         options = EdgeOptions()
         options.add_argument("--start-maximized")
         options.add_argument("--ignore-certificate-errors")
         options.add_experimental_option('excludeSwitches', ['enable-logging']) # desativar prints
         options.add_experimental_option("prefs", {
             "download.prompt_for_download": False,
-            "download.default_directory": rf"{ bot.windows.diretorio_execucao().caminho }\downloads",
+            "download.default_directory": bot.windows.caminho_absoluto(download),
         })
         
         self.driver = WebDriverEdge(options)
@@ -126,16 +127,17 @@ class Chrome (Navegador):
     driver: WebDriverChrome
     """Driver Chrome"""
     
-    def __init__ (self, timeout=30.0) -> None:
+    def __init__ (self, timeout=30.0, download=rf"./downloads") -> None:
         """Inicializar o navegador Chrome
-        - `timeout` utilizado na espera do `implicitly_wait`"""
+        - `timeout` utilizado na espera do `implicitly_wait`
+        - `download` utilizado para informar a pasta de download de arquivos"""
         options = ChromeOptions()
         options.add_argument("--start-maximized")
         options.add_argument("--ignore-certificate-errors")
         options.add_experimental_option('excludeSwitches', ['enable-logging']) # desativar prints
         options.add_experimental_option("prefs", {
             "download.prompt_for_download": False,
-            "download.default_directory": rf"{ bot.windows.diretorio_execucao().caminho }\downloads",
+            "download.default_directory": bot.windows.caminho_absoluto(download),
         })
         
         self.driver = WebDriverChrome(options)
