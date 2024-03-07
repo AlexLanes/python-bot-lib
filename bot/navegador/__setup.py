@@ -146,10 +146,12 @@ class Chrome (Navegador):
         bot.logger.informar("Navegador Chrome iniciado")
 
 
-# TODO - O pesquisar não está retornando e o código pausa
-# Checar se colocar o Driver no PATH faz diferença
 class Explorer (Navegador):
-    """Navegador Internet Explorer"""
+    """Navegador Internet Explorer
+    - Selenium avisa sobre a necesidade do driver no %PATH%, mas consegui utilizar sem o driver
+    - Necessário desativar o Protected Mode em `Internet Options -> Security` para todas as zonas
+    - Caso não apareça a opção, alterar pelo registro do windows `Software\Microsoft\Windows\CurrentVersion\Internet Settings\Zones` em todas as zonas(0..4) setando o `REG_DWORD` nome `2500` valor `3`
+    - https://www.lifewire.com/how-to-disable-protected-mode-in-internet-explorer-2624507"""
 
     driver: WebDriverIe
     """Driver Internet Explorer"""
