@@ -19,11 +19,13 @@ from datetime import (
 import bot
 
 
-def enviar_email (para: list[bot.tipagem.email], assunto="", conteudo="", anexos: list[bot.tipagem.caminho] = []) -> None:
-    """Enviar email
-    - Variáveis `email.enviar` [user, password, host]"""
-    bot.logger.informar(f"Enviando e-mail '{ assunto }' para { str(para) }")
-    assert para, "Pelo menos um e-mail é necessário para ser enviado"
+def enviar_email (destinatarios: list[bot.tipagem.email], assunto="", conteudo="", anexos: list[bot.tipagem.caminho] = []) -> None:
+    """Enviar email para uma lista de `destinatarios` com `assunto`, `conteudo` e, opcionalmente, uma lista de caminhos `anexos`
+    - Abstração `smtplib`
+    - `conteudo` pode ser uma string html se começar com "<"
+    - Variáveis .ini `[email.enviar] -> user, password, host`"""
+    bot.logger.informar(f"Enviando e-mail '{ assunto }' para { str(destinatarios) }")
+    assert destinatarios, "Pelo menos um e-mail é necessário para ser enviado"
 
     # variaveis do configfile
     user, password, host = bot.configfile.obter_opcoes("email.enviar", ["user", "password", "host"])
@@ -33,7 +35,7 @@ def enviar_email (para: list[bot.tipagem.email], assunto="", conteudo="", anexos
     mensagem = MIMEMultipart()
     # headers do e-mail
     mensagem['From'] = _from
-    mensagem['To'] = ', '.join(para)
+    mensagem['To'] = ', '.join(destinatarios)
     mensagem['Subject'] = assunto
     # body do e-mail
     conteudo = conteudo.lstrip() # remover espaços vazios no começo
@@ -55,15 +57,15 @@ def enviar_email (para: list[bot.tipagem.email], assunto="", conteudo="", anexos
     with SMTP(host, 587) as smtp:
         smtp.starttls()
         smtp.login(user, password)
-        if erro := smtp.sendmail(_from, para, mensagem.as_string()): 
+        if erro := smtp.sendmail(_from, destinatarios, mensagem.as_string()): 
             bot.logger.alertar(f"Erro ao enviar e-mail: { bot.estruturas.json_stringify(erro) }")
 
 
 def obter_email (limite: int | slice = None, query="ALL", visualizar=False) -> Generator[bot.tipagem.Email, None, None]:
     """Obter e-mails de uma `Inbox`
     - Abstração `imaplib`
+    - Variáveis .ini `[email.obter] -> user, password, host`
     - `visualizar` Flag caso queria marcar o e-mail como a flag de visualizado
-    - Variáveis `email.obter` [user, password, host]
     - `query` search-criteria do fetch de acordo com documentação (https://www.marshallsoft.com/ImapSearch.htm)
         - ALL = Todos os emails
         - UNSEEN = Emails não vistos
