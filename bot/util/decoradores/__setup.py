@@ -9,26 +9,26 @@ import bot
 
 
 def setar_timeout (segundos: float):
-    """Executar a função por `segundos` segundos até retornar ou `multiprocessing.context.TimeoutError`
+    """Executar a função por `segundos` até retornar ou `multiprocessing.context.TimeoutError` caso ultrapasse o tempo
     - Função"""
-    def decorator (func: Callable):
-        def wrapper (*args, **kwargs):
+    def setar_timeout (func: Callable):
+        def setar_timeout (*args, **kwargs):
             return ThreadPool(1).apply_async(func, args, kwargs).get(segundos) 
-        return wrapper
-    return decorator
+        return setar_timeout
+    return setar_timeout
 
 
 def ignorar_excecoes (excecoes: list[Exception], default=None):
     """Igonorar `exceções` especificadas e retornar o `default` quando ignorado
     - Função"""
-    def decorator (func: Callable):
-        def wrapper (*args, **kwargs):
+    def ignorar_excecoes (func: Callable):
+        def ignorar_excecoes (*args, **kwargs):
             try: return func(*args, **kwargs)
             except Exception as erro: 
                 if any(isinstance(erro, excecao) for excecao in excecoes): return default
                 else: raise
-        return wrapper
-    return decorator
+        return ignorar_excecoes
+    return ignorar_excecoes
 
 
 def tempo_execucao (func: Callable):
