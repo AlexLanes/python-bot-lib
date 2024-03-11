@@ -9,7 +9,7 @@ import bot
 
 
 def setar_timeout (segundos: float):
-    """Executar a função por `segundos` segundos até retornar ou `TimeoutError`
+    """Executar a função por `segundos` segundos até retornar ou `multiprocessing.context.TimeoutError`
     - Função"""
     def decorator (func: Callable):
         def wrapper (*args, **kwargs):
