@@ -10,7 +10,6 @@ for arquivo in diretorio_execucao().arquivos:
     config.read(extrair_nome_base(arquivo), encoding="utf-8")
 
 
-obter_opcao = config.get
 opcoes_secao = config.options
 obter_secoes = config.sections
 possui_opcao = config.has_option
@@ -22,6 +21,11 @@ def possui_opcoes (secao: str, opcoes: list[str]) -> bool:
     return all(config.has_option(secao, opcao) for opcao in opcoes)
 
 
+def obter_opcao (secao: str, opcao: str, default="") -> str:
+    """Obter `opcao` de uma `secao` do configfile ou `default` caso não exista"""
+    return config.get(secao, opcao) if possui_secao(secao) and possui_opcao(secao, opcao) else default
+
+
 def obter_opcoes (secao: str, opcoes: list[str]) -> tuple[str, ...]:
     """Obter `opções` de uma `seção` do configfile
     - Versão do `obter_opcao` que aceita uma lista de `opcoes`
@@ -29,7 +33,7 @@ def obter_opcoes (secao: str, opcoes: list[str]) -> tuple[str, ...]:
     - `tuple` de retorno terá os valores na mesma ordem que as `opcoes`"""
     assert possui_secao(secao), f"Seção do configfile '{ secao }' não foi configurada"
     assert possui_opcoes(secao, opcoes), f"Variáveis do configfile { str(opcoes) } não foram configuradas para a seção '{ secao }'"
-    return tuple(str(obter_opcao(secao, opcao)) for opcao in opcoes)
+    return tuple(obter_opcao(secao, opcao) for opcao in opcoes)
 
 
 __all__ = [
