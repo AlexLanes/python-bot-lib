@@ -82,10 +82,10 @@ class ElementoXML:
     @property
     def __dict__ (self) -> dict[str, str | None | list[dict]]:
         """Versão `dict` do `ElementoXML`"""
-        mapa = { f"@{ nome }": valor for nome, valor in self.atributos.items() } # atributos
-        mapa["xmlns"] = self.namespace # namespace
-        mapa[self.nome] = [e.__dict__ for e in self] if len(self) else self.texto # elemento: filhos | texto
-        return mapa
+        dicionario = { f"@{ nome }": valor for nome, valor in self.atributos.items() } # atributos
+        if self.namespace: dicionario["@xmlns"] = self.namespace # namespace
+        dicionario[self.nome] = [e.__dict__ for e in self] if len(self) else self.texto # elemento: filhos | texto
+        return dicionario
 
     def __nome_namespace (self) -> tuple[str, tipagem.url | None]:
         """Extrair nome e namespace do `Element` tag
