@@ -1,6 +1,5 @@
 # std
 from time import sleep
-from multiprocessing.context import TimeoutError as Timeout
 # interno
 import bot
 
@@ -15,7 +14,7 @@ def main():
 if __name__ == "__main__":
     try: 
         main()
-    except Timeout:
+    except TimeoutError:
         bot.logger.erro("Fluxo demorou mais tempo que o configurado para sua execução")
     except Exception: 
         bot.logger.erro("Erro inesperado no fluxo")

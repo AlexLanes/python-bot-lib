@@ -2,33 +2,45 @@
 from pstats import Stats
 from typing import Callable
 from cProfile import Profile
-from time import perf_counter
+from time import perf_counter, sleep
 from multiprocessing.pool import ThreadPool
+from multiprocessing.context import TimeoutError as Timeout
 # interno
 import bot
 
 
 def setar_timeout (segundos: float):
-    """Executar a função por `segundos` até retornar ou `multiprocessing.context.TimeoutError` caso ultrapasse o tempo
+    """Executar a função por `segundos` até retornar ou `TimeoutError` caso ultrapasse o tempo
     - Função"""
     def setar_timeout (func: Callable):
         def setar_timeout (*args, **kwargs):
-            return ThreadPool(1).apply_async(func, args, kwargs).get(segundos) 
+            mensagem = f"Função({ func.__name__ }) não finalizou sua execução no tempo configurado de { segundos } segundos e resultou em Timeout"
+            try: return ThreadPool(1).apply_async(func, args, kwargs).get(segundos)
+            except Timeout: bot.logger.alertar(mensagem)
+            raise TimeoutError(mensagem)
         return setar_timeout
     return setar_timeout
 
 
-def ignorar_excecoes (excecoes: list[Exception], default=None):
-    """Igonorar `exceções` especificadas e retornar o `default` quando ignorado
+def retry (tentativas=3, segundos=10):
+    """Realizar `tentativas` de se chamar uma função, aguardar `segundos` e tentar novamente em caso de erro
+    - Lança a exceção na última tentativa com falha
     - Função"""
-    def ignorar_excecoes (func: Callable):
-        def ignorar_excecoes (*args, **kwargs):
-            try: return func(*args, **kwargs)
-            except Exception as erro: 
-                if any(isinstance(erro, excecao) for excecao in excecoes): return default
-                else: raise
-        return ignorar_excecoes
-    return ignorar_excecoes
+    assert tentativas >= 1 and segundos >= 1, "Tentativas e Segundos para o retry deve ser >= 1"
+    def retry (func: Callable):
+        def retry (*args, **kwargs):
+
+            for tentativa in range(1, tentativas + 1):
+                try: return func(*args, **kwargs)
+                except Exception as erro: 
+                    bot.logger.alertar(f"Tentativa { tentativa } de { tentativas } de execução da função({ func.__name__ }) resultou em erro\n\t{ erro }")
+                    if tentativa < tentativas: sleep(segundos) # sleep() não necessário na última tentativa
+                    else: # lançar a exceção da última tentativa
+                        erro.add_note(f"Foram realizadas { tentativas } tentativa(s) de execução na função({ func.__name__ })")
+                        raise
+
+        return retry
+    return retry
 
 
 def tempo_execucao (func: Callable):
@@ -81,8 +93,8 @@ def perfil_execucao (func: Callable):
 
 
 __all__ = [
+    "retry",
     "setar_timeout",
     "tempo_execucao",
     "perfil_execucao",
-    "ignorar_excecoes"
 ]
