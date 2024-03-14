@@ -1,3 +1,5 @@
+# std
+from time import sleep
 # interno
 import bot
 # externo
@@ -8,12 +10,14 @@ from pynput.keyboard import Controller, Key
 teclado = Controller()
 
 
-def apertar_tecla (tecla: bot.tipagem.BOTOES_TECLADO, quantidade=1) -> None:
+def apertar_tecla (tecla: bot.tipagem.BOTOES_TECLADO, quantidade=1, delay=0.5) -> None:
     """Apertar e soltar uma tecla `qtd` vezes
     - `tecla` pode ser do `BOTOES_TECLADO` ou um `char`"""
     # obter tecla no Enum(Key) se existir, se não char
     tecla: Key | str = Key[tecla] if any(tecla == k.name for k in Key) else tecla[0]
-    for _ in range(max(quantidade, 1)): teclado.tap(tecla)
+    for _ in range(max(quantidade, 1)): 
+        teclado.tap(tecla)
+        if quantidade >= 2: sleep(delay)
 
 
 def atalho_teclado (teclas: list[bot.tipagem.BOTOES_TECLADO]) -> None:
