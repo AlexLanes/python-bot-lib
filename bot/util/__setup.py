@@ -1,10 +1,10 @@
 # std
 import re
 from inspect import stack
-from typing import Callable
 from itertools import zip_longest
 from unicodedata import normalize
 from time import sleep, perf_counter
+from typing import Callable, Iterable
 # interno
 from bot.tipagem import InfoStack
 
@@ -46,7 +46,7 @@ def obter_info_stack (index=1) -> InfoStack:
     return InfoStack(nome, caminho, funcao, linha)
 
 
-def index_melhor_match (texto: str, opcoes: list[str]) -> int:
+def index_melhor_match (texto: str, opcoes: Iterable[str]) -> int:
     """Encontrar o index da melhor opção nas `opcoes` que seja parecido com o `texto`
     - Se o index for -1, significa que nenhuma opção gerou um resultado satisfatório"""
     assert len(opcoes) >= 1, f"Nenhuma opção informada para o texto '{ texto }'"
