@@ -49,8 +49,6 @@ def obter_info_stack (index=1) -> InfoStack:
 def index_melhor_match (texto: str, opcoes: Iterable[str]) -> int:
     """Encontrar o index da melhor opção nas `opcoes` que seja parecido com o `texto`
     - Se o index for -1, significa que nenhuma opção gerou um resultado satisfatório"""
-    assert len(opcoes) >= 1, f"Nenhuma opção informada para o texto '{ texto }'"
-
     texto, scores = normalizar(texto), []
     for opcao in opcoes:
         opcao = normalizar(opcao)
