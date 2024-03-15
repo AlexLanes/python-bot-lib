@@ -16,14 +16,14 @@ HANDLERS_LOG = [logging.StreamHandler(sys.stdout), logging.FileHandler(NOME_ARQU
 
 
 # adicionar a persistência do log. Default: True
-if not cf.possui_secao("logger") or not cf.possui_opcao("logger", "flag_persistencia") or cf.obter_opcao("logger", "flag_persistencia").lower() == "true":
+if cf.obter_opcao("logger", "flag_persistencia", "True").lower() == "true":
     nome = f"{ CAMINHO_PASTA_LOGS }/{ DATA_INICIALIZACAO.strftime(FORMATO_NOME_LOG) }"
     if not bot.windows.caminho_existe(CAMINHO_PASTA_LOGS): bot.windows.criar_pasta(CAMINHO_PASTA_LOGS)
     HANDLERS_LOG.append(logging.FileHandler(nome, "w", "utf-8"))
 
 
 logger = logging.getLogger("BOT")
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.DEBUG if cf.obter_opcao("logger", "flag_debug", "True").lower() == "true" else logging.INFO)
 logging.basicConfig(
     level=logging.INFO,
     datefmt="%Y-%m-%dT%H:%M:%S",
