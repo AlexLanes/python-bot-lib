@@ -1,3 +1,5 @@
+# std
+from time import sleep
 # interno
 import bot
 from bot.tipagem import Coordenada
@@ -38,9 +40,12 @@ def clicar_mouse (coordenada: Coordenada | tuple[int, int] = None, botao: bot.ti
     mouse.click(botao, max(1, quantidade)) # clicar
 
 
-def scroll_vertical (quantidade: int, direcao: bot.tipagem.DIRECOES_SCROLL = "baixo") -> None:
-    """Realizar o scroll vertical na posição atual do mouse"""
-    mouse.scroll(0, -quantidade if direcao == "baixo" else quantidade)
+def scroll_vertical (quantidade: int, direcao: bot.tipagem.DIRECOES_SCROLL = "baixo", delay=0.02) -> None:
+    """Realizar o scroll vertical na posição atual do mouse `quantidade` vezes na `direcao` informada"""
+    quantidade = max(1, quantidade)
+    for _ in range(quantidade):
+        mouse.scroll(0, -1 if direcao == "baixo" else 1)
+        sleep(delay)
 
 
 def obter_rgb_mouse () -> tuple[int, int, int]:
