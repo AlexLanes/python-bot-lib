@@ -144,7 +144,7 @@ class Sqlite:
 
     def colunas (self, tabela: str) -> list[tuple[str, str]]:
         """Nomes das colunas e tipos da tabela
-        - `for coluna, tipo in database.colunas(tabela, schema)`"""
+        - `for coluna, tipo in database.colunas(tabela)`"""
         return [(coluna, tipo) 
                 for _, coluna, tipo, *_, in self.execute(f"PRAGMA table_info({ tabela })")]
 
