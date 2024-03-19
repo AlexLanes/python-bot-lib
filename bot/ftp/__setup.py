@@ -1,19 +1,19 @@
 
 # std
 import ftplib
+from typing import IO
 from io import BytesIO
-from typing import Self, IO
 # interno
 import bot
 import bot.configfile as cf
 
 
 class FTP:
-    """Classe de abstração do `ftplib`
-    - Utilizar com contexto `with FTP() as ftp`"""
+    """Classe de abstração do `ftplib`"""
     __ftp: ftplib.FTP
     
-    def __enter__ (self) -> Self:
+    def __init__ (self) -> None:
+        """Iniciar conexão com o FTP de acordo com as variáveis de ambiente .ini documentadas no módulo"""
         # instanciar e conectar
         self.__ftp = ftplib.FTP()
         host = cf.obter_opcoes("FTP", ["host"])[0]
@@ -26,10 +26,9 @@ class FTP:
         if usuario:
             bot.logger.informar(f"Realizando o login com o usuário '{ usuario }'")
             self.__ftp.login(usuario, senha)
-
-        return self
     
-    def __exit__ (self, *args) -> None:
+    def __del__ (self, *args) -> None:
+        """Encerrar conexão ao sair do escopo"""
         bot.logger.informar("Encerrando conexão FTP")
         self.__ftp.quit()
     
