@@ -2,7 +2,7 @@
 # std
 import ftplib
 from io import BytesIO
-from typing import Self
+from typing import Self, IO
 # interno
 import bot
 import bot.configfile as cf
@@ -36,9 +36,15 @@ class FTP:
     def __repr__ (self) -> str:
         return f"<FTP conexão com o host '{ self.__ftp.host }'>"
 
+    @property
+    def diretorio (self) -> str:
+        """Diretório atual do FTP"""
+        return self.__ftp.pwd()
+
     def alterar_diretorio (self, caminho: bot.tipagem.caminho) -> None:
         """Alterar o diretório atual
         - Passível de exceção"""
+        bot.logger.informar(f"Alterando diretório do FTP para '{ caminho }'")
         try: self.__ftp.cwd(caminho)
         except Exception as erro:
             erro.add_note(f"Caminho informado: '{ caminho }'")
@@ -47,7 +53,7 @@ class FTP:
 
     def listar_diretorio (self) -> bot.tipagem.Diretorio:
         """Listar arquivos e pastas do diretório atual"""
-        cwd = self.__ftp.pwd()
+        cwd = self.diretorio
         diretorio = bot.tipagem.Diretorio(cwd, [], [])
         
         for nome, infos in self.__ftp.mlsd():
@@ -57,12 +63,33 @@ class FTP:
 
         return diretorio
 
-    def obter_arquivo (self, nome: str) -> bytes:
+    def obter_arquivo (self, nome_arquivo: str) -> bytes:
         """Obter conteúdo do arquivo `nome` no diretório atual
         - Passível de exceção"""
+        bot.logger.informar(f"Obtendo arquivo FTP '{ nome_arquivo }'")
         conteudo = BytesIO()
-        self.__ftp.retrbinary(f"RETR { nome }", conteudo.write)
+        self.__ftp.retrbinary(f"RETR { nome_arquivo }", conteudo.write)
         return conteudo.getvalue()
+    
+    def adicionar_arquivo (self, nome_arquivo: str, conteudo: IO) -> None:
+        """Adicionar arquivo no diretório atual
+        - `conteudo` pode ser qualquer tipo do `import io` -> `open()`, inclusive `BytesIO`
+        - Passível de exceção"""
+        bot.logger.informar(f"Adicionado arquivo FTP no diretório atual '{ nome_arquivo }'")
+        self.__ftp.storbinary(f"STOR { nome_arquivo }", conteudo)
+    
+    def renomear_arquivo (self, nome_atual: str, novo_nome: str) -> None:
+        """Renomear arquivo no diretório atual
+        - Pode ser utilizado para mover o arquivo também
+        - Passível de exceção"""
+        bot.logger.informar(f"Renomeando arquivo FTP no diretório atual de '{ nome_atual }' para '{ novo_nome }'")
+        self.__ftp.rename(nome_atual, novo_nome)
+
+    def remover_arquivo (self, nome_arquivo: str) -> None:
+        """Remover arquivo no diretório atual
+        - Passível de exceção"""
+        bot.logger.informar(f"Removendo arquivo FTP no diretório atual '{ nome_arquivo }'")
+        self.__ftp.delete(nome_arquivo)
 
 
 __all__ = ["FTP"]
