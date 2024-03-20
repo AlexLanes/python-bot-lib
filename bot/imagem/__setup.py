@@ -69,12 +69,16 @@ def obter_cores_imagem (imagem: bot.tipagem.caminho | Image.Image | bytes, limit
     - `imagem` pode ser o caminho até o arquivo, bytes da image ou `Image` do módulo `pillow`
     - `limite` quantidade que será retornada dos mais frequentes
     - `for (frequencia, cor) in obter_cores_imagem()`"""
-    if limite != None and limite <= 0: return []
+    # extrair cores
     imagem = transformar_pillow(imagem)
-    itens: list[tuple[int, tuple[int, int, int]]] = imagem.getcolors(10000) # extrair cores
+    itens = [(frequencia, (r, g, b)) for frequencia, (r, g, b, *_) in imagem.getcolors(10000)]
     itens.sort(key=lambda item: item[0], reverse=True) # ordernar pelos mais frequentes
-    limite = limite if isinstance(limite, slice) else slice(limite) # criar o slice de limite
-    return itens[limite]
+    
+    # aplicar o slice
+    limite = limite if isinstance(limite, slice) else slice(limite) 
+    itens = itens[limite]
+
+    return itens
 
 
 class LeitorOCR:
