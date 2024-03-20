@@ -30,7 +30,8 @@ class FTP:
     def __del__ (self, *args) -> None:
         """Encerrar conexão ao sair do escopo"""
         bot.logger.informar("Encerrando conexão FTP")
-        self.__ftp.quit()
+        try: self.__ftp.quit()
+        except: pass
     
     def __repr__ (self) -> str:
         return f"<FTP conexão com o host '{ self.__ftp.host }'>"
