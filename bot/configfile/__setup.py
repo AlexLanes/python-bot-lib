@@ -1,10 +1,10 @@
 # std
-from configparser import ConfigParser
+from configparser import ConfigParser, ExtendedInterpolation
 # interno
 from bot.windows import diretorio_execucao, extrair_nome_base
 
 
-config = ConfigParser()
+config = ConfigParser(interpolation=ExtendedInterpolation())
 for arquivo in diretorio_execucao().arquivos:
     if not arquivo.endswith(".ini"): continue
     config.read(extrair_nome_base(arquivo), encoding="utf-8")
