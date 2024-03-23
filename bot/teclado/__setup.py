@@ -4,7 +4,7 @@ from time import sleep
 import bot
 # externo
 import pyperclip
-from pynput.keyboard import Controller, Key
+from pynput.keyboard import Controller, Key, KeyCode
 
 
 teclado = Controller()
@@ -17,26 +17,29 @@ def apertar_tecla (tecla: bot.tipagem.BOTOES_TECLADO, quantidade=1, delay=0.5) -
     tecla: Key | str = Key[tecla] if any(tecla == k.name for k in Key) else tecla[0]
     for _ in range(max(quantidade, 1)): 
         teclado.tap(tecla)
-        if quantidade >= 2: sleep(delay)
+        sleep(delay)
 
 
-def atalho_teclado (teclas: list[bot.tipagem.BOTOES_TECLADO]) -> None:
+def atalho_teclado (teclas: list[bot.tipagem.BOTOES_TECLADO], delay=0.5) -> None:
     """Apertar as `teclas` sequencialmente e depois soltá-las em ordem reversa
     - `tecla` pode ser do `BOTOES_TECLADO` ou um `char`"""
     # obter teclas do Enum(Key) se existir, se não char
     teclas = [Key[tecla] if any(tecla == k.name for k in Key) else tecla[0] for tecla in teclas]
     for tecla in teclas: teclado.press(tecla) # pressionar teclas
     for tecla in reversed(teclas): teclado.release(tecla) # soltar teclas
+    sleep(delay)
 
 
-def digitar_teclado (texto: str) -> None:
+def digitar_teclado (texto: str, delay=0.02) -> None:
     """Digitar o texto pressionando cada tecla do texto e soltando em seguida"""
-    teclado.type(str(texto))
+    for char in texto:
+        teclado.type(char)
+        sleep(delay)
 
 
 def copiar_texto (texto: str) -> None:
     """Substituir o texto copiado da área de transferência pelo `texto`"""
-    pyperclip.copy(str(texto))
+    pyperclip.copy(texto)
 
 
 def colar_texto_copiado () -> None:

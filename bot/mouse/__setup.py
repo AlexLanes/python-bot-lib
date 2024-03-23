@@ -30,14 +30,15 @@ def mover_mouse (coordenada: tuple[int, int] | Coordenada) -> None:
     mouse.position = obter_x_y(coordenada)
 
 
-def clicar_mouse (coordenada: Coordenada | tuple[int, int] = None, botao: bot.tipagem.BOTOES_MOUSE = "left", quantidade=1) -> None:
+def clicar_mouse (coordenada: Coordenada | tuple[int, int] = None, 
+                  botao: bot.tipagem.BOTOES_MOUSE = "left", 
+                  quantidade=1, delay=0.5) -> None:
     """Clicar com o `botão` do mouse na `coordenada` `quantidade` vezes
-    - Default `Coordenada` posição atual do mouse
-    - Default `botao` botão esquerdo do mouse
-    - Default `quantidade` 1"""
+    - Default `Coordenada` posição atual do mouse"""
     if coordenada: mover_mouse(coordenada) # mover mouse se requisitado
     botao: Button = Button[botao] # Enum do botão
     mouse.click(botao, max(1, quantidade)) # clicar
+    sleep(delay)
 
 
 def scroll_vertical (quantidade: int, direcao: bot.tipagem.DIRECOES_SCROLL = "baixo", delay=0.02) -> None:
