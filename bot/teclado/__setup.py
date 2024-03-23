@@ -1,13 +1,16 @@
 # std
 from time import sleep
+from atexit import register
+from typing import Callable
 # interno
 import bot
 # externo
 import pyperclip
-from pynput.keyboard import Controller, Key, KeyCode
+from pynput.keyboard import Controller, Key, Listener
 
 
 teclado = Controller()
+callbacks_observador: dict[str, Callable[[], None]] = {}
 
 
 def apertar_tecla (tecla: bot.tipagem.BOTOES_TECLADO, quantidade=1, delay=0.5) -> None:
@@ -55,10 +58,30 @@ def obter_texto_copiado (usoUnico=False) -> str:
     return texto
 
 
+def observar_tecla (tecla: bot.tipagem.BOTOES_TECLADO, callback: Callable[[], None]) -> None:
+    """Observar quando a `tecla` é apertada e chamar o `callback`
+    - `tecla` pode ser do `BOTOES_TECLADO` ou um `char`"""
+    # apenas adicionar callback se já foi iniciado
+    if callbacks_observador:
+        callbacks_observador[tecla] = callback
+        return
+
+    # iniciar observador
+    def on_press (tecla: Key | str) -> None:
+        tecla: str = tecla.name if isinstance(tecla, Key) else str(tecla).strip("'")
+        callback = callbacks_observador.get(tecla, lambda: None)
+        callback()
+
+    observador = Listener(on_press)
+    observador.start()
+    register(observador.stop)
+
+
 __all__ = [
     "copiar_texto",
     "apertar_tecla",
     "atalho_teclado",
+    "observar_tecla",
     "digitar_teclado",
     "obter_texto_copiado",
     "colar_texto_copiado"
