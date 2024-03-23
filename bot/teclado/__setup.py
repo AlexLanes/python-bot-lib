@@ -61,10 +61,10 @@ def obter_texto_copiado (usoUnico=False) -> str:
 def observar_tecla (tecla: bot.tipagem.BOTOES_TECLADO, callback: Callable[[], None]) -> None:
     """Observar quando a `tecla` é apertada e chamar o `callback`
     - `tecla` pode ser do `BOTOES_TECLADO` ou um `char`"""
-    # apenas adicionar callback se já foi iniciado
-    if callbacks_observador:
-        callbacks_observador[tecla] = callback
-        return
+    callbacks_observador[tecla] = callback
+
+    # observador já iniciado
+    if len(callbacks_observador) > 1: return
 
     # iniciar observador
     def on_press (tecla: Key | str) -> None:
