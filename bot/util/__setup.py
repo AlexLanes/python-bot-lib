@@ -9,14 +9,18 @@ from typing import Callable, Iterable
 from bot.tipagem import InfoStack
 
 
-def aguardar_condicao (condicao: Callable[[], bool], timeout: int, erro: Exception = None) -> bool | Exception:
-    """Repetir a função `condicao` por `timeout` segundos até que resulte em `True`
-    - `False` se a condição não for atendida após `timeout` ou `erro` se for informado"""
+def aguardar_condicao (condicao: Callable[[], bool], timeout: int) -> bool:
+    """Repetir a função `condição` por `timeout` segundos até que resulte em `True`
+    - Retorna um `bool` indicando se a `condição` foi atendida
+    - Exceções são ignoradas"""
     inicio = perf_counter()
+
     while perf_counter() - inicio < timeout:
-        if condicao(): return True
-        else: sleep(0.11)
-    if erro != None: raise erro
+        try:
+            if condicao(): return True
+            else: sleep(0.11)
+        except: pass
+
     return False
 
 
