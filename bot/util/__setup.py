@@ -32,10 +32,10 @@ def remover_acentuacao (string: str) -> str:
 
 
 def normalizar (string: str) -> str:
-    """Strip, lower, replace espaços por underline e remoção de acentuação"""
-    string = str(string).strip().lower()
-    string = re.sub(r"\s+", "_", string)
-    return remover_acentuacao(string)
+    """Strip, lower, replace espaços por underline, remoção de acentuação e remoção de caracteres != `a-zA-Z0-9_`"""
+    string = re.sub(r"\s+", "_", string.strip().lower())
+    string = remover_acentuacao(string)
+    return re.sub(r"\W", "", string)
 
 
 def obter_info_stack (index=1) -> InfoStack:
