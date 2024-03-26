@@ -9,6 +9,28 @@ import polars
 import pyodbc
 
 
+cache = {}
+def sql_nomeado_para_posicional (sql: str, parametros: bot.tipagem.nomeado) -> tuple[str, list[str]]:
+    """Transformar o sql parametrizado `nomeado` para `posicional`
+    - `index[0]` SQL transformado
+    - `index[1]` Ordem dos nomes parametrizados no `sql`"""
+    if sql in cache: return cache[sql]
+
+    sql_transformado = sql
+    ordem_nomes = [nome for nome in regex.findall(r"(?<=:)\w+", sql) 
+                   if nome in parametros]
+
+    # converter SQL
+    ordenar_por_tamanho = { "key": lambda x: len(x), "reverse": True }
+    for nome in sorted(ordem_nomes, **ordenar_por_tamanho): 
+        sql_transformado = sql_transformado.replace(f":{ nome }", "?", 1)
+
+    # inserir no `cache` e retornar
+    resultado = (sql_transformado, ordem_nomes)
+    cache[sql] = resultado
+    return resultado
+
+
 class DatabaseODBC:
     """Classe para manipulação de Databases via drivers ODBC
     - Necessário possuir o driver instalado em `ODBC Data Sources`
@@ -18,7 +40,7 @@ class DatabaseODBC:
     __conexao: pyodbc.Connection
     """Objeto de conexão com o database"""
 
-    def __init__ (self, nomeDriver: str, /, **kwargs) -> None:
+    def __init__ (self, nome_driver: str, /, **kwargs) -> None:
         """Inicializar a conexão com o driver odbc
         - `odbc_driver` Não precisa ser exato mas deve estar em `Database.listar_drivers()`
         - Demais configurações para a conexão podem ser informadas no `**kwargs`
@@ -27,40 +49,46 @@ class DatabaseODBC:
             - server = servidor
             - port = porta
             - database = nome do database"""
-        # Verificar se o driver existe
-        if not (drivers := [d for d in self.listar_drivers() if nomeDriver.lower() in d.lower()]): 
-            raise ValueError(f"Driver ODBC '{ nomeDriver }' não encontrado")
-        # Pegar um driver dos encontrados. Preferência ao UNICODE
-        nomeDriver = unicode[0] if (unicode := [d for d in drivers if "unicode" in d.lower()]) \
-                                else drivers[0]
-        bot.logger.debug(f"Iniciando conexão com o database '{ nomeDriver }'")
-        # Montar a conexão
-        conexao = f"driver={ nomeDriver };"
-        for configuracao in kwargs: conexao += f"{ configuracao }={ kwargs[configuracao] };"
+        # verificar se o driver existe
+        existentes = [driver for driver in self.listar_drivers() 
+                      if nome_driver.lower() in driver.lower()]
+        if not existentes: raise ValueError(f"Driver ODBC '{ nome_driver }' não encontrado")
+
+        # escolher um driver dos encontrados (preferência ao `unicode`)
+        unicode = [driver for driver in existentes if "unicode" in driver.lower()]
+        nome_driver = unicode[0] if unicode else existentes[0]
+        bot.logger.informar(f"Iniciando conexão ODBC com o driver '{ nome_driver }'")
+
+        # montar a conexão
+        kwargs["driver"] = nome_driver
+        conexao = ";".join(f"{ nome }={ valor }" 
+                           for nome, valor in kwargs.items())
         self.__conexao = pyodbc.connect(conexao, autocommit=False, timeout=5)
 
     def __del__ (self) -> None:
         """Fechar a conexão quando sair do escopo"""
         bot.logger.debug(f"Encerrando conexão com o database")
-        if hasattr(self, "__conexao") and hasattr(self.__conexao, "close") and callable(self.__conexao.close): self.__conexao.close()
-        else: del self
+        try: self.__conexao.close()
+        except: pass
 
     def __repr__ (self) -> str:
         return f"<Database ODBC>"
 
-    @property
-    def tabelas (self) -> list[tuple[str, str | None]]:
+    def tabelas (self, schema: str = None) -> list[tuple[str, str | None]]:
         """Nomes das tabelas e schemas disponíveis
         - `for tabela, schema in database.tabelas()`"""
         cursor = self.__conexao.cursor()
-        itens = [(tabela, schema if schema else None) for _, schema, tabela, *_ in cursor.tables(tableType="TABLE")]
-        return sorted(itens, key=lambda item: item[0])
+        itens = [(tabela, schema if schema else None) 
+                 for _, schema, tabela, *_ in cursor.tables(tableType="TABLE", schema=schema)]
+        itens.sort(key=lambda item: item[0]) # ordernar pelo nome das tabelas
+        return itens
 
     def colunas (self, tabela: str, schema: str = None) -> list[tuple[str, str]]:
         """Nomes das colunas e tipos da tabela
         - `for coluna, tipo in database.colunas(tabela, schema)`"""
         cursor = self.__conexao.cursor()
-        return [(item[3], item[5]) for item in cursor.columns(tabela, schema=schema)]
+        return [(item[3], item[5]) 
+                for item in cursor.columns(tabela, schema=schema)]
 
     def commit (self) -> None:
         """Commitar alterações feitas na conexão"""
@@ -72,18 +100,13 @@ class DatabaseODBC:
 
     def execute (self, sql: str, parametros: bot.tipagem.nomeado | bot.tipagem.posicional = None) -> bot.tipagem.ResultadoSQL:
         """Executar uma única instrução SQL
-        - `sql` Comando que será executado. Pode ser parametrizado com argumentos posicionais `?` ou nomeados `:nome`
+        - `sql` Comando que será executado. Recomendado ser parametrizado com argumentos posicionais `?` ou nomeados `:nome`
         - `parametros` Parâmetros presentes no `sql`"""
-        # Transformar o sql e os parâmetros nomeados `:nome` para a forma posicional `?`
         # `pyodbc` não aceita parâmetros nomeados
         if isinstance(parametros, dict):
-            parametros = { chave.lower(): valor for chave, valor in parametros.items() }
-            parametros_existentes = [encontrado for encontrado in regex.findall(r":\w+", sql)
-                                     if encontrado.lower()[1:] in parametros]
-            parametros = [parametros[ existente.lower()[1:] ] for existente in parametros_existentes]
-            # reversed para o replace não dar problema `(:id, :idade) -> (?, ?ade)`
-            for existente in sorted(set(parametros_existentes), reverse=True): 
-                sql = sql.replace(existente, "?")
+            ref_parametros = parametros
+            sql, nomes = sql_nomeado_para_posicional(sql, parametros)
+            parametros = (ref_parametros[nome] for nome in nomes)
 
         cursor = self.__conexao.execute(sql, parametros) if parametros else self.__conexao.execute(sql)
         colunas = tuple(coluna[0] for coluna in cursor.description) if cursor.description else tuple()
@@ -94,8 +117,8 @@ class DatabaseODBC:
     def execute_many (self, sql: str, parametros: Iterable[bot.tipagem.nomeado] | Iterable[bot.tipagem.posicional]) -> bot.tipagem.ResultadoSQL:
         """Executar uma ou mais instruções SQL
         - Utilizar apenas comandos SQL que resultem em `linhas_afetadas`
-        - `sql` Comando que será executado. Deve ser parametrizado com argumentos posicionais `?` ou nomeados `:nome`
-        - `parametros` Lista dos parâmetros presentes no `sql`
+        - `sql` Comando que será executado. Recomendado ser parametrizado com argumentos posicionais `?` ou nomeados `:nome`
+        - `parametros` `Iterable` dos parâmetros presentes no `sql`
         - Parâmetros que apresentaram erro será feito log de alerta"""
         # executemany do `pyodbc` não retorna o rowcount
         total_linhas_afetadas = 0
@@ -124,23 +147,22 @@ class Sqlite:
         """Inicialização do banco de dados
         - `database` caminho para o arquivo .db ou .sqlite, 
         - Default carregar apenas na memória"""
-        bot.logger.debug(f"Iniciando conexão com o database Sqlite")
+        bot.logger.informar(f"Iniciando conexão Sqlite com o database '{ database }'")
         self.__conexao = sqlite3.connect(database, 5)
     
     def __del__ (self) -> None:
         """Fechar a conexão quando sair do escopo"""
-        bot.logger.debug(f"Encerrando conexão com o database")
-        if hasattr(self, "__conexao") and hasattr(self.__conexao, "close") and callable(self.__conexao.close): self.__conexao.close()
-        else: del self
+        bot.logger.informar(f"Encerrando conexão com o database")
+        try: self.__conexao.close()
+        except: pass
 
     def __repr__ (self) -> str:
         return f"<Database Sqlite>"
 
-    @property
     def tabelas (self) -> list[str]:
         """Nomes das tabelas disponíveis"""
         sql = "SELECT name FROM sqlite_schema WHERE type = 'table' AND name NOT LIKE 'sqlite_%'"
-        return [coluna for coluna, *_ in self.execute(sql)]
+        return [tabela for tabela, *_ in self.execute(sql)]
 
     def colunas (self, tabela: str) -> list[tuple[str, str]]:
         """Nomes das colunas e tipos da tabela
@@ -158,7 +180,7 @@ class Sqlite:
 
     def execute (self, sql: str, parametros: bot.tipagem.nomeado | bot.tipagem.posicional = None) -> bot.tipagem.ResultadoSQL:
         """Executar uma única instrução SQL
-        - `sql` Comando que será executado. Pode ser parametrizado com argumentos posicionais `?` ou nomeados `:nome`
+        - `sql` Comando que será executado. Recomendado ser parametrizado com argumentos posicionais `?` ou nomeados `:nome`
         - `parametros` Parâmetros presentes no `sql`"""
         cursor = self.__conexao.execute(sql, parametros) if parametros else self.__conexao.execute(sql)
         colunas = tuple(coluna[0] for coluna in cursor.description) if cursor.description else tuple()
@@ -168,7 +190,7 @@ class Sqlite:
 
     def execute_many (self, sql: str, parametros: Iterable[bot.tipagem.nomeado] | Iterable[bot.tipagem.posicional]) -> bot.tipagem.ResultadoSQL:
         """Executar uma ou mais instruções SQL
-        - `sql` Comando que será executado. Deve ser parametrizado com argumentos nomeados `:nome` ou posicionais `?`
+        - `sql` Comando que será executado. Recomendado ser parametrizado com argumentos nomeados `:nome` ou posicionais `?`
         - `parametros` Lista dos parâmetros presentes no `sql`"""
         cursor = self.__conexao.executemany(sql, parametros)
         colunas = tuple(coluna[0] for coluna in cursor.description) if cursor.description else tuple()
@@ -178,7 +200,7 @@ class Sqlite:
 
     def to_excel (self, caminho="resultado.xlsx") -> None:
         """Salvar as linhas de todas as tabelas da conexão em um arquivo excel"""
-        for tabela in self.tabelas:
+        for tabela in self.tabelas():
             self.execute(f"SELECT * FROM { tabela }") \
                 .to_dataframe() \
                 .write_excel(caminho, tabela, autofit=True)
