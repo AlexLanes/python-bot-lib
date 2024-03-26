@@ -68,7 +68,7 @@ class Coordenada:
         yield self.largura
         yield self.altura
 
-    def __len__(self):
+    def __len__ (self):
         return 4
     
     def __contains__ (self, c) -> bool:
@@ -131,8 +131,8 @@ class ResultadoSQL:
 
     def __repr__ (self) -> str:
         "Representação da classe"
-        tipo = f"com '{ self.linhas_afetadas }' linha(s) afetada(s)" if self.linhas_afetadas != None\
-          else f"com '{ len(self.colunas) }' colunas" if self.colunas\
+        tipo = f"com '{ self.linhas_afetadas }' linha(s) afetada(s)" if self.linhas_afetadas \
+          else f"com '{ len(self.colunas) }' colunas" if self.colunas \
           else f"vazio"
         return f"<ResultadoSQL { tipo }>"
 
