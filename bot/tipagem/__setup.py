@@ -1,4 +1,5 @@
 # std
+from itertools import chain
 from dataclasses import dataclass
 from os.path import getmtime as ultima_alteracao
 from typing import Literal, Generator, TypeAlias, Iterable
@@ -131,8 +132,14 @@ class ResultadoSQL:
 
     def __repr__ (self) -> str:
         "Representação da classe"
+        linhas, possui_linhas = self.linhas, False
+        try: 
+            self.linhas = chain([next(linhas)], linhas)
+            possui_linhas = True
+        except StopIteration: pass
+
         tipo = f"com '{ self.linhas_afetadas }' linha(s) afetada(s)" if self.linhas_afetadas \
-          else f"com '{ len(self.colunas) }' colunas" if self.colunas \
+          else f"com linha(s) e '{ len(self.colunas) }' coluna(s)" if possui_linhas \
           else f"vazio"
         return f"<ResultadoSQL { tipo }>"
 
