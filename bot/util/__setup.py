@@ -9,7 +9,7 @@ from typing import Callable, Iterable
 from bot.tipagem import InfoStack
 
 
-def aguardar_condicao (condicao: Callable[[], bool], timeout: int) -> bool:
+def aguardar_condicao (condicao: Callable[[], bool], timeout: int, delay=0.1) -> bool:
     """Repetir a função `condição` por `timeout` segundos até que resulte em `True`
     - Retorna um `bool` indicando se a `condição` foi atendida
     - Exceções são ignoradas"""
@@ -18,7 +18,7 @@ def aguardar_condicao (condicao: Callable[[], bool], timeout: int) -> bool:
     while perf_counter() - inicio < timeout:
         try:
             if condicao(): return True
-            else: sleep(0.11)
+            else: sleep(delay)
         except: pass
 
     return False

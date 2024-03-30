@@ -82,24 +82,25 @@ def obter_cores_imagem (imagem: bot.tipagem.caminho | Image.Image | bytes, limit
 
 
 class LeitorOCR:
-    """Classe de abstração do EasyOCR"""
-    
+    """Classe de abstração do EasyOCR
+    - Caso possua GPU da NVIDIA, instalar o `CUDA Toolkit` e instalar as bibliotecas indicadas pelo pytorch https://pytorch.org/get-started/locally/"""
+
     def __init__ (self, confianca: bot.tipagem.PORCENTAGENS = "0.4"):
         """Inicia o leitor OCR
         - `confianca` porcentagem mínima de confiança no texto extraído (entre 0.0 e 1.0)"""
         from easyocr import Reader
         self.__reader = Reader(["en"])
-        
+
         confianca: float = float(confianca)
         self.__confianca = max(0.0, min(1.0, confianca))
-    
+
     def ler_tela (self, regiao: Coordenada = None) -> list[tuple[str, Coordenada]]:
         """Extrair texto e coordenadas da tela na posição `coordenada` 
         - `regiao` vazia para ler a tela inteira
         - `for texto, coordenada in leitor.ler_tela()`"""
         inicio = perf_counter()
         bot.logger.debug("Iniciado o processo de extração de textos e coordenadas da tela")
-        
+
         imagem = capturar_tela(regiao, True)
         extracoes = self.__extrair(imagem)
 
@@ -118,7 +119,7 @@ class LeitorOCR:
         - `for texto, coordenada in leitor.ler_imagem()`"""
         inicio = perf_counter()
         bot.logger.debug("Iniciado o processo de extração de textos e coordenadas de uma imagem")
-        
+
         imagem = transformar_pillow(imagem)
         extracoes = self.__extrair(imagem)
 
