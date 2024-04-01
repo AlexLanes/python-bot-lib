@@ -26,7 +26,7 @@ def obter_x_y (coordenada: tuple[int, int] | Coordenada | None) -> tuple[int, in
 
 
 def mover_mouse (coordenada: tuple[int, int] | Coordenada) -> None:
-    """Mover o mouse até as cordenadas"""
+    """Mover o mouse até a `coordenada`"""
     mouse.position = obter_x_y(coordenada)
 
 
@@ -34,7 +34,7 @@ def clicar_mouse (coordenada: Coordenada | tuple[int, int] = None,
                   botao: bot.tipagem.BOTOES_MOUSE = "left", 
                   quantidade=1, delay=0.5) -> None:
     """Clicar com o `botão` do mouse na `coordenada` `quantidade` vezes
-    - Default `Coordenada` posição atual do mouse"""
+    - Default `coordenada`: posição atual do mouse"""
     if coordenada: mover_mouse(coordenada) # mover mouse se requisitado
     botao: Button = Button[botao] # Enum do botão
     mouse.click(botao, max(1, quantidade)) # clicar

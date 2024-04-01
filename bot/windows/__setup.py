@@ -59,7 +59,7 @@ def confirmar_arquivo (caminho: caminho) -> bool:
     return os.path.isfile(caminho)
 
 
-def cmd (comando: str) -> None | Exception:
+def cmd (comando: str) -> None:
     """Realizar um comando no `prompt`
     - Levar em consideração o diretório de execução atual
     - Lança exceção se o comando for inválido"""

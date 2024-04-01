@@ -63,8 +63,23 @@ def index_melhor_match (texto: str, opcoes: Iterable[str]) -> int:
     return scores.index(score) if score >= 1 else -1
 
 
+def expandir_tempo (segundos: int | float) -> str:
+    """Expandir a medida `segundos` para as duas primeiras unidades de grandeza
+    - Hora, Minuto, Segundo ou Milissegundo"""
+    if not segundos: return "0 segundos"
+    tempo, segundos = "", round(segundos, 3)
+
+    for nome, medida in [("hora", 60 ** 2), ("minuto", 60), ("segundo", 1), ("milissegundo", 0.001)]:
+        if segundos < medida: continue
+        tempo += f"{ int(segundos / medida) } { nome }{ 's' if segundos >= medida * 2 else '' },"
+        segundos %= medida
+
+    return " e ".join(medida for medida in tempo.split(",")[0:2] if medida)
+
+
 __all__ = [
     "normalizar",
+    "expandir_tempo",
     "obter_info_stack",
     "aguardar_condicao",
     "remover_acentuacao",

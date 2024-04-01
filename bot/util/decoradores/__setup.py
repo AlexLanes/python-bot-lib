@@ -44,11 +44,12 @@ def retry (tentativas=3, segundos=10):
 
 
 def tempo_execucao (func: Callable):
-    """Loggar o tempo de execução da função em segundos
+    """Loggar o tempo de execução da função
     - Função"""
     def tempo_execucao (*args, **kwargs):
         inicio, resultado = perf_counter(), func(*args, **kwargs)
-        bot.logger.informar(f"Função({ func.__name__ }) executada em {perf_counter() - inicio:.3f} segundos")
+        tempo = bot.util.expandir_tempo(perf_counter() - inicio)
+        bot.logger.informar(f"Função({ func.__name__ }) executada em { tempo }")
         return resultado
     return tempo_execucao
 

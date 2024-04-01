@@ -65,9 +65,8 @@ def limpar_logs () -> None:
     """Limpar os logs que ultrapassaram a data limite
     - Função executada automaticamente ao fim da execução"""
     # obter limite
-    args = ("logger", "dias_persistencia")
-    limite = timedelta(days=int(cf.obter_opcao(*args))) if cf.possui_secao(args[0]) and cf.possui_opcao(*args) \
-        else timedelta(weeks=2)
+    dias = int(cf.obter_opcao("logger", "dias_persistencia", "14"))
+    limite = timedelta(days=dias)
 
     # checar caminho
     caminho = bot.windows.caminho_absoluto(CAMINHO_PASTA_LOGS)

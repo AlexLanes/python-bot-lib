@@ -11,7 +11,7 @@ import bot.configfile as cf
 class FTP:
     """Classe de abstração do `ftplib`"""
     __ftp: ftplib.FTP
-    
+
     def __init__ (self) -> None:
         """Iniciar conexão com o FTP de acordo com as variáveis de ambiente .ini documentadas no módulo"""
         # instanciar e conectar
@@ -21,18 +21,19 @@ class FTP:
         self.__ftp.connect(host=host,
                            port=int(cf.obter_opcao("FTP", "port", "21")),
                            timeout=int(cf.obter_opcao("FTP", "timeout", "5")))
+
         # login
         usuario, senha = cf.obter_opcao("FTP", "user"), cf.obter_opcao("FTP", "password")
         if usuario:
             bot.logger.informar(f"Realizando o login com o usuário '{ usuario }'")
             self.__ftp.login(usuario, senha)
-    
+
     def __del__ (self, *args) -> None:
         """Encerrar conexão ao sair do escopo"""
         bot.logger.informar("Encerrando conexão FTP")
         try: self.__ftp.quit()
         except: pass
-    
+
     def __repr__ (self) -> str:
         return f"<FTP conexão com o host '{ self.__ftp.host }'>"
 
@@ -55,7 +56,7 @@ class FTP:
         """Listar arquivos e pastas do diretório atual"""
         cwd = self.diretorio
         diretorio = bot.tipagem.Diretorio(cwd, [], [])
-        
+
         for nome, infos in self.__ftp.mlsd():
             tipo, caminho = infos.get("type"), f"{ cwd if cwd != '/' else '' }/{ nome }"
             if tipo == "dir": diretorio.pastas.append(caminho)
@@ -70,14 +71,14 @@ class FTP:
         conteudo = BytesIO()
         self.__ftp.retrbinary(f"RETR { nome_arquivo }", conteudo.write)
         return conteudo.getvalue()
-    
+
     def adicionar_arquivo (self, nome_arquivo: str, conteudo: IO) -> None:
         """Adicionar arquivo no diretório atual
         - `conteudo` pode ser qualquer tipo do `import io` -> `open()`, inclusive `BytesIO`
         - Passível de exceção"""
         bot.logger.informar(f"Adicionado arquivo FTP no diretório atual '{ nome_arquivo }'")
         self.__ftp.storbinary(f"STOR { nome_arquivo }", conteudo)
-    
+
     def renomear_arquivo (self, nome_atual: str, novo_nome: str) -> None:
         """Renomear arquivo no diretório atual
         - Pode ser utilizado para mover o arquivo também
