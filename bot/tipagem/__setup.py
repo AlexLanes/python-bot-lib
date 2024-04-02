@@ -3,7 +3,7 @@ from itertools import chain
 from dataclasses import dataclass
 from os.path import getmtime as ultima_alteracao
 from typing import Literal, Generator, TypeAlias, Iterable
-from datetime import date as Date, datetime as DateTime
+from datetime import date as Date, datetime as Datetime
 # externo
 from polars import DataFrame
 
@@ -100,18 +100,19 @@ class Diretorio:
     arquivos: caminhos
     """Lista contendo o caminho de cada arquivo do diretório"""
 
-    def query_data_alteracao_arquivos (self, inicio=Date.today(), fim=Date.today()) -> list[tuple[str, Date]]:
+    def query_data_alteracao_arquivos (self,
+                                       inicio=Datetime.now().replace(hour=0, minute=0, second=0, microsecond=0),
+                                       fim=Datetime.now()) -> list[tuple[str, Datetime]]:
         """Consultar arquivos do diretório com base na data de alteração
-        - Default: Dia de hoje
-        - Retorna uma lista `(caminho, data)` ordenado pelos mais recentes"""
-        arquivos = [] 
-        
-        for caminho in self.arquivos:
-            data = Date.fromtimestamp(ultima_alteracao(caminho))
-            if data < inicio or data > fim: continue
-            arquivos.append((caminho, data))
-            
-        arquivos.sort(key=lambda x: x[1], reverse=True)
+        - Default: Hoje
+        - Retorna uma lista `(caminho, data)` ordenado pelos mais antigos"""
+        ordenar_antigos = lambda x: x[1]
+        criar_data = lambda caminho: Datetime.fromtimestamp(ultima_alteracao(caminho))
+
+        arquivos = [(caminho, data) for caminho in self.arquivos
+                    if inicio <= (data := criar_data(caminho)) <= fim]
+        arquivos.sort(key=ordenar_antigos)
+
         return arquivos
 
 
@@ -173,7 +174,7 @@ class Email:
     """Destinatários que receberam o e-mail"""
     assunto: str
     """Assunto do e-mail"""
-    data: DateTime
+    data: Datetime
     """Data de envio do e-mail"""
     texto: str | None
     """Conteúdo do e-mail como texto"""
