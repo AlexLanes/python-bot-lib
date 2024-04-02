@@ -56,6 +56,7 @@ class FTP:
         """Listar arquivos e pastas do diretório atual"""
         cwd = self.diretorio
         diretorio = bot.tipagem.Diretorio(cwd, [], [])
+        del diretorio.query_data_alteracao_arquivos # não suportado
 
         for nome, infos in self.__ftp.mlsd():
             tipo, caminho = infos.get("type"), f"{ cwd if cwd != '/' else '' }/{ nome }"
