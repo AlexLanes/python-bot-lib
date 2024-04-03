@@ -1,9 +1,9 @@
 # std
 from itertools import chain
 from dataclasses import dataclass
+from datetime import datetime as Datetime
 from os.path import getmtime as ultima_alteracao
 from typing import Literal, Generator, TypeAlias, Iterable
-from datetime import date as Date, datetime as Datetime
 # externo
 from polars import DataFrame
 
@@ -155,7 +155,8 @@ class ResultadoSQL:
         self.linhas = (linha for linha in linhas) # recriar gerador
         return {
             "linhas_afetadas": self.linhas_afetadas,
-            "resultados": [{ coluna: valor for coluna, valor in zip(self.colunas, linha) } for linha in linhas]
+            "resultados": [{ coluna: valor for coluna, valor in zip(self.colunas, linha) } 
+                           for linha in linhas]
         }
 
     def to_dataframe (self) -> DataFrame:
@@ -180,9 +181,9 @@ class Email:
     """Conteúdo do e-mail como texto"""
     html: str | None
     """Conteúdo do e-mail como html"""
-    anexos: list[tuple[str, str, int, bytes]]
+    anexos: list[tuple[str, str, bytes]]
     """Anexos do e-mail
-    - `for (nome, tipo, tamanho, conteudo) in email.anexos:`"""
+    - `for (nome, tipo, conteudo) in email.anexos:`"""
 
 
 __all__ = [

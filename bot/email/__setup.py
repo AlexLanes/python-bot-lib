@@ -135,17 +135,17 @@ def obter_email (limite: int | slice = None, query="ALL", visualizar=False) -> G
                     nome = parte.get_filename("blob")
                     tipo = parte.get_content_type()
                     arquivo = parte.get_payload(decode=True)
-                    email.anexos.append((nome, tipo, len(arquivo), arquivo))
+                    email.anexos.append((nome, tipo, arquivo))
                 # extrai o conteúdo como string
                 elif "text/plain" in parte.get_content_type():
                     payload: bytes = parte.get_payload(decode=True)
                     charset = parte.get_content_charset("utf-8")
-                    email.texto: str = payload.decode(charset)
+                    email.texto = payload.decode(charset)
                 # extrai o conteúdo html como string
                 elif "text/html" in parte.get_content_type():
                     payload: bytes = parte.get_payload(decode=True)
                     charset = parte.get_content_charset("utf-8")
-                    email.html: str = payload.decode(charset)
+                    email.html = payload.decode(charset)
 
             yield email
 
