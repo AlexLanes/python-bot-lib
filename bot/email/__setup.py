@@ -38,9 +38,10 @@ def enviar_email (destinatarios: list[bot.tipagem.email], assunto="", conteudo="
     mensagem['To'] = ', '.join(destinatarios)
     mensagem['Subject'] = assunto
     # body do e-mail
-    conteudo = conteudo.lstrip() # remover espaços vazios no começo
-    conteudo = MIMEText(conteudo, "html" if conteudo.startswith("<") else "plain") # html se começar com "<"
-    mensagem.attach(conteudo)
+    if conteudo and conteudo[0] == " ": # remover espaços vazios no começo
+        conteudo = conteudo.lstrip()
+    tipo = "html" if conteudo.startswith("<") else "plain" # html se começar com "<"
+    mensagem.attach(MIMEText(conteudo, tipo))
 
     # anexos
     for caminho in anexos:
@@ -50,7 +51,7 @@ def enviar_email (destinatarios: list[bot.tipagem.email], assunto="", conteudo="
         with open(caminho, 'rb') as arquivo:
             anexo = MIMEApplication(arquivo.read())
             nome = bot.windows.extrair_nome_base(caminho)
-            anexo.add_header("Content-Disposition", rf"attachment; filename={ nome }")
+            anexo.add_header("Content-Disposition", f'attachment; filename="{ nome }"')
             mensagem.attach(anexo)
 
     # conectar ao servidor SMTP e enviar o e-mail
