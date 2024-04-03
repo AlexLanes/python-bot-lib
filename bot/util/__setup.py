@@ -67,14 +67,15 @@ def expandir_tempo (segundos: int | float) -> str:
     """Expandir a medida `segundos` para as duas primeiras unidades de grandeza
     - Hora, Minuto, Segundo ou Milissegundo"""
     if not segundos: return "0 segundos"
-    tempo, segundos = "", round(segundos, 3)
+    tempos, segundos = [], round(segundos, 3)
 
     for nome, medida in [("hora", 60 ** 2), ("minuto", 60), ("segundo", 1), ("milissegundo", 0.001)]:
         if segundos < medida: continue
-        tempo += f"{ int(segundos / medida) } { nome }{ 's' if segundos >= medida * 2 else '' },"
+        tempos.append(f"{ int(segundos / medida) } { nome }{ 's' if segundos >= medida * 2 else '' }")
         segundos %= medida
+        if len(tempos) == 2: break
 
-    return " e ".join(medida for medida in tempo.split(",")[0:2] if medida)
+    return " e ".join(tempo for tempo in tempos)
 
 
 __all__ = [
