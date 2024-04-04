@@ -99,10 +99,8 @@ class LeitorOCR:
         - `regiao` vazia para ler a tela inteira
         - `for texto, coordenada in leitor.ler_tela()`"""
         inicio = perf_counter()
-        bot.logger.debug("Iniciado o processo de extração de textos e coordenadas da tela")
-
         imagem = capturar_tela(regiao, True)
-        extracoes = self.__extrair(imagem)
+        extracoes = self.__ler(imagem)
 
         # corrigir offset com a regiao informada
         for _, coordenada in extracoes:
@@ -110,7 +108,7 @@ class LeitorOCR:
             coordenada.x += regiao.x
             coordenada.y += regiao.y
 
-        bot.logger.debug(f"Extração realizada em {perf_counter() - inicio:.2f} segundos")
+        bot.logger.debug(f"Leitura da tela realizada em { bot.util.expandir_tempo(perf_counter() - inicio) }")
         return extracoes
 
     def ler_imagem (self, imagem: bot.tipagem.caminho | Image.Image | bytes) -> list[tuple[str, Coordenada]]:
@@ -118,18 +116,15 @@ class LeitorOCR:
         - `imagem` pode ser o caminho até o arquivo, bytes da image ou `Image` do módulo `pillow`
         - `for texto, coordenada in leitor.ler_imagem()`"""
         inicio = perf_counter()
-        bot.logger.debug("Iniciado o processo de extração de textos e coordenadas de uma imagem")
-
         imagem = transformar_pillow(imagem)
-        extracoes = self.__extrair(imagem)
-
-        bot.logger.debug(f"Extração realizada em {perf_counter() - inicio:.2f} segundos")
+        extracoes = self.__ler(imagem)
+        bot.logger.debug(f"Leitura da imagem realizada em { bot.util.expandir_tempo(perf_counter() - inicio) }")
         return extracoes
 
-    def __extrair (self, imagem: Image.Image) -> list[tuple[str, Coordenada]]:
+    def __ler (self, imagem: Image.Image) -> list[tuple[str, Coordenada]]:
         """Receber a imagem e extrair os dados"""
-        extracoes: list[tuple[str, Coordenada]] = []
         imagem: np.ndarray = np.asarray(imagem)
+        extracoes: list[tuple[str, Coordenada]] = []
         dados: list[tuple[ list[list[int]], str, float ]] = self.__reader.readtext(imagem, width_ths=0.7, mag_ratio=2, min_size=5)
 
         for box, texto, confianca in dados:
@@ -139,6 +134,46 @@ class LeitorOCR:
             extracoes.append((texto, Coordenada(int(x), int(y), int(comprimento), int(altura))))
 
         return extracoes
+
+    def detectar_imagem (self, imagem: bot.tipagem.caminho | Image.Image | bytes) -> list[Coordenada]:
+        """Extrair coordenadas de uma imagem
+        - `imagem` pode ser o caminho até o arquivo, bytes da image ou `Image` do módulo `pillow`
+        - `confiança` não se aplica na detecção"""
+        inicio = perf_counter()
+        imagem = transformar_pillow(imagem)
+        coordenadas = self.__detectar(imagem)
+        bot.logger.debug(f"Imagem detectada em { bot.util.expandir_tempo(perf_counter() - inicio) }")
+        return coordenadas
+
+    def detectar_tela (self, regiao: Coordenada = None) -> list[Coordenada]:
+        """Extrair coordenadas da tela
+        - `regiao` vazia para ler a tela inteira
+        - `confiança` não se aplica na detecção"""
+        inicio = perf_counter()
+        imagem = capturar_tela(regiao, True)
+        coordenadas = self.__detectar(imagem)
+
+        # corrigir offset com a regiao informada
+        for coordenada in coordenadas:
+            if not regiao: break # região não foi informada, não há o que corrigir
+            coordenada.x += regiao.x
+            coordenada.y += regiao.y
+
+        bot.logger.debug(f"Tela detectada em { bot.util.expandir_tempo(perf_counter() - inicio) }")
+        return coordenadas
+
+    def __detectar (self, imagem: Image.Image) -> list[Coordenada]:
+        """Receber a imagem e detectar as coordenadas"""
+        imagem: np.ndarray = np.asarray(imagem)
+        boxes, _ = self.__reader.detect(imagem, threshold=self.__confianca, min_size=5, width_ths=0.7, mag_ratio=2)
+        boxes: list[tuple[np.int16, ...]] = np.concatenate(boxes, dtype=np.int16)
+
+        coordenadas = []
+        for box in boxes:
+            a, b, c, d = (int(posicao) for posicao in box)
+            coordenadas.append(Coordenada(x=a, y=c, largura=b - a, altura=d - c))
+
+        return coordenadas
 
 
 __all__ = [
