@@ -50,7 +50,7 @@ def enviar_email (destinatarios: list[bot.tipagem.email], assunto="", conteudo="
             continue
         with open(caminho, 'rb') as arquivo:
             anexo = MIMEApplication(arquivo.read())
-            nome = bot.windows.extrair_nome_base(caminho)
+            nome = bot.util.remover_acentuacao(bot.windows.extrair_nome_base(caminho))
             anexo.add_header("Content-Disposition", f'attachment; filename="{ nome }"')
             mensagem.attach(anexo)
 
