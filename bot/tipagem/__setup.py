@@ -1,5 +1,5 @@
 # std
-from itertools import chain
+from itertools import chain, tee
 from dataclasses import dataclass
 from datetime import datetime as Datetime
 from os.path import getmtime as ultima_alteracao
@@ -161,7 +161,8 @@ class ResultadoSQL:
 
     def to_dataframe (self) -> DataFrame:
         """Salvar o resultado em um `polars.DataFrame`"""
-        return DataFrame(self.linhas, self.colunas, nan_to_null=True)
+        self.linhas, linhas = tee(self.linhas)
+        return DataFrame(linhas, self.colunas, nan_to_null=True)
 
 
 @dataclass
