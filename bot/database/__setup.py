@@ -7,6 +7,7 @@ import bot
 # externo
 import polars
 import pyodbc
+from xlsxwriter import Workbook
 
 
 cache = {}
@@ -200,10 +201,11 @@ class Sqlite:
 
     def to_excel (self, caminho="resultado.xlsx") -> None:
         """Salvar as linhas de todas as tabelas da conexão em um arquivo excel"""
-        for tabela in self.tabelas():
-            self.execute(f"SELECT * FROM { tabela }") \
-                .to_dataframe() \
-                .write_excel(caminho, tabela, autofit=True)
+        with Workbook(caminho) as excel:
+            for tabela in self.tabelas():
+                self.execute(f"SELECT * FROM { tabela }") \
+                    .to_dataframe() \
+                    .write_excel(excel, tabela, autofit=True)
 
 
 __all__ = [
