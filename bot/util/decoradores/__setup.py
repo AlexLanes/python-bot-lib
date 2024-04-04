@@ -56,7 +56,7 @@ def tempo_execucao (func: Callable):
 
 def perfil_execucao (func: Callable):
     """Loggar o perfil de execução da função
-    - tempos acumulados menores de 0.01 segundos são excluídos
+    - tempos acumulados menores de 0.1 segundos são excluídos
     - Função"""
     def perfil_execucao (*args, **kwargs):
         # Diretorio de execução atual para limpar o nome no dataframe
@@ -85,7 +85,7 @@ def perfil_execucao (func: Callable):
                     "tempo_execucao": [stats[funcao].tottime for funcao in stats],
                     "chamadas": [stats[funcao].ncalls for funcao in stats]
                 })
-                .filter(bot.database.polars.col("tempo_acumulado") >= 0.01)
+                .filter(bot.database.polars.col("tempo_acumulado") >= 0.1)
                 .__str__() 
                 + "\n"
             )
