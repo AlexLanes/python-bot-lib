@@ -124,8 +124,7 @@ class Janela:
     @property
     def coordenada (self) -> Coordenada:
         """Coordenada da janela"""
-        box = self.janela.box
-        return Coordenada(box.left, box.top, box.width, box.height)
+        return Coordenada(*self.janela.box)
     
     def minimizar (self) -> None:
         """Minimizar janela"""

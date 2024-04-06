@@ -42,7 +42,7 @@ def procurar_imagem (imagem: bot.tipagem.caminho | Image.Image | bytes, confianc
         region=tuple(regiao) if regiao else None,
         grayscale=cinza
     )
-    return Coordenada(box.left, box.top, box.width, box.height) if box else None
+    return Coordenada(*box) if box else None
 
 
 def procurar_imagens (imagem: bot.tipagem.caminho | Image.Image | bytes, confianca: bot.tipagem.PORCENTAGENS = "0.9", regiao: Coordenada = None, cinza=False) -> list[Coordenada] | None:
@@ -57,9 +57,9 @@ def procurar_imagens (imagem: bot.tipagem.caminho | Image.Image | bytes, confian
 
     coordenadas: list[Coordenada] = []
     for box in boxes:
-        coordenada = Coordenada(box.left, box.top, box.width, box.height) # transformar para Coordenada
+        coordenada = Coordenada(*box) # transformar para Coordenada
         if all(coordenada not in c for c in coordenadas): # filtrar duplicações
-            coordenadas.append(coordenada) # adicionar
+            coordenadas.append(coordenada)
 
     return coordenadas
 
