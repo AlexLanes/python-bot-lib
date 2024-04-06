@@ -87,12 +87,10 @@ class LeitorOCR:
 
     def __init__ (self, confianca: bot.tipagem.PORCENTAGENS = "0.4"):
         """Inicia o leitor OCR
-        - `confianca` porcentagem mínima de confiança no texto extraído (entre 0.0 e 1.0)"""
+        - `confianca` porcentagem mínima de confiança no texto extraído `(entre 0.0 e 1.0)`"""
         from easyocr import Reader
         self.__reader = Reader(["en"])
-
-        confianca: float = float(confianca)
-        self.__confianca = max(0.0, min(1.0, confianca))
+        self.__confianca = max(0.0, min(1.0, float(confianca)))
 
     def ler_tela (self, regiao: Coordenada = None) -> list[tuple[str, Coordenada]]:
         """Extrair texto e coordenadas da tela na posição `coordenada` 
@@ -129,21 +127,10 @@ class LeitorOCR:
 
         for box, texto, confianca in dados:
             if confianca < self.__confianca: continue
-            x, y = box[0]
-            comprimento, altura = box[1][0] - x, box[2][1] - y
-            extracoes.append((texto, Coordenada(int(x), int(y), int(comprimento), int(altura))))
+            coordenada = Coordenada.from_box((box[0][0], box[1][0], box[0][1], box[2][1]))
+            extracoes.append((texto, coordenada))
 
         return extracoes
-
-    def detectar_imagem (self, imagem: bot.tipagem.caminho | Image.Image | bytes) -> list[Coordenada]:
-        """Extrair coordenadas de uma imagem
-        - `imagem` pode ser o caminho até o arquivo, bytes da image ou `Image` do módulo `pillow`
-        - `confiança` não se aplica na detecção"""
-        inicio = perf_counter()
-        imagem = transformar_pillow(imagem)
-        coordenadas = self.__detectar(imagem)
-        bot.logger.debug(f"Imagem detectada em { bot.util.expandir_tempo(perf_counter() - inicio) }")
-        return coordenadas
 
     def detectar_tela (self, regiao: Coordenada = None) -> list[Coordenada]:
         """Extrair coordenadas da tela
@@ -162,18 +149,23 @@ class LeitorOCR:
         bot.logger.debug(f"Tela detectada em { bot.util.expandir_tempo(perf_counter() - inicio) }")
         return coordenadas
 
+    def detectar_imagem (self, imagem: bot.tipagem.caminho | Image.Image | bytes) -> list[Coordenada]:
+        """Extrair coordenadas de uma imagem
+        - `imagem` pode ser o caminho até o arquivo, bytes da image ou `Image` do módulo `pillow`
+        - `confiança` não se aplica na detecção"""
+        inicio = perf_counter()
+        imagem = transformar_pillow(imagem)
+        coordenadas = self.__detectar(imagem)
+        bot.logger.debug(f"Imagem detectada em { bot.util.expandir_tempo(perf_counter() - inicio) }")
+        return coordenadas
+
     def __detectar (self, imagem: Image.Image) -> list[Coordenada]:
         """Receber a imagem e detectar as coordenadas"""
         imagem: np.ndarray = np.asarray(imagem)
         boxes, _ = self.__reader.detect(imagem, threshold=self.__confianca, min_size=5, width_ths=0.7, mag_ratio=2)
         boxes: list[tuple[np.int16, ...]] = np.concatenate(boxes, dtype=np.int16)
-
-        coordenadas = []
-        for box in boxes:
-            a, b, c, d = (int(posicao) for posicao in box)
-            coordenadas.append(Coordenada(x=a, y=c, largura=b - a, altura=d - c))
-
-        return coordenadas
+        return [Coordenada.from_box(box)
+                for box in boxes]
 
 
 __all__ = [

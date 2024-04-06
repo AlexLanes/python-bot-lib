@@ -189,14 +189,14 @@ class Coordenada:
 
     def __len__ (self):
         return 4
-    
+
     def __contains__ (self, c) -> bool:
         """Testar se o ponto central da coordenada está dentro da outra
         - `coordenada in coordenada2`"""
         if not isinstance(c, Coordenada): return False
         x, y = self.transformar()
         return x in range(c.x, c.x + c.largura + 1) and y in range(c.y, c.y + c.altura + 1)
-    
+
     def transformar (self, xOffset=0.5, yOffset=0.5) -> tuple[int, int]:
         """Transformar as cordenadas para a posição (X, Y) de acordo com a porcentagem `xOffset` e `yOffset`
         - (X, Y) central caso os offsets não tenham sido informados
@@ -206,6 +206,15 @@ class Coordenada:
         xOffset, yOffset = max(0.0, min(1.0, xOffset)), max(0.0, min(1.0, yOffset))
         return (self.x + int(self.largura * xOffset), 
                 self.y + int(self.altura * yOffset))
+
+    @classmethod
+    def from_box (cls, box: tuple[int, int, int, int]) -> Coordenada:
+        """Criar coordenada a partir de uma box
+        - `box`: `X esquerda-direita` + `Y esquerda-direita`
+        - `@classmethod`"""
+        x, y = int(box[0]), int(box[2])
+        largura, altura = int(box[1] - x), int(box[3] - y)
+        return cls(x, y, largura, altura)
 
 
 @dataclass
