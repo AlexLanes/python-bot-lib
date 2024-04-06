@@ -190,12 +190,15 @@ class Coordenada:
     def __len__ (self):
         return 4
 
-    def __contains__ (self, c) -> bool:
+    def __contains__ (self, other: Coordenada | tuple[int, int]) -> bool:
         """Testar se o ponto central da coordenada está dentro da outra
         - `coordenada in coordenada2`"""
-        if not isinstance(c, Coordenada): return False
-        x, y = self.transformar()
-        return x in range(c.x, c.x + c.largura + 1) and y in range(c.y, c.y + c.altura + 1)
+        if not isinstance(other, Coordenada) and not isinstance(other, tuple):
+            return False
+
+        x, y = other.transformar() if isinstance(other, Coordenada) else other
+        return x in range(self.x, self.x + self.largura + 1) \
+           and y in range(self.y, self.y + self.altura + 1)
 
     def transformar (self, xOffset=0.5, yOffset=0.5) -> tuple[int, int]:
         """Transformar as cordenadas para a posição (X, Y) de acordo com a porcentagem `xOffset` e `yOffset`
