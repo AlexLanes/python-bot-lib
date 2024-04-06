@@ -147,7 +147,7 @@ class Chrome (Navegador):
 
 
 class Explorer (Navegador):
-    """Navegador Internet Explorer
+    r"""Navegador Internet Explorer
     - Selenium avisa sobre a necesidade do driver no %PATH%, mas consegui utilizar sem o driver
     - Necessário desativar o Protected Mode em `Internet Options -> Security` para todas as zonas
     - Caso não apareça a opção, alterar pelo registro do windows `Software\Microsoft\Windows\CurrentVersion\Internet Settings\Zones` em todas as zonas(0..4) setando o `REG_DWORD` nome `2500` valor `3`

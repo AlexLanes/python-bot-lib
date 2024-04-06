@@ -6,6 +6,7 @@ from io import BytesIO
 # interno
 import bot
 import bot.configfile as cf
+from bot.tipagem import caminho
 
 
 class FTP:
@@ -38,11 +39,11 @@ class FTP:
         return f"<FTP conexão com o host '{ self.__ftp.host }'>"
 
     @property
-    def diretorio (self) -> str:
+    def diretorio (self) -> caminho:
         """Diretório atual do FTP"""
         return self.__ftp.pwd()
 
-    def alterar_diretorio (self, caminho: bot.tipagem.caminho) -> None:
+    def alterar_diretorio (self, caminho: caminho) -> None:
         """Alterar o diretório atual
         - Passível de exceção"""
         bot.logger.informar(f"Alterando diretório do FTP para '{ caminho }'")
@@ -52,10 +53,10 @@ class FTP:
             erro.add_note(f"Caminhos existentes: { self.listar_diretorio().pastas }")
             raise
 
-    def listar_diretorio (self) -> bot.tipagem.Diretorio:
+    def listar_diretorio (self) -> bot.estruturas.Diretorio:
         """Listar arquivos e pastas do diretório atual"""
         cwd = self.diretorio
-        diretorio = bot.tipagem.Diretorio(cwd, [], [])
+        diretorio = bot.estruturas.Diretorio(cwd, [], [])
         del diretorio.query_data_alteracao_arquivos # não suportado
 
         for nome, infos in self.__ftp.mlsd():

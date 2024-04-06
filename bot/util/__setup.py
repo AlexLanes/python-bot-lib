@@ -6,7 +6,7 @@ from unicodedata import normalize
 from time import sleep, perf_counter
 from typing import Callable, Iterable
 # interno
-from bot.tipagem import InfoStack
+from bot.estruturas import InfoStack
 
 
 def aguardar_condicao (condicao: Callable[[], bool], timeout: int, delay=0.1) -> bool:

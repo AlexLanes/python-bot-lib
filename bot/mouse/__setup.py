@@ -2,7 +2,7 @@
 from time import sleep
 # interno
 import bot
-from bot.tipagem import Coordenada
+from bot.estruturas import Coordenada
 # externo
 from pyscreeze import pixel
 from pynput.mouse import Controller, Button

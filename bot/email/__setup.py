@@ -11,7 +11,7 @@ from email.utils import parsedate_to_datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
 from datetime import (
-    datetime as DateTime, 
+    datetime as Datetime, 
     timezone as TimeZone, 
     timedelta as TimeDelta
 )
@@ -62,7 +62,7 @@ def enviar_email (destinatarios: list[bot.tipagem.email], assunto="", conteudo="
             bot.logger.alertar(f"Erro ao enviar e-mail: { bot.estruturas.json_stringify(erro) }")
 
 
-def obter_email (limite: int | slice = None, query="ALL", visualizar=False) -> Generator[bot.tipagem.Email, None, None]:
+def obter_email (limite: int | slice = None, query="ALL", visualizar=False) -> Generator[bot.estruturas.Email, None, None]:
     """Obter e-mails de uma `Inbox`
     - Abstração `imaplib`
     - Variáveis .ini `[email.obter] -> user, password, host`
@@ -89,19 +89,19 @@ def obter_email (limite: int | slice = None, query="ALL", visualizar=False) -> G
         """Extrair assunto do e-mail e realizar o decode quando necessário
         - o subject pode vir em formatos não convencionais como `=?utf-8?B?Q29tbyBvIEhvbG1lcyByZWNlYmUgb3Mgbm92b3MgdXN1w6FyaW9z?=`"""
         decoded = [mensagem.decode(charset or "utf-8") if isinstance(mensagem, bytes) else mensagem 
-                   for (mensagem, charset) in decode_header(assunto)]
+                   for mensagem, charset in decode_header(assunto)]
         return "".join(decoded)
-    def extrair_datetime (datetime: str | None) -> DateTime:
-        """Extrair o datetime do e-mail e realizar o parse para o `DateTime` BRT
-        - Retorna o DateTime.now() BRT caso seja None ou ocorra algum erro"""
+    def extrair_datetime (datetime: str | None) -> Datetime:
+        """Extrair o datetime do e-mail e realizar o parse para o `Datetime` BRT
+        - Retorna o Datetime.now() BRT caso seja None ou ocorra algum erro"""
         brt = TimeZone(TimeDelta(hours=-3))
         try:
-            data: DateTime = parsedate_to_datetime(datetime)
-            assert isinstance(data, DateTime)
+            data: Datetime = parsedate_to_datetime(datetime)
+            assert isinstance(data, Datetime)
             return data.astimezone(brt)
         except:
             bot.logger.alertar(f"Extração do datetime '{ datetime }' do email resultou em falha")
-            return DateTime.now(brt)
+            return Datetime.now(brt)
 
     with IMAP4_SSL(host) as imap:
         imap.login(user, password)
@@ -115,7 +115,7 @@ def obter_email (limite: int | slice = None, query="ALL", visualizar=False) -> G
         if not uids or uids[0] == "": return
 
         for uid in uids:
-            email = bot.tipagem.Email(int(uid), "", [], "", None, None, None, []) # armazenará as informações extraídas
+            email = bot.estruturas.Email(int(uid), "", [], "", None, None, None, []) # armazenará as informações extraídas
             mensagem: bytes = imap.fetch(uid, '(RFC822)')[1][0][1] # bytes da mensagem
             mensagem: Message = message_from_bytes(mensagem) # parser email
 

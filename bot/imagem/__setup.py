@@ -3,7 +3,7 @@ from io import BytesIO
 from time import perf_counter
 # interno
 import bot
-from bot.tipagem import Coordenada
+from bot.estruturas import Coordenada
 # externo
 import pyscreeze
 import numpy as np

@@ -4,7 +4,8 @@ import shutil
 import ctypes
 # interno
 from bot.util import normalizar
-from bot.tipagem import Diretorio, Coordenada, caminho
+from bot.tipagem import caminho
+from bot.estruturas import Diretorio, Coordenada
 # externo
 from pygetwindow import (
     Win32Window,

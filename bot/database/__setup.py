@@ -99,7 +99,7 @@ class DatabaseODBC:
         """Reverter as alterações, pós commit, feitas na conexão"""
         self.__conexao.rollback()
 
-    def execute (self, sql: str, parametros: bot.tipagem.nomeado | bot.tipagem.posicional = None) -> bot.tipagem.ResultadoSQL:
+    def execute (self, sql: str, parametros: bot.tipagem.nomeado | bot.tipagem.posicional = None) -> bot.estruturas.ResultadoSQL:
         """Executar uma única instrução SQL
         - `sql` Comando que será executado. Recomendado ser parametrizado com argumentos posicionais `?` ou nomeados `:nome`
         - `parametros` Parâmetros presentes no `sql`"""
@@ -113,9 +113,9 @@ class DatabaseODBC:
         colunas = tuple(coluna[0] for coluna in cursor.description) if cursor.description else tuple()
         linhas_afetadas = cursor.rowcount if cursor.rowcount >= 0 and not colunas else None
         gerador = (tuple(linha) for linha in cursor)
-        return bot.tipagem.ResultadoSQL(linhas_afetadas, colunas, gerador)
+        return bot.estruturas.ResultadoSQL(linhas_afetadas, colunas, gerador)
 
-    def execute_many (self, sql: str, parametros: Iterable[bot.tipagem.nomeado] | Iterable[bot.tipagem.posicional]) -> bot.tipagem.ResultadoSQL:
+    def execute_many (self, sql: str, parametros: Iterable[bot.tipagem.nomeado] | Iterable[bot.tipagem.posicional]) -> bot.estruturas.ResultadoSQL:
         """Executar uma ou mais instruções SQL
         - Utilizar apenas comandos SQL que resultem em `linhas_afetadas`
         - `sql` Comando que será executado. Recomendado ser parametrizado com argumentos posicionais `?` ou nomeados `:nome`
@@ -129,7 +129,7 @@ class DatabaseODBC:
                 if resultado.linhas_afetadas: total_linhas_afetadas += resultado.linhas_afetadas
             except pyodbc.DatabaseError as erro: 
                 bot.logger.alertar(f"Erro ao executar o parâmetro { parametro }\n\t{ [*erro.args] }")
-        return bot.tipagem.ResultadoSQL(total_linhas_afetadas, tuple(), (x for x in []))
+        return bot.estruturas.ResultadoSQL(total_linhas_afetadas, tuple(), (x for x in []))
 
     @staticmethod
     def listar_drivers () -> list[str]:
@@ -179,7 +179,7 @@ class Sqlite:
         """Reverter as alterações, pós commit, feitas na conexão"""
         self.__conexao.rollback()
 
-    def execute (self, sql: str, parametros: bot.tipagem.nomeado | bot.tipagem.posicional = None) -> bot.tipagem.ResultadoSQL:
+    def execute (self, sql: str, parametros: bot.tipagem.nomeado | bot.tipagem.posicional = None) -> bot.estruturas.ResultadoSQL:
         """Executar uma única instrução SQL
         - `sql` Comando que será executado. Recomendado ser parametrizado com argumentos posicionais `?` ou nomeados `:nome`
         - `parametros` Parâmetros presentes no `sql`"""
@@ -187,9 +187,9 @@ class Sqlite:
         colunas = tuple(coluna[0] for coluna in cursor.description) if cursor.description else tuple()
         linhas_afetadas = cursor.rowcount if cursor.rowcount >= 0 and not colunas else None
         gerador = (linha for linha in cursor)
-        return bot.tipagem.ResultadoSQL(linhas_afetadas, colunas, gerador)
+        return bot.estruturas.ResultadoSQL(linhas_afetadas, colunas, gerador)
 
-    def execute_many (self, sql: str, parametros: Iterable[bot.tipagem.nomeado] | Iterable[bot.tipagem.posicional]) -> bot.tipagem.ResultadoSQL:
+    def execute_many (self, sql: str, parametros: Iterable[bot.tipagem.nomeado] | Iterable[bot.tipagem.posicional]) -> bot.estruturas.ResultadoSQL:
         """Executar uma ou mais instruções SQL
         - `sql` Comando que será executado. Recomendado ser parametrizado com argumentos nomeados `:nome` ou posicionais `?`
         - `parametros` Lista dos parâmetros presentes no `sql`"""
@@ -197,7 +197,7 @@ class Sqlite:
         colunas = tuple(coluna[0] for coluna in cursor.description) if cursor.description else tuple()
         linhas_afetadas = cursor.rowcount if cursor.rowcount >= 0 and not colunas else None
         gerador = (linha for linha in cursor)
-        return bot.tipagem.ResultadoSQL(linhas_afetadas, colunas, gerador)
+        return bot.estruturas.ResultadoSQL(linhas_afetadas, colunas, gerador)
 
     def to_excel (self, caminho="resultado.xlsx") -> None:
         """Salvar as linhas de todas as tabelas da conexão em um arquivo excel"""
