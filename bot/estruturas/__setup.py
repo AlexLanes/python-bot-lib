@@ -1,10 +1,11 @@
 # std
 from __future__ import annotations
+import ctypes
 from itertools import chain, tee
 from dataclasses import dataclass
 from datetime import datetime as Datetime
-from typing import Generator, Any, Callable
 from os.path import getmtime as ultima_alteracao
+from typing import Generator, Any, Callable, Self
 from json import (
     dumps as json_dumps, 
     loads as json_parse
@@ -16,10 +17,16 @@ from xml.etree.ElementTree import (
     fromstring as xml_from_string
 )
 # interno
-from bot import tipagem
+import bot
 # externo
 import yaml
 from polars import DataFrame
+from pywinauto.timings import TimeConfig
+from pywinauto import Application, Desktop
+from pywinauto.controls.hwndwrapper import HwndWrapper
+
+
+TimeConfig().fast() # reduzir tempos de espera do `pywinauto`
 
 
 def json_stringify (item: Any, indentar=True) -> str:
@@ -92,7 +99,7 @@ class ElementoXML:
         dicionario[self.nome] = [e.__dict__ for e in self] if len(self) else self.texto # elemento: filhos | texto
         return dicionario
 
-    def __nome_namespace (self) -> tuple[str, tipagem.url | None]:
+    def __nome_namespace (self) -> tuple[str, bot.tipagem.url | None]:
         """Extrair nome e namespace do `Element` tag
         - `nome, namespace = self.__nome_namespace()`"""
         tag = self.__e.tag
@@ -113,12 +120,12 @@ class ElementoXML:
         self.__e.tag = f"{{{ namespace }}}{ nome }" if namespace else nome
 
     @property
-    def namespace (self) -> tipagem.url | None:
+    def namespace (self) -> bot.tipagem.url | None:
         """Namespace do elemento"""
         return self.__nome_namespace()[1]
 
     @namespace.setter
-    def namespace (self, namespace: tipagem.url | None) -> None:
+    def namespace (self, namespace: bot.tipagem.url | None) -> None:
         """Setar namespace do elemento"""
         nome = self.__nome_namespace()[0]
         self.__e.tag = f"{{{ namespace }}}{ nome }" if namespace else nome
@@ -163,7 +170,7 @@ class ElementoXML:
         return ElementoXML(str(self))
 
     @classmethod
-    def criar (cls, nome: str, texto: str = None, namespace: tipagem.url = None, atributos: dict[str, str] = {}) -> ElementoXML:
+    def criar (cls, nome: str, texto: str = None, namespace: bot.tipagem.url = None, atributos: dict[str, str] = {}) -> ElementoXML:
         """Criar um `ElementoXML` simples
         - `@classmethod`"""
         nome = f"{{{ namespace }}}{ nome }" if namespace else nome
@@ -228,10 +235,10 @@ class ResultadoSQL:
     - `None` indica que não se aplica para o comando sql"""
     colunas: tuple[str, ...]
     """Colunas das linhas retornadas (se houver)"""
-    linhas: Generator[tuple[tipagem.tiposSQL, ...], None, None]
+    linhas: Generator[tuple[bot.tipagem.tiposSQL, ...], None, None]
     """Generator das linhas retornadas (se houver)"""
 
-    def __iter__ (self) -> Generator[tuple[tipagem.tiposSQL, ...], None, None]:
+    def __iter__ (self) -> Generator[tuple[bot.tipagem.tiposSQL, ...], None, None]:
         """Generator do self.linhas"""
         for linha in self.linhas: yield linha
 
@@ -310,16 +317,16 @@ class Resultado [T]:
 @dataclass
 class Diretorio:
     """Armazena os caminhos de pastas e arquivos presentes no diretório"""
-    caminho: tipagem.caminho
+    caminho: bot.tipagem.caminho
     """Caminho absoluto do diretorio"""
-    pastas: list[tipagem.caminho]
+    pastas: list[bot.tipagem.caminho]
     """Lista contendo o caminho de cada pasta do diretório"""
-    arquivos: list[tipagem.caminho]
+    arquivos: list[bot.tipagem.caminho]
     """Lista contendo o caminho de cada arquivo do diretório"""
 
     def query_data_alteracao_arquivos (self,
                                        inicio=Datetime.now().replace(hour=0, minute=0, second=0, microsecond=0),
-                                       fim=Datetime.now()) -> list[tuple[tipagem.caminho, Datetime]]:
+                                       fim=Datetime.now()) -> list[tuple[bot.tipagem.caminho, Datetime]]:
         """Consultar arquivos do diretório com base na data de alteração
         - Default: Hoje
         - Retorna uma lista `(caminho, data)` ordenado pelos mais antigos"""
@@ -338,7 +345,7 @@ class InfoStack:
     """Informações retiradas do Stack de execução"""
     nome: str
     """Nome arquivo"""
-    caminho: tipagem.caminho
+    caminho: bot.tipagem.caminho
     """Caminho arquivo"""
     funcao: str
     """Nome da função"""
@@ -351,9 +358,9 @@ class Email:
     """Classe para armazenar informações extraídas de Email"""
     uid: int
     """id do e-mail"""
-    remetente: tipagem.email
+    remetente: bot.tipagem.email
     """Remetente que enviou o e-mail"""
-    destinatarios: list[tipagem.email]
+    destinatarios: list[bot.tipagem.email]
     """Destinatários que receberam o e-mail"""
     assunto: str
     """Assunto do e-mail"""
@@ -368,8 +375,100 @@ class Email:
     - `for nome, tipo, conteudo in email.anexos:`"""
 
 
+class Janela:
+    """Classe de interação com as janelas abertas. 
+    - Abstração do `pywinauto`"""
+
+    conexao: Application
+    """Conexão ativa com a janela"""
+    __kwargs = { "enabled_only": True, "top_level_only": True, "visible_only": False }
+
+    def __init__ (self, titulo: str = None, backend: bot.tipagem.BACKENDS_JANELA = "uia") -> None:
+        """Inicializar o handler da janela com o primeiro titulo encontrado
+        - Se o `titulo` for omitido, será pego a janela focada atual
+        - `backend` varia de acordo com a janela, testar com ambos para encontrar o melhor"""
+        if not titulo:
+            handle = ctypes.windll.user32.GetForegroundWindow()
+            self.conexao = Application(backend).connect(handle=handle, **self.__kwargs)
+            return
+
+        titulo_normalizado = bot.util.normalizar(titulo)
+        titulos = [titulo for titulo in self.titulos_janelas()
+                   if titulo_normalizado in bot.util.normalizar(titulo)]
+        assert titulos, f"Janela de titulo '{ titulo }' não foi encontrada"
+
+        self.conexao = Application(backend).connect(title=titulos[0], **self.__kwargs)
+
+    def __eq__ (self, other) -> bool:
+        """Comparar se o handler de uma janela é o mesmo que a outra"""
+        if not isinstance(other, Janela): return False
+        return self.__janela_superior.handle == other.__janela_superior.handle
+
+    def __repr__ (self) -> str:
+        """Representação da classe"""
+        return f"<Janela '{ self.titulo }'>"
+
+    @property
+    def __janela_superior (self) -> HwndWrapper:
+        """Janela superior da conexão"""
+        return self.conexao.windows(**self.__kwargs)[0]
+
+    @property
+    def titulo (self) -> str:
+        """Titulo da janela"""
+        return self.__janela_superior.window_text()
+    @property
+    def maximizada (self) -> bool:
+        """Checar se a janela está maximizada"""
+        return self.__janela_superior.is_maximized()
+    @property
+    def minimizada (self) -> bool:
+        """Checar se a janela está minimizada"""
+        return self.__janela_superior.is_minimized()
+    @property
+    def focada (self) -> bool:
+        """Checar se a janela está focada"""
+        return self.__janela_superior.is_active()
+    @property
+    def coordenada (self) -> Coordenada:
+        """Coordenada da janela
+        - `Coordenada` zerada caso a janela esteja minimizada"""
+        box = self.__janela_superior.rectangle()
+        return Coordenada(box.left, box.top, box.width(), box.height())
+
+    def minimizar (self) -> Self:
+        """Minimizar janela"""
+        self.__janela_superior.minimize()
+        return self
+    def maximizar (self) -> Self:
+        """Maximizar janela"""
+        self.__janela_superior.maximize()
+        return self
+    def restaurar (self) -> Self:
+        """Restaurar a janela para o estado anterior"""
+        self.__janela_superior.restore()
+        return self
+    def focar (self) -> Self:
+        """Focar na janela"""
+        self.__janela_superior.set_focus()
+        return self
+    def fechar (self) -> None:
+        """Fechar janela"""
+        self.conexao.kill()
+
+    @staticmethod
+    def titulos_janelas () -> set[str]:
+        """Listar os titulos das janelas abertas
+        - `@staticmethod`"""
+        janelas: list[HwndWrapper] = Desktop().windows(visible_only=True, enabled_only=True, top_level_only=True)
+        return { titulo
+                 for janela in janelas 
+                 if (titulo := janela.window_text()) }
+
+
 __all__ = [
     "Email",
+    "Janela",
     "InfoStack",
     "Diretorio",
     "Resultado",

@@ -4,6 +4,7 @@ polars[xlsx2csv, xlsxwriter]
 
 # bot.estruturas
 pyyaml
+pywinauto
 
 # bot.imagem
 numpy
@@ -21,6 +22,3 @@ selenium
 # bot.rest
 httpx
 jsonschema
-
-# bot.windows
-PyGetWindow

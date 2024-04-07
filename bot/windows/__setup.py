@@ -1,18 +1,9 @@
 # std
 import os
 import shutil
-import ctypes
 # interno
-from bot.util import normalizar
 from bot.tipagem import caminho
-from bot.estruturas import Diretorio, Coordenada
-# externo
-from pygetwindow import (
-    Win32Window,
-    getAllTitles as get_all_titles,
-    getAllWindows as get_all_windows,
-    getActiveWindow as get_active_window
-)
+from bot.estruturas import Diretorio
 
 
 def apagar_arquivo (caminho: caminho) -> None:
@@ -87,75 +78,8 @@ def diretorio_execucao () -> Diretorio:
     return listar_diretorio(os.getcwd())
 
 
-class Janela:
-    """Classe de interação com as janelas abertas. Abstração do pygetwindow
-    - Alguns aplicativos pode não funcionar os métodos `self.focar()` e `self.minimizada`"""
-
-    janela: Win32Window
-    """Handler da janela"""
-
-    def __init__ (self, titulo: str = None) -> None:
-        """Inicializar o handler da janela com o primeiro titulo encontrado
-        - Se o `titulo` for omitido, será pego a janela focada atual"""
-        janelas: list[Win32Window] = [w for w in get_all_windows()
-                                      if titulo != None and normalizar(titulo) in normalizar(w.title)]
-        self.janela = janelas[0] if len(janelas) else get_active_window()
-
-    def __eq__ (self, other) -> bool:
-        """Comparar se o handler de uma janela é o mesmo que a outra"""
-        return self.janela == other.janela
-
-    @property
-    def titulo (self) -> str:
-        """Titulo da janela"""
-        return self.janela.title
-    @property
-    def maximizada (self) -> bool:
-        """Checar se a janela está maximizada"""
-        return self.janela.isMaximized
-    @property
-    def minimizada (self) -> bool:
-        """Checar se a janela está minimizada"""
-        return self.janela.isMinimized
-    @property
-    def focada (self) -> bool:
-        """Checar se a janela está focada"""
-        return self.janela.isActive
-    @property
-    def coordenada (self) -> Coordenada:
-        """Coordenada da janela"""
-        return Coordenada(*self.janela.box)
-    
-    def minimizar (self) -> None:
-        """Minimizar janela"""
-        self.janela.minimize()
-    def maximizar (self) -> None:
-        """Maximizar janela"""
-        self.janela.maximize()
-    def fechar (self) -> None:
-        """Fechar janela"""
-        self.janela.close()
-    def restaurar (self) -> None:
-        """Restaurar a janela para o tamanho normal"""
-        self.janela.restore()
-    def focar (self) -> None:
-        """Focar a janela"""
-        if self.focada: return
-        minimizada = self.minimizada
-        if minimizada: ctypes.windll.user32.ShowWindow(self.janela._hWnd, 5)
-        ctypes.windll.user32.SetForegroundWindow(self.janela._hWnd)
-        if minimizada: self.restaurar()
-
-    @staticmethod
-    def titulos_janelas () -> list[str]:
-        """Listar os titulos das janelas abertas
-        - `@staticmethod`"""
-        return sorted([ titulo for titulo in get_all_titles() if titulo != "" ])
-
-
 __all__ = [
     "cmd",
-    "Janela",
     "criar_pasta",
     "caminho_existe",
     "apagar_arquivo",
