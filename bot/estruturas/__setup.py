@@ -2,8 +2,8 @@
 from __future__ import annotations
 from itertools import chain, tee
 from dataclasses import dataclass
-from typing import Generator, Any
 from datetime import datetime as Datetime
+from typing import Generator, Any, Callable
 from os.path import getmtime as ultima_alteracao
 from json import (
     dumps as json_dumps, 
@@ -269,6 +269,45 @@ class ResultadoSQL:
         return DataFrame(linhas, self.colunas, nan_to_null=True)
 
 
+class Resultado [T]:
+    """Classe `genérica` de utilização para retornar resultado ou erro de alguma chamada"""
+    __valor: T | None
+    __erro: Exception | None
+
+    def __init__ (self, funcao: Callable[[], T], *args, **kwargs) -> None:
+        """Realizar a chamada na `função` com os argumentos `args` e `kwargs`"""
+        try:
+            self.__valor = funcao(*args, **kwargs)
+            self.__erro = None
+        except Exception as erro:
+            from bot.logger import alertar
+            alertar(f"Função '{ funcao.__name__ }' executada pelo <Resultado> apresentou erro")
+            self.__valor = None
+            self.__erro = erro
+
+    def __bool__ (self) -> bool:
+        """Indicação de sucesso"""
+        return self.__erro == None
+
+    def __repr__ (self) -> str:
+        """Representação da classe"""
+        return f"<Resultado { "com" if self else "sem" } valor>"
+
+    def valor (self) -> T:
+        """Obter o valor do resultado
+        - `raise Exception` caso tenha apresentado erro"""
+        if not self:
+            self.__erro.add_note("Valor não presente no resultado")
+            raise self.__erro
+        return self.__valor
+
+    def valor_ou_default (self, default: T) -> T:
+        """Obter o valor do resultado
+        - `default` caso tenha apresentado erro"""
+        if not self: return default
+        return self.__valor
+
+
 @dataclass
 class Diretorio:
     """Armazena os caminhos de pastas e arquivos presentes no diretório"""
@@ -334,6 +373,7 @@ __all__ = [
     "Email",
     "InfoStack",
     "Diretorio",
+    "Resultado",
     "yaml_parse",
     "json_parse",
     "Coordenada",
