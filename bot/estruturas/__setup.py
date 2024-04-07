@@ -301,9 +301,8 @@ class Resultado [T]:
             raise self.__erro
         return self.__valor
 
-    def valor_ou_default (self, default: T) -> T:
-        """Obter o valor do resultado
-        - `default` caso tenha apresentado erro"""
+    def valor_ou (self, default: T) -> T:
+        """Obter o valor do resultado ou `default` caso tenha apresentado erro"""
         if not self: return default
         return self.__valor
 
