@@ -2,6 +2,7 @@
 from __future__ import annotations
 import ctypes
 from itertools import chain, tee
+from warnings import simplefilter
 from dataclasses import dataclass
 from datetime import datetime as Datetime
 from os.path import getmtime as ultima_alteracao
@@ -26,7 +27,9 @@ from pywinauto import Application, Desktop
 from pywinauto.controls.hwndwrapper import HwndWrapper
 
 
-TimeConfig().fast() # reduzir tempos de espera do `pywinauto`
+TimeConfig.closeclick_retry = 0.01 # reduzir o timeout para fechar elemento
+TimeConfig.window_find_timeout = 0.1 # reduzir o timeout na busca por elemento
+simplefilter('ignore', category=UserWarning) # ignorar warnings do pywinauto
 
 
 def json_stringify (item: Any, indentar=True) -> str:
@@ -379,17 +382,16 @@ class Janela:
     """Classe de interação com as janelas abertas. 
     - Abstração do `pywinauto`"""
 
-    conexao: Application
+    __conexao: Application
     """Conexão ativa com a janela"""
-    __kwargs = { "enabled_only": True, "top_level_only": True, "visible_only": False }
 
-    def __init__ (self, titulo: str = None, backend: bot.tipagem.BACKENDS_JANELA = "uia") -> None:
+    def __init__ (self, titulo: str = None, backend: bot.tipagem.BACKENDS_JANELA = "win32") -> None:
         """Inicializar o handler da janela com o primeiro titulo encontrado
         - Se o `titulo` for omitido, será pego a janela focada atual
         - `backend` varia de acordo com a janela, testar com ambos para encontrar o melhor"""
         if not titulo:
             handle = ctypes.windll.user32.GetForegroundWindow()
-            self.conexao = Application(backend).connect(handle=handle, **self.__kwargs)
+            self.__conexao = Application(backend).connect(handle=handle)
             return
 
         titulo_normalizado = bot.util.normalizar(titulo)
@@ -397,7 +399,7 @@ class Janela:
                    if titulo_normalizado in bot.util.normalizar(titulo)]
         assert titulos, f"Janela de titulo '{ titulo }' não foi encontrada"
 
-        self.conexao = Application(backend).connect(title=titulos[0], **self.__kwargs)
+        self.__conexao = Application(backend).connect(title=titulos[0], visible_only=True)
 
     def __eq__ (self, other) -> bool:
         """Comparar se o handler de uma janela é o mesmo que a outra"""
@@ -411,7 +413,8 @@ class Janela:
     @property
     def __janela_superior (self) -> HwndWrapper:
         """Janela superior da conexão"""
-        return self.conexao.windows(**self.__kwargs)[0]
+        try: return self.__conexao.top_window().wrapper_object()
+        except: return self.__conexao.windows(visible_only=False, top_level_only=True)[0]
 
     @property
     def titulo (self) -> str:
@@ -454,13 +457,23 @@ class Janela:
         return self
     def fechar (self) -> None:
         """Fechar janela"""
-        self.conexao.kill()
+        self.__conexao.kill()
+
+    def elementos (self, *, title: str = None, title_re: str = None,
+                   class_name: str = None, control_id: int = None,
+                   top_level_only=True, visible_only=True, enabled_only=True) -> list[HwndWrapper]:
+        """Obter uma lista elementos com base nos parâmetros informados
+        - O tipo do retorno pode ser diferente dependendo do tipo do backend e controle
+        - Retornado uma classe genérica que compartilham múltiplos métodos"""
+        return self.__conexao.windows(title=title, title_re=title_re, class_name=class_name,
+                                      control_id=control_id, top_level_only=top_level_only,
+                                      visible_only=visible_only, enabled_only=enabled_only)
 
     @staticmethod
     def titulos_janelas () -> set[str]:
         """Listar os titulos das janelas abertas
         - `@staticmethod`"""
-        janelas: list[HwndWrapper] = Desktop().windows(visible_only=True, enabled_only=True, top_level_only=True)
+        janelas: list[HwndWrapper] = Desktop().windows(visible_only=True)
         return { titulo
                  for janela in janelas 
                  if (titulo := janela.window_text()) }
