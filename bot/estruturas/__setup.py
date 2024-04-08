@@ -385,11 +385,11 @@ class Janela:
     __conexao: Application
     """Conexão ativa com a janela"""
 
-    def __init__ (self, titulo: str = None, backend: bot.tipagem.BACKENDS_JANELA = "win32") -> None:
-        """Inicializar o handler da janela com o primeiro titulo encontrado
-        - Se o `titulo` for omitido, será pego a janela focada atual
+    def __init__ (self, titulo: str = None, class_name: str = None, backend: bot.tipagem.BACKENDS_JANELA = "win32") -> None:
+        """Inicializar a conexão com a janela
+        - Se o `titulo` e `class_name` forem omitidos, será pego a janela focada atual
         - `backend` varia de acordo com a janela, testar com ambos para encontrar o melhor"""
-        if not titulo:
+        if not titulo and not class_name:
             handle = ctypes.windll.user32.GetForegroundWindow()
             self.__conexao = Application(backend).connect(handle=handle)
             return
@@ -399,7 +399,7 @@ class Janela:
                    if titulo_normalizado in bot.util.normalizar(titulo)]
         assert titulos, f"Janela de titulo '{ titulo }' não foi encontrada"
 
-        self.__conexao = Application(backend).connect(title=titulos[0], visible_only=True)
+        self.__conexao = Application(backend).connect(title=titulos[0], class_name=class_name, visible_only=True)
 
     def __eq__ (self, other) -> bool:
         """Comparar se o handler de uma janela é o mesmo que a outra"""
