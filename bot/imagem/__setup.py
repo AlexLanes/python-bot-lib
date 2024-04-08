@@ -163,7 +163,7 @@ class LeitorOCR:
         """Receber a imagem e detectar as coordenadas"""
         imagem: np.ndarray = np.asarray(imagem)
         boxes, _ = self.__reader.detect(imagem, threshold=self.__confianca, min_size=5, width_ths=0.7, mag_ratio=2)
-        boxes: list[tuple[np.int16, ...]] = np.concatenate(boxes, dtype=np.int16)
+        boxes: list[tuple[np.int32, ...]] = np.concatenate(boxes)
         return [Coordenada.from_box(box)
                 for box in boxes]
 
