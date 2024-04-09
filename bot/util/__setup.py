@@ -46,7 +46,7 @@ def obter_info_stack (index=1) -> InfoStack:
     filename = stack()[index].filename
 
     caminho, nome = filename.rsplit("\\", 1)
-    caminho = f"{ caminho[0].upper() }{ caminho[1:] }" # forçar upper no primeiro char
+    caminho = f"{caminho[0].upper()}{caminho[1:]}" # forçar upper no primeiro char
     return InfoStack(nome, caminho, funcao, linha)
 
 
@@ -71,7 +71,7 @@ def expandir_tempo (segundos: int | float) -> str:
 
     for nome, medida in [("hora", 60 ** 2), ("minuto", 60), ("segundo", 1), ("milissegundo", 0.001)]:
         if segundos < medida: continue
-        tempos.append(f"{ int(segundos / medida) } { nome }{ 's' if segundos >= medida * 2 else '' }")
+        tempos.append(f"{int(segundos / medida)} {nome}{"s" if segundos >= medida * 2 else ""}")
         segundos %= medida
         if len(tempos) == 2: break
 

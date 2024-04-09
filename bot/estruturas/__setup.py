@@ -42,7 +42,7 @@ def json_stringify (item: Any, indentar=True) -> str:
         if hasattr(obj, "__dict__"): return obj.__dict__
         if hasattr(obj, "__iter__"): return [tratamentos(item) for item in obj]
         if hasattr(obj, "__str__"): return obj.__str__()
-        raise TypeError(f"Item de tipo inesperado para ser transformado em json: '{ type(item) }'")
+        raise TypeError(f"Item de tipo inesperado para ser transformado em json: '{type(item)}'")
     return json_dumps(item, ensure_ascii=False, default=tratamentos, indent=4 if indentar else None)
 
 
@@ -69,7 +69,7 @@ class ElementoXML:
             xml = xml.lstrip() # remover espaços vazios no começo
             self.__e = xml_from_string(xml) if xml.startswith("<") else xml_from_file(xml).getroot() # parse
         elif isinstance(xml, Element): self.__e = xml # comportamento interno na criação e iteração dos elementos
-        else: raise TypeError(f"Tipo '{ type(xml) }' inesperado para o xml")
+        else: raise TypeError(f"Tipo '{type(xml)}' inesperado para o xml")
 
     def __str__ (self) -> str:
         """Versão `text/xml` do ElementoXML"""
@@ -81,7 +81,7 @@ class ElementoXML:
 
     def __repr__ (self) -> str:
         """Representação do ElementoXML"""
-        return f"<ElementoXML '{ self.nome }' com { len(self) } elemento(s) filho(s)>"
+        return f"<ElementoXML '{self.nome}' com {len(self)} elemento(s) filho(s)>"
 
     def __iter__ (self) -> Generator[ElementoXML, None, None]:
         """Iterator dos elementos"""
@@ -90,17 +90,17 @@ class ElementoXML:
     def __getitem__ (self, valor: int | str) -> ElementoXML:
         """Obter o elemento filho na posição `int` ou o primeiro elemento de nome `str`"""
         if isinstance(valor, int): 
-            if valor >= len(self): raise IndexError(f"Elemento possui apenas '{ len(self) }' filho(s)")
+            if valor >= len(self): raise IndexError(f"Elemento possui apenas '{len(self)}' filho(s)")
             return self.elementos[valor]
         if isinstance(valor, str):
-            if not any(e.nome == valor for e in self): raise KeyError(f"Nome do elemento '{ valor }' inexistente nos filhos")
+            if not any(e.nome == valor for e in self): raise KeyError(f"Nome do elemento '{valor}' inexistente nos filhos")
             return [e for e in self if e.nome == valor][0]
-        raise TypeError(f"Tipo do valor inesperado '{ type(valor) }'")
+        raise TypeError(f"Tipo do valor inesperado '{type(valor)}'")
 
     @property
     def __dict__ (self) -> dict[str, str | None | list[dict]]:
         """Versão `dict` do `ElementoXML`"""
-        dicionario = { f"@{ nome }": valor for nome, valor in self.atributos.items() } # atributos
+        dicionario = { f"@{nome}": valor for nome, valor in self.atributos.items() } # atributos
         if self.namespace: dicionario["@xmlns"] = self.namespace # namespace
         dicionario[self.nome] = [e.__dict__ for e in self] if len(self) else self.texto # elemento: filhos | texto
         return dicionario
@@ -123,7 +123,7 @@ class ElementoXML:
     def nome (self, nome: str) -> None:
         """Setar nome do elemento"""
         _, namespace = self.__nome_namespace()
-        self.__e.tag = f"{{{ namespace }}}{ nome }" if namespace else nome
+        self.__e.tag = f"{{{namespace}}}{nome}" if namespace else nome
 
     @property
     def namespace (self) -> bot.tipagem.url | None:
@@ -134,7 +134,7 @@ class ElementoXML:
     def namespace (self, namespace: bot.tipagem.url | None) -> None:
         """Setar namespace do elemento"""
         nome = self.__nome_namespace()[0]
-        self.__e.tag = f"{{{ namespace }}}{ nome }" if namespace else nome
+        self.__e.tag = f"{{{namespace}}}{nome}" if namespace else nome
 
     @property
     def texto (self) -> str | None:
@@ -179,7 +179,7 @@ class ElementoXML:
     def criar (cls, nome: str, texto: str = None, namespace: bot.tipagem.url = None, atributos: dict[str, str] = {}) -> ElementoXML:
         """Criar um `ElementoXML` simples
         - `@classmethod`"""
-        nome = f"{{{ namespace }}}{ nome }" if namespace else nome
+        nome = f"{{{namespace}}}{nome}" if namespace else nome
         elemento = Element(nome, atributos)
         elemento.text = texto
         return cls(elemento)
@@ -256,10 +256,10 @@ class ResultadoSQL:
             possui_linhas = True
         except StopIteration: pass
 
-        tipo = f"com '{ self.linhas_afetadas }' linha(s) afetada(s)" if self.linhas_afetadas \
-          else f"com linha(s) e '{ len(self.colunas) }' coluna(s)" if possui_linhas \
+        tipo = f"com '{self.linhas_afetadas}' linha(s) afetada(s)" if self.linhas_afetadas \
+          else f"com linha(s) e '{len(self.colunas)}' coluna(s)" if possui_linhas \
           else f"vazio"
-        return f"<ResultadoSQL { tipo }>"
+        return f"<ResultadoSQL {tipo}>"
 
     def __bool__ (self) -> bool:
         """Representação booleana"""
@@ -297,8 +297,7 @@ class Resultado [T]:
             self.__valor = funcao(*args, **kwargs)
             self.__erro = None
         except Exception as erro:
-            from bot.logger import alertar
-            alertar(f"Função '{ funcao.__name__ }' executada pelo <Resultado> apresentou erro")
+            bot.logger.alertar(f"Função '{funcao.__name__}' executada pelo <Resultado[T]> apresentou erro")
             self.__valor = None
             self.__erro = erro
 
@@ -308,7 +307,7 @@ class Resultado [T]:
 
     def __repr__ (self) -> str:
         """Representação da classe"""
-        return f"<Resultado { "com" if self else "sem" } valor>"
+        return f"<Resultado[T] {"com" if self else "sem"} valor>"
 
     def valor (self) -> T:
         """Obter o valor do resultado
@@ -407,7 +406,7 @@ class Janela:
         titulo_normalizado = bot.util.normalizar(titulo)
         titulos = [titulo for titulo in self.titulos_janelas()
                    if titulo_normalizado in bot.util.normalizar(titulo)]
-        assert titulos, f"Janela de titulo '{ titulo }' não foi encontrada"
+        assert titulos, f"Janela de titulo '{titulo}' não foi encontrada"
 
         self.__janela = Desktop(backend).window(title=titulos[0], class_name=class_name, visible_only=True)
         self.__aplicacao = Application(backend).connect(title=titulos[0], class_name=class_name, visible_only=True)
@@ -419,7 +418,7 @@ class Janela:
 
     def __repr__ (self) -> str:
         """Representação da classe"""
-        return f"<Janela '{ self.titulo }'>"
+        return f"<Janela '{self.titulo}'>"
 
     @property
     def titulo (self) -> str:

@@ -60,13 +60,13 @@ def cmd (comando: str) -> None:
 
 def listar_diretorio (caminhoPasta: caminho) -> Diretorio:
     """Lista os caminhos dos arquivos e pastas do `caminhoPasta`"""
-    assert caminho_existe(caminhoPasta), f"Caminho informado '{ caminhoPasta }' não existe"
-    assert confirmar_pasta(caminhoPasta), f"Caminho informado '{ caminhoPasta }' não é de uma pasta"
+    assert caminho_existe(caminhoPasta), f"Caminho informado '{caminhoPasta}' não existe"
+    assert confirmar_pasta(caminhoPasta), f"Caminho informado '{caminhoPasta}' não é de uma pasta"
 
     caminhoPasta = caminho_absoluto(caminhoPasta)
     diretorio = Diretorio(caminhoPasta, [], [])
     for item in os.listdir(caminhoPasta):
-        caminho = f"{ caminhoPasta }\\{ item }"
+        caminho = f"{caminhoPasta}\\{item}"
         if confirmar_pasta(caminho): diretorio.pastas.append(caminho)
         elif confirmar_arquivo(caminho): diretorio.arquivos.append(caminho)
 

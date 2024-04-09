@@ -33,7 +33,7 @@ def obter_argumento_nomeado (nome: str, default="", obrigatorio=False) -> str:
     """Obter o valor do argumento `nome` ou `default`
     - `ArgumentosError` caso `obrigatorio` e não encontrado"""
     if nome not in nomeados and obrigatorio: 
-        raise ArgumentosError(f"Argumento nomeado obrigatório '{ nome }' não encontrado")
+        raise ArgumentosError(f"Argumento nomeado obrigatório '{nome}' não encontrado")
     return nomeados.get(nome, default)
 
 
@@ -42,15 +42,15 @@ def obter_argumento_posicional (index: int, default="", obrigatorio=False) -> st
     - `ArgumentosError` caso `obrigatorio` e não encontrado"""
     valido = posicionais and index < len(posicionais)
     if not valido and obrigatorio: 
-        raise ArgumentosError(f"Argumento posicional obrigatório '{ index }' não encontrado")
+        raise ArgumentosError(f"Argumento posicional obrigatório '{index}' não encontrado")
     return posicionais[index] if valido else default
 
 
 inicializar_argumentos()
 bot.logger.informar(
     f"""Argumento(s) de inicialização encontrado(s)
-        Posicionais: { posicionais }
-        Nomeados: { nomeados }"""
+        Posicionais: {posicionais}
+        Nomeados: {nomeados}"""
 ) if posicionais or nomeados else None
 
 

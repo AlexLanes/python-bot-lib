@@ -14,7 +14,7 @@ def setar_timeout (segundos: float):
     - Função"""
     def setar_timeout (func: Callable):
         def setar_timeout (*args, **kwargs):
-            mensagem = f"Função({ func.__name__ }) não finalizou sua execução no tempo configurado de { segundos } segundos e resultou em Timeout"
+            mensagem = f"Função({func.__name__}) não finalizou sua execução no tempo configurado de {segundos} segundos e resultou em Timeout"
             try: return ThreadPool(1).apply_async(func, args, kwargs).get(segundos)
             except Timeout: bot.logger.alertar(mensagem)
             raise TimeoutError(mensagem)
@@ -33,10 +33,10 @@ def retry (tentativas=3, segundos=10):
             for tentativa in range(1, tentativas + 1):
                 try: return func(*args, **kwargs)
                 except Exception as erro: 
-                    bot.logger.alertar(f"Tentativa { tentativa } de { tentativas } de execução da função({ func.__name__ }) resultou em erro\n\t{ erro }")
+                    bot.logger.alertar(f"Tentativa {tentativa} de {tentativas} de execução da função({func.__name__}) resultou em erro\n\t{erro}")
                     if tentativa < tentativas: sleep(segundos) # sleep() não necessário na última tentativa
                     else: # lançar a exceção da última tentativa
-                        erro.add_note(f"Foram realizadas { tentativas } tentativa(s) de execução na função({ func.__name__ })")
+                        erro.add_note(f"Foram realizadas {tentativas} tentativa(s) de execução na função({func.__name__})")
                         raise
 
         return retry
@@ -49,7 +49,7 @@ def tempo_execucao (func: Callable):
     def tempo_execucao (*args, **kwargs):
         inicio, resultado = perf_counter(), func(*args, **kwargs)
         tempo = bot.util.expandir_tempo(perf_counter() - inicio)
-        bot.logger.informar(f"Função({ func.__name__ }) executada em { tempo }")
+        bot.logger.informar(f"Função({func.__name__}) executada em {tempo}")
         return resultado
     return tempo_execucao
 
@@ -61,7 +61,7 @@ def perfil_execucao (func: Callable):
     def perfil_execucao (*args, **kwargs):
         # Diretorio de execução atual para limpar o nome no dataframe
         cwd = bot.windows.diretorio_execucao().caminho
-        cwd = f"{ cwd[0].lower() }{ cwd[1:] }"
+        cwd = f"{cwd[0].lower()}{cwd[1:]}"
         
         # Executar função com o profile ativo e gerar o report
         with Profile() as profile: resultado = func(*args, **kwargs)
@@ -73,12 +73,12 @@ def perfil_execucao (func: Callable):
         kwargs = { "tbl_rows": 1000, "tbl_hide_dataframe_shape": True, "fmt_str_lengths": 1000, "tbl_hide_column_data_types": True }
         with bot.database.polars.Config(**kwargs):
             bot.logger.debug("\n" * 2 + 
-                f"1 - Nome da função: { func.__name__ }\n" +
+                f"1 - Nome da função: {func.__name__}\n" +
                 f"2 - Tempo de execução: {tempo:.3f} segundos\n" +
                 bot.database.polars.DataFrame({
                     "nome": [
                         funcao if stats[funcao].file_name == "~" 
-                        else stats[funcao].file_name.removeprefix(cwd).lstrip("\\") + f":{ stats[funcao].line_number }({ funcao })"
+                        else stats[funcao].file_name.removeprefix(cwd).lstrip("\\") + f":{stats[funcao].line_number}({funcao})"
                         for funcao in stats
                     ],
                     "tempo_acumulado": [stats[funcao].cumtime for funcao in stats],

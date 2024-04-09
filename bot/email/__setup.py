@@ -24,13 +24,13 @@ def enviar_email (destinatarios: list[bot.tipagem.email], assunto="", conteudo="
     - Abstração `smtplib`
     - `conteudo` pode ser uma string html se começar com "<"
     - Variáveis .ini `[email.enviar] -> user, password, host`"""
-    bot.logger.informar(f"Enviando e-mail '{ assunto }' para { str(destinatarios) }")
+    bot.logger.informar(f"Enviando e-mail '{assunto}' para {str(destinatarios)}")
     assert destinatarios, "Pelo menos um e-mail é necessário para ser enviado"
 
     # variaveis do configfile
     user, password, host = bot.configfile.obter_opcoes("email.enviar", ["user", "password", "host"])
     # from no-reply
-    _from = f"no-reply <{ user }>"
+    _from = f"no-reply <{user}>"
 
     mensagem = MIMEMultipart()
     # headers do e-mail
@@ -46,12 +46,12 @@ def enviar_email (destinatarios: list[bot.tipagem.email], assunto="", conteudo="
     # anexos
     for caminho in anexos:
         if not bot.windows.caminho_existe(caminho) or not bot.windows.confirmar_arquivo(caminho): 
-            bot.logger.alertar(f"Erro ao anexar '{ caminho }' no e-mail")
+            bot.logger.alertar(f"Erro ao anexar '{caminho}' no e-mail")
             continue
         with open(caminho, 'rb') as arquivo:
             anexo = MIMEApplication(arquivo.read())
             nome = bot.util.remover_acentuacao(bot.windows.extrair_nome_base(caminho))
-            anexo.add_header("Content-Disposition", f'attachment; filename="{ nome }"')
+            anexo.add_header("Content-Disposition", f'attachment; filename="{nome}"')
             mensagem.attach(anexo)
 
     # conectar ao servidor SMTP e enviar o e-mail
@@ -59,7 +59,7 @@ def enviar_email (destinatarios: list[bot.tipagem.email], assunto="", conteudo="
         smtp.starttls()
         smtp.login(user, password)
         if erro := smtp.sendmail(_from, destinatarios, mensagem.as_string()): 
-            bot.logger.alertar(f"Erro ao enviar e-mail: { bot.estruturas.json_stringify(erro) }")
+            bot.logger.alertar(f"Erro ao enviar e-mail: {bot.estruturas.json_stringify(erro)}")
 
 
 def obter_email (limite: int | slice = None, query="ALL", visualizar=False) -> Generator[bot.estruturas.Email, None, None]:
@@ -82,7 +82,7 @@ def obter_email (limite: int | slice = None, query="ALL", visualizar=False) -> G
         - `email` pode conter o nome da pessoa antes do email"""
         resultado = re_search(r"[\w\-\.]+@([\w\-]+\.)+[\w\-]{2,4}", bot.util.normalizar(email))
         if resultado == None:
-            bot.logger.alertar(f"Uma extração de e-mail não retornou resultado: '{ email }'")
+            bot.logger.alertar(f"Uma extração de e-mail não retornou resultado: '{email}'")
             return ""
         return resultado.group()
     def extrair_assunto (assunto: str) -> str:
@@ -100,7 +100,7 @@ def obter_email (limite: int | slice = None, query="ALL", visualizar=False) -> G
             assert isinstance(data, Datetime)
             return data.astimezone(brt)
         except:
-            bot.logger.alertar(f"Extração do datetime '{ datetime }' do email resultou em falha")
+            bot.logger.alertar(f"Extração do datetime '{datetime}' do email resultou em falha")
             return Datetime.now(brt)
 
     with IMAP4_SSL(host) as imap:

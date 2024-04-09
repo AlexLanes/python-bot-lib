@@ -24,7 +24,7 @@ def sql_nomeado_para_posicional (sql: str, parametros: bot.tipagem.nomeado) -> t
     # converter SQL
     ordenar_por_tamanho = { "key": lambda x: len(x), "reverse": True }
     for nome in sorted(ordem_nomes, **ordenar_por_tamanho): 
-        sql_transformado = sql_transformado.replace(f":{ nome }", "?", 1)
+        sql_transformado = sql_transformado.replace(f":{nome}", "?", 1)
 
     # inserir no `cache` e retornar
     resultado = (sql_transformado, ordem_nomes)
@@ -53,16 +53,16 @@ class DatabaseODBC:
         # verificar se o driver existe
         existentes = [driver for driver in self.listar_drivers() 
                       if nome_driver.lower() in driver.lower()]
-        if not existentes: raise ValueError(f"Driver ODBC '{ nome_driver }' não encontrado")
+        if not existentes: raise ValueError(f"Driver ODBC '{nome_driver}' não encontrado")
 
         # escolher um driver dos encontrados (preferência ao `unicode`)
         unicode = [driver for driver in existentes if "unicode" in driver.lower()]
         nome_driver = unicode[0] if unicode else existentes[0]
-        bot.logger.informar(f"Iniciando conexão ODBC com o driver '{ nome_driver }'")
+        bot.logger.informar(f"Iniciando conexão ODBC com o driver '{nome_driver}'")
 
         # montar a conexão
         kwargs["driver"] = nome_driver
-        conexao = ";".join(f"{ nome }={ valor }" 
+        conexao = ";".join(f"{nome}={valor}" 
                            for nome, valor in kwargs.items())
         self.__conexao = pyodbc.connect(conexao, autocommit=False, timeout=5)
 
@@ -128,7 +128,7 @@ class DatabaseODBC:
                 resultado = self.execute(sql, parametro)
                 if resultado.linhas_afetadas: total_linhas_afetadas += resultado.linhas_afetadas
             except pyodbc.DatabaseError as erro: 
-                bot.logger.alertar(f"Erro ao executar o parâmetro { parametro }\n\t{ [*erro.args] }")
+                bot.logger.alertar(f"Erro ao executar o parâmetro {parametro}\n\t{[ *erro.args ]}")
         return bot.estruturas.ResultadoSQL(total_linhas_afetadas, tuple(), (x for x in []))
 
     @staticmethod
@@ -148,7 +148,7 @@ class Sqlite:
         """Inicialização do banco de dados
         - `database` caminho para o arquivo .db ou .sqlite, 
         - Default carregar apenas na memória"""
-        bot.logger.informar(f"Iniciando conexão Sqlite com o database '{ database }'")
+        bot.logger.informar(f"Iniciando conexão Sqlite com o database '{database}'")
         self.__conexao = sqlite3.connect(database, 5)
     
     def __del__ (self) -> None:
@@ -169,7 +169,7 @@ class Sqlite:
         """Nomes das colunas e tipos da tabela
         - `for coluna, tipo in database.colunas(tabela)`"""
         return [(coluna, tipo) 
-                for _, coluna, tipo, *_, in self.execute(f"PRAGMA table_info({ tabela })")]
+                for _, coluna, tipo, *_, in self.execute(f"PRAGMA table_info({tabela})")]
 
     def commit (self) -> None:
         """Commitar alterações feitas na conexão"""
@@ -203,7 +203,7 @@ class Sqlite:
         """Salvar as linhas de todas as tabelas da conexão em um arquivo excel"""
         with Workbook(caminho) as excel:
             for tabela in self.tabelas():
-                self.execute(f"SELECT * FROM { tabela }") \
+                self.execute(f"SELECT * FROM {tabela}") \
                     .to_dataframe() \
                     .write_excel(excel, tabela, autofit=True)
 

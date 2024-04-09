@@ -17,7 +17,7 @@ HANDLERS_LOG = [logging.StreamHandler(sys.stdout), logging.FileHandler(NOME_ARQU
 
 # adicionar a persistência do log. Default: True
 if cf.obter_opcao("logger", "flag_persistencia", "True").lower() == "true":
-    nome = f"{ CAMINHO_PASTA_LOGS }/{ DATA_INICIALIZACAO.strftime(FORMATO_NOME_LOG) }"
+    nome = f"{CAMINHO_PASTA_LOGS}/{DATA_INICIALIZACAO.strftime(FORMATO_NOME_LOG)}"
     if not bot.windows.caminho_existe(CAMINHO_PASTA_LOGS): bot.windows.criar_pasta(CAMINHO_PASTA_LOGS)
     HANDLERS_LOG.append(logging.FileHandler(nome, "w", "utf-8"))
 
@@ -35,8 +35,8 @@ logging.basicConfig(
 def criar_mensagem_padrao (mensagem: str) -> str:
     """Extrair informações do stack para adicionar na mensagem de log"""
     stack, diretorio_execucao = bot.util.obter_info_stack(3), bot.windows.diretorio_execucao().caminho
-    caminho = rf"{ stack.caminho.removeprefix(diretorio_execucao) }\{ stack.nome }".lstrip("\\")
-    return f"arquivo({ caminho }) | função({ stack.funcao }) | linha({ stack.linha }) | { mensagem }"
+    caminho = rf"{stack.caminho.removeprefix(diretorio_execucao)}\{stack.nome}".lstrip("\\")
+    return f"arquivo({caminho}) | função({stack.funcao}) | linha({stack.linha}) | {mensagem}"
 
 
 def debug (mensagem: str) -> None:

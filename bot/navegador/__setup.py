@@ -35,7 +35,7 @@ class Navegador (ABC):
 
     def pesquisar (self, url: str) -> Self:
         """Pesquisar o url na aba focada"""
-        bot.logger.informar(f"Pesquisado o url '{ url }'")
+        bot.logger.informar(f"Pesquisado o url '{url}'")
         self.driver.get(url)
         return self
 
@@ -50,7 +50,7 @@ class Navegador (ABC):
         titulo = self.driver.title
         self.driver.close()
         self.driver.switch_to.window(self.abas[-1])
-        bot.logger.informar(f"Fechado a aba '{ titulo }'")
+        bot.logger.informar(f"Fechado a aba '{titulo}'")
         return self
     
     def focar_aba (self, titulo: str = None) -> None:
@@ -60,28 +60,28 @@ class Navegador (ABC):
         for aba in self.abas:
             self.driver.switch_to.window(aba)
             if (titulo == None and aba != original) or (titulo != None and bot.util.normalizar(titulo) in bot.util.normalizar(self.driver.title)):
-                return bot.logger.informar(f"O navegador focou na aba '{ self.driver.title }'")
+                return bot.logger.informar(f"O navegador focou na aba '{self.driver.title}'")
             self.driver.switch_to.window(original)
 
-        bot.logger.alertar(f"Nenhuma aba encontrada que possua o título '{ titulo }' foi encontrada")
+        bot.logger.alertar(f"Nenhuma aba encontrada que possua o título '{titulo}' foi encontrada")
 
     def encontrar_elemento (self, estrategia: bot.tipagem.ESTRATEGIAS_WEBELEMENT, localizador: str | Enum) -> WebElement | None:
         """Encontrar elemento(s) na aba atual com base em um `localizador` para a `estrategia` selecionada"""
         localizador: str = localizador if isinstance(localizador, str) else str(localizador.value)
-        bot.logger.debug(f"Procurando elemento no navegador ('{ estrategia }', '{ localizador }')")
+        bot.logger.debug(f"Procurando elemento no navegador ('{estrategia}', '{localizador}')")
         try: return self.driver.find_element(estrategia, localizador)
         except: return None
 
     def encontrar_elementos (self, estrategia: bot.tipagem.ESTRATEGIAS_WEBELEMENT, localizador: str | Enum) -> list[WebElement] | None:
         """Encontrar elemento(s) na aba atual com base em um `localizador` para a `estrategia` selecionada"""
         localizador = localizador if isinstance(localizador, str) else str(localizador.value)
-        bot.logger.debug(f"Procurando elementos no navegador ('{ estrategia }', '{ localizador }')")
+        bot.logger.debug(f"Procurando elementos no navegador ('{estrategia}', '{localizador}')")
         elementos = self.driver.find_elements(estrategia, localizador)
         return elementos if len(elementos) else None
 
     def hover_elemento (self, elemento: WebElement) -> None:
         """Realizar a ação de `hover` no `elemento`"""
-        bot.logger.debug(f"Realizando ação de hover no elemento '{ elemento }'")
+        bot.logger.debug(f"Realizando ação de hover no elemento '{elemento}'")
         ActionChains(self.driver).move_to_element(elemento).perform()
     
     def acessar_iframe (self, estrategia: bot.tipagem.ESTRATEGIAS_WEBELEMENT, localizador: str | Enum) -> None:
