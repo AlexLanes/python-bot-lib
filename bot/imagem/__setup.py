@@ -20,6 +20,7 @@ def transformar_pillow (imagem: str | Image.Image | bytes) -> Image.Image:
     return imagem
 
 
+@bot.util.decoradores.retry(2, 10)
 def capturar_tela (regiao: Coordenada = None, cinza=False) -> Image.Image:
     """Realizar uma captura de tela
     - `regiao` especifica uma parte da tela
