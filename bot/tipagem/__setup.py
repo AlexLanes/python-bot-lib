@@ -2,7 +2,7 @@
 from typing import Literal, Iterable
 
 
-type tiposSQL = str | int | float | None
+type tiposSQL = str | int | float | bool | None
 """Tipos primitivos aceitos pelo sql"""
 type nomeado = dict[str, tiposSQL]
 """Parâmetros necessários quando o SQL é nomeado ':nome'"""

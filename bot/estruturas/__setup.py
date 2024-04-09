@@ -1,12 +1,15 @@
 # std
 from __future__ import annotations
 import ctypes
-from itertools import chain, tee
 from warnings import simplefilter
 from dataclasses import dataclass
 from datetime import datetime as Datetime
 from os.path import getmtime as ultima_alteracao
 from typing import Generator, Any, Callable, Self
+from itertools import (
+    tee as duplicar_iterable,
+    chain as interligar_iterable
+)
 from json import (
     dumps as json_dumps, 
     loads as json_parse
@@ -248,8 +251,8 @@ class ResultadoSQL:
     def __repr__ (self) -> str:
         "Representação da classe"
         linhas, possui_linhas = self.linhas, False
-        try: 
-            self.linhas = chain([next(linhas)], linhas)
+        try:
+            self.linhas = interligar_iterable([next(linhas)], linhas)
             possui_linhas = True
         except StopIteration: pass
 
@@ -262,11 +265,15 @@ class ResultadoSQL:
         """Representação booleana"""
         return "vazio" not in repr(self)
 
+    def __len__ (self) -> int:
+        """Obter a quantidade de linhas no retornadas"""
+        self.linhas, linhas = duplicar_iterable(self.linhas)
+        return sum(1 for _ in linhas)
+
     @property
     def __dict__ (self) -> dict[str, int | None | list[dict]]:
         """Representação formato dicionário"""
-        linhas = [*self] # linhas do gerador
-        self.linhas = (linha for linha in linhas) # recriar gerador
+        self.linhas, linhas = duplicar_iterable(self.linhas)
         return {
             "linhas_afetadas": self.linhas_afetadas,
             "resultados": [{ coluna: valor for coluna, valor in zip(self.colunas, linha) } 
@@ -275,7 +282,7 @@ class ResultadoSQL:
 
     def to_dataframe (self) -> DataFrame:
         """Salvar o resultado em um `polars.DataFrame`"""
-        self.linhas, linhas = tee(self.linhas)
+        self.linhas, linhas = duplicar_iterable(self.linhas)
         return DataFrame(linhas, self.colunas, nan_to_null=True)
 
 
