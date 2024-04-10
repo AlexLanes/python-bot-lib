@@ -49,7 +49,8 @@ class DatabaseODBC:
             - pwd = senha
             - server = servidor
             - port = porta
-            - database = nome do database"""
+            - database = nome do database  
+        - `BoolsAsChar=0` para o PostgreSQL retornar os `BOOLEAN` como `bool` e não `str`"""
         # verificar se o driver existe
         existentes = [driver for driver in self.listar_drivers() 
                       if nome_driver.lower() in driver.lower()]
