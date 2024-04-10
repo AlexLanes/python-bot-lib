@@ -1,7 +1,7 @@
 # std
 import sys
 import logging
-from atexit import register as executar_no_fim
+from atexit import register as agendar_execucao
 from datetime import datetime, timedelta, timezone
 # interno
 import bot
@@ -14,13 +14,11 @@ FORMATO_NOME_LOG = "%Y-%m-%dT%H-%M-%S.log"
 DATA_INICIALIZACAO = datetime.now(timezone(timedelta(hours=-3)))
 HANDLERS_LOG = [logging.StreamHandler(sys.stdout), logging.FileHandler(NOME_ARQUIVO_LOG, "w", "utf-8")]
 
-
 # adicionar a persistência do log. Default: True
 if cf.obter_opcao("logger", "flag_persistencia", "True").lower() == "true":
     nome = f"{CAMINHO_PASTA_LOGS}/{DATA_INICIALIZACAO.strftime(FORMATO_NOME_LOG)}"
     if not bot.windows.caminho_existe(CAMINHO_PASTA_LOGS): bot.windows.criar_pasta(CAMINHO_PASTA_LOGS)
     HANDLERS_LOG.append(logging.FileHandler(nome, "w", "utf-8"))
-
 
 logger = logging.getLogger("BOT")
 logger.setLevel(logging.DEBUG if cf.obter_opcao("logger", "flag_debug", "True").lower() == "true" else logging.INFO)
@@ -35,7 +33,8 @@ logging.basicConfig(
 def criar_mensagem_padrao (mensagem: str) -> str:
     """Extrair informações do stack para adicionar na mensagem de log"""
     stack, diretorio_execucao = bot.util.obter_info_stack(3), bot.windows.diretorio_execucao().caminho
-    caminho = rf"{stack.caminho.removeprefix(diretorio_execucao)}\{stack.nome}".lstrip("\\")
+    caminho = rf"{stack.caminho.removeprefix(diretorio_execucao)}\{stack.nome}" \
+        .lstrip("\\")
     return f"arquivo({caminho}) | função({stack.funcao}) | linha({stack.linha}) | {mensagem}"
 
 
@@ -60,8 +59,17 @@ def erro (mensagem: str) -> None:
     logger.error(criar_mensagem_padrao(mensagem), exc_info=sys.exc_info())
 
 
-@executar_no_fim
-def limpar_logs () -> None:
+def limpar_log () -> None:
+    """Limpar o log atual `NOME_ARQUIVO_LOG`
+    - Não afeta o log de persistência"""
+    handler: logging.FileHandler = HANDLERS_LOG.pop()
+    handler.close()
+    logger.removeHandler(handler)
+    logger.handlers.append(logging.FileHandler(NOME_ARQUIVO_LOG, "w", "utf-8"))
+
+
+@agendar_execucao
+def limpar_pasta_logs () -> None:
     """Limpar os logs que ultrapassaram a data limite
     - Função executada automaticamente ao fim da execução"""
     # obter limite
@@ -84,5 +92,6 @@ __all__ = [
     "debug", 
     "alertar",
     "informar",
+    "limpar_log",
     "NOME_ARQUIVO_LOG"
 ]
