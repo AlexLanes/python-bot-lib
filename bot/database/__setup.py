@@ -68,7 +68,7 @@ class DatabaseODBC:
 
     def __del__ (self) -> None:
         """Fechar a conexão quando sair do escopo"""
-        bot.logger.debug(f"Encerrando conexão com o database")
+        bot.logger.informar(f"Encerrando conexão com o database")
         try: self.__conexao.close()
         except: pass
 
@@ -150,7 +150,7 @@ class Sqlite:
         - Default carregar apenas na memória"""
         bot.logger.informar(f"Iniciando conexão Sqlite com o database '{database}'")
         self.__conexao = sqlite3.connect(database, 5)
-    
+
     def __del__ (self) -> None:
         """Fechar a conexão quando sair do escopo"""
         bot.logger.informar(f"Encerrando conexão com o database")
