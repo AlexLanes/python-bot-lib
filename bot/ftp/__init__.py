@@ -3,6 +3,6 @@
     - `host` Obrigatório
     - `user, password` Opcionais
     - `port` Opcional `Default: 21`
-    - `timeout` Opcional `Default: 5`"""
+    - `timeout` Opcional `Default: 5.0`"""
 
 from .__setup import *

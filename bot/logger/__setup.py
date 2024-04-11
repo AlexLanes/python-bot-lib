@@ -19,14 +19,14 @@ FORMATO_NOME_LOG_PERSISTENCIA = "%Y-%m-%dT%H-%M-%S.log"
 DATA_INICIALIZACAO = datetime.now(timezone(timedelta(hours=-3)))
 
 # adicionar a persistência do log. Default: True
-if cf.obter_opcao("logger", "flag_persistencia", "True").lower() == "true":
+if cf.obter_opcao_ou("logger", "flag_persistencia", True):
     nome = f"{CAMINHO_PASTA_LOGS}/{DATA_INICIALIZACAO.strftime(FORMATO_NOME_LOG_PERSISTENCIA)}"
     if not bot.windows.caminho_existe(CAMINHO_PASTA_LOGS): bot.windows.criar_pasta(CAMINHO_PASTA_LOGS)
     HANDLERS_LOG.append(logging.FileHandler(nome, "w", "utf-8"))
 
 # inicializar logger
 logger = logging.getLogger("BOT")
-logger.setLevel(logging.DEBUG if cf.obter_opcao("logger", "flag_debug", "True").lower() == "true" else logging.INFO)
+logger.setLevel(logging.DEBUG if cf.obter_opcao_ou("logger", "flag_debug", True) else logging.INFO)
 logging.basicConfig(
     level=logging.INFO,
     handlers = HANDLERS_LOG,
@@ -81,7 +81,7 @@ def limpar_pasta_logs () -> None:
     """Limpar os logs que ultrapassaram a data limite
     - Função executada automaticamente ao fim da execução"""
     # obter limite
-    dias = int(cf.obter_opcao("logger", "dias_persistencia", "14"))
+    dias = cf.obter_opcao_ou("logger", "dias_persistencia", 14)
     limite = timedelta(days=dias)
 
     # checar caminho

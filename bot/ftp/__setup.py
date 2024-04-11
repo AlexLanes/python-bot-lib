@@ -20,11 +20,11 @@ class FTP:
         host = cf.obter_opcoes("FTP", ["host"])[0]
         bot.logger.informar(f"Conectando ao servidor FTP '{host}'")
         self.__ftp.connect(host=host,
-                           port=int(cf.obter_opcao("FTP", "port", "21")),
-                           timeout=int(cf.obter_opcao("FTP", "timeout", "5")))
+                           port=cf.obter_opcao_ou("FTP", "port", 21),
+                           timeout=cf.obter_opcao_ou("FTP", "timeout", 5.0))
 
         # login
-        usuario, senha = cf.obter_opcao("FTP", "user"), cf.obter_opcao("FTP", "password")
+        usuario, senha = cf.obter_opcao_ou("FTP", "user"), cf.obter_opcao_ou("FTP", "password")
         if usuario:
             bot.logger.informar(f"Realizando o login com o usuário '{usuario}'")
             self.__ftp.login(usuario, senha)
@@ -60,7 +60,7 @@ class FTP:
         del diretorio.query_data_alteracao_arquivos # não suportado
 
         for nome, infos in self.__ftp.mlsd():
-            tipo, caminho = infos.get("type"), f"{cwd if cwd != '/' else ''}/{nome}"
+            tipo, caminho = infos.get("type"), f"{cwd if cwd != "/" else ""}/{nome}"
             if tipo == "dir": diretorio.pastas.append(caminho)
             elif tipo == "file": diretorio.arquivos.append(caminho)
 
