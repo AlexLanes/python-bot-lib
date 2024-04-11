@@ -2,7 +2,11 @@
 import sys
 import logging
 from atexit import register as agendar_execucao
-from datetime import datetime, timedelta, timezone
+from datetime import (
+    datetime as Datetime,
+    timezone as Timezone,
+    timedelta as Timedelta
+)
 # interno
 import bot
 from bot import configfile as cf
@@ -16,7 +20,7 @@ HANDLERS_LOG = [logging.StreamHandler(sys.stdout),
 
 CAMINHO_PASTA_LOGS  = "./logs"
 FORMATO_NOME_LOG_PERSISTENCIA = "%Y-%m-%dT%H-%M-%S.log"
-DATA_INICIALIZACAO = datetime.now(timezone(timedelta(hours=-3)))
+DATA_INICIALIZACAO = Datetime.now(Timezone(Timedelta(hours=-3)))
 
 # adicionar a persistência do log. Default: True
 if cf.obter_opcao_ou("logger", "flag_persistencia", True):
@@ -82,7 +86,7 @@ def limpar_pasta_logs () -> None:
     - Função executada automaticamente ao fim da execução"""
     # obter limite
     dias = cf.obter_opcao_ou("logger", "dias_persistencia", 14)
-    limite = timedelta(days=dias)
+    limite = Timedelta(days=dias)
 
     # checar caminho
     caminho = bot.windows.caminho_absoluto(CAMINHO_PASTA_LOGS)
@@ -91,8 +95,8 @@ def limpar_pasta_logs () -> None:
     # limpar
     for caminho_log in bot.windows.listar_diretorio(caminho).arquivos:
         nome = bot.windows.extrair_nome_base(caminho_log)
-        data = datetime.strptime(nome, FORMATO_NOME_LOG_PERSISTENCIA)
-        if datetime.now() - data > limite: bot.windows.apagar_arquivo(caminho_log)
+        data = Datetime.strptime(nome, FORMATO_NOME_LOG_PERSISTENCIA)
+        if Datetime.now() - data > limite: bot.windows.apagar_arquivo(caminho_log)
 
 
 __all__ = [
