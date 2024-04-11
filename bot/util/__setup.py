@@ -1,12 +1,9 @@
 # std
 import re
-from inspect import stack
 from itertools import zip_longest
 from unicodedata import normalize
 from time import sleep, perf_counter
 from typing import Callable, Iterable
-# interno
-from bot.estruturas import InfoStack
 
 
 def aguardar_condicao (condicao: Callable[[], bool], timeout: int, delay=0.1) -> bool:
@@ -18,8 +15,8 @@ def aguardar_condicao (condicao: Callable[[], bool], timeout: int, delay=0.1) ->
     while perf_counter() - inicio < timeout:
         try:
             if condicao(): return True
-            else: sleep(delay)
         except: pass
+        sleep(delay)
 
     return False
 
@@ -36,18 +33,6 @@ def normalizar (string: str) -> str:
     string = re.sub(r"\s+", "_", string.strip().lower())
     string = remover_acentuacao(string)
     return re.sub(r"\W", "", string)
-
-
-def obter_info_stack (index=1) -> InfoStack:
-    """Obter informações presente no stack dos callers
-    - `Default` Arquivo que chamou o info_stack()"""
-    linha = stack()[index].lineno
-    funcao = stack()[index].function
-    filename = stack()[index].filename
-
-    caminho, nome = filename.rsplit("\\", 1)
-    caminho = f"{caminho[0].upper()}{caminho[1:]}" # forçar upper no primeiro char
-    return InfoStack(nome, caminho, funcao, linha)
 
 
 def index_melhor_match (texto: str, opcoes: Iterable[str]) -> int:
@@ -81,7 +66,6 @@ def expandir_tempo (segundos: int | float) -> str:
 __all__ = [
     "normalizar",
     "expandir_tempo",
-    "obter_info_stack",
     "aguardar_condicao",
     "remover_acentuacao",
     "index_melhor_match"

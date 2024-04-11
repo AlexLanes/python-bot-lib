@@ -1,6 +1,7 @@
 # std
 from __future__ import annotations
 import ctypes
+from inspect import stack
 from warnings import simplefilter
 from dataclasses import dataclass
 from datetime import datetime as Datetime
@@ -349,17 +350,24 @@ class Diretorio:
         return arquivos
 
 
-@dataclass
 class InfoStack:
-    """Informações retiradas do Stack de execução"""
+    """Informações do `Stack` de execução"""
     nome: str
-    """Nome arquivo"""
-    caminho: bot.tipagem.caminho
-    """Caminho arquivo"""
+    """Nome do arquivo"""
     funcao: str
     """Nome da função"""
     linha: int
     """Linha do item executado"""
+    caminho: bot.tipagem.caminho
+    """Caminho do arquivo"""
+
+    def __init__ (self, index=1) -> None:
+        """Obter informações presente no stack dos callers
+        - `Default` arquivo que chamou o `InfoStack()`"""
+        self.linha = stack()[index].lineno
+        self.funcao = stack()[index].function
+        caminho, self.nome = stack()[index].filename.rsplit("\\", 1)
+        self.caminho = f"{caminho[0].upper()}{caminho[1:]}" # forçar upper no primeiro char
 
 
 @dataclass

@@ -9,30 +9,35 @@ from bot import configfile as cf
 
 
 NOME_ARQUIVO_LOG = ".log" # útima execução
+FORMATO_DATA_LOG = "%Y-%m-%dT%H:%M:%S"
+FORMATO_MENSAGEM_LOG = "%(asctime)s | nome(%(name)s) | level(%(levelname)s) | %(message)s"
+HANDLERS_LOG = [logging.StreamHandler(sys.stdout), 
+                logging.FileHandler(NOME_ARQUIVO_LOG, "w", "utf-8")]
+
 CAMINHO_PASTA_LOGS  = "./logs"
-FORMATO_NOME_LOG = "%Y-%m-%dT%H-%M-%S.log"
+FORMATO_NOME_LOG_PERSISTENCIA = "%Y-%m-%dT%H-%M-%S.log"
 DATA_INICIALIZACAO = datetime.now(timezone(timedelta(hours=-3)))
-HANDLERS_LOG = [logging.StreamHandler(sys.stdout), logging.FileHandler(NOME_ARQUIVO_LOG, "w", "utf-8")]
 
 # adicionar a persistência do log. Default: True
 if cf.obter_opcao("logger", "flag_persistencia", "True").lower() == "true":
-    nome = f"{CAMINHO_PASTA_LOGS}/{DATA_INICIALIZACAO.strftime(FORMATO_NOME_LOG)}"
+    nome = f"{CAMINHO_PASTA_LOGS}/{DATA_INICIALIZACAO.strftime(FORMATO_NOME_LOG_PERSISTENCIA)}"
     if not bot.windows.caminho_existe(CAMINHO_PASTA_LOGS): bot.windows.criar_pasta(CAMINHO_PASTA_LOGS)
     HANDLERS_LOG.append(logging.FileHandler(nome, "w", "utf-8"))
 
+# inicializar logger
 logger = logging.getLogger("BOT")
 logger.setLevel(logging.DEBUG if cf.obter_opcao("logger", "flag_debug", "True").lower() == "true" else logging.INFO)
 logging.basicConfig(
     level=logging.INFO,
-    datefmt="%Y-%m-%dT%H:%M:%S",
-    format="%(asctime)s | nome(%(name)s) | level(%(levelname)s) | %(message)s",
-    handlers = HANDLERS_LOG
+    handlers = HANDLERS_LOG,
+    datefmt=FORMATO_DATA_LOG,
+    format=FORMATO_MENSAGEM_LOG
 )
 
 
 def criar_mensagem_padrao (mensagem: str) -> str:
     """Extrair informações do stack para adicionar na mensagem de log"""
-    stack, diretorio_execucao = bot.util.obter_info_stack(3), bot.windows.diretorio_execucao().caminho
+    stack, diretorio_execucao = bot.estruturas.InfoStack(3), bot.windows.diretorio_execucao().caminho
     caminho = rf"{stack.caminho.removeprefix(diretorio_execucao)}\{stack.nome}" \
         .lstrip("\\")
     return f"arquivo({caminho}) | função({stack.funcao}) | linha({stack.linha}) | {mensagem}"
@@ -67,7 +72,7 @@ def limpar_log () -> None:
     handler.close()
 
     handler = logging.FileHandler(NOME_ARQUIVO_LOG, "w", "utf-8")
-    handler.setFormatter(logging.Formatter("%(asctime)s | nome(%(name)s) | level(%(levelname)s) | %(message)s", "%Y-%m-%dT%H:%M:%S"))
+    handler.setFormatter(logging.Formatter(FORMATO_MENSAGEM_LOG, FORMATO_DATA_LOG))
     logger.addHandler(handler)
 
 
@@ -86,7 +91,7 @@ def limpar_pasta_logs () -> None:
     # limpar
     for caminho_log in bot.windows.listar_diretorio(caminho).arquivos:
         nome = bot.windows.extrair_nome_base(caminho_log)
-        data = datetime.strptime(nome, FORMATO_NOME_LOG)
+        data = datetime.strptime(nome, FORMATO_NOME_LOG_PERSISTENCIA)
         if datetime.now() - data > limite: bot.windows.apagar_arquivo(caminho_log)
 
 
