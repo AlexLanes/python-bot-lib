@@ -4,6 +4,8 @@ from itertools import zip_longest
 from unicodedata import normalize
 from time import sleep, perf_counter
 from typing import Callable, Iterable
+# interno
+from bot.tipagem import primitivo
 
 
 def aguardar_condicao (condicao: Callable[[], bool], timeout: int, delay=0.1) -> bool:
@@ -63,9 +65,20 @@ def expandir_tempo (segundos: int | float) -> str:
     return " e ".join(tempo for tempo in tempos)
 
 
+def transformar_tipo[T: primitivo] (valor: str, tipo: type[T]) -> T:
+    """Fazer a transformação do `valor` para `type(tipo)`
+    - Função genérica"""
+    match str(tipo):
+        case "<class 'str'>": return valor
+        case "<class 'int'>" | "<class 'float'>": return tipo(valor)
+        case "<class 'bool'>": return valor.lower().strip() == "true"
+        case _: return None
+
+
 __all__ = [
     "normalizar",
     "expandir_tempo",
+    "transformar_tipo",
     "aguardar_condicao",
     "remover_acentuacao",
     "index_melhor_match"
