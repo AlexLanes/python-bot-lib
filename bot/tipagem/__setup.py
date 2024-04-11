@@ -2,11 +2,11 @@
 from typing import Literal, Iterable
 
 
-type tiposSQL = str | int | float | bool | None
-"""Tipos primitivos aceitos pelo sql"""
-type nomeado = dict[str, tiposSQL]
+type primitivo = str | int | float | bool | None
+"""Tipos primitivos do Python"""
+type nomeado = dict[str, primitivo]
 """Parâmetros necessários quando o SQL é nomeado ':nome'"""
-type posicional = Iterable[tiposSQL]
+type posicional = Iterable[primitivo]
 """Parâmetros necessários quando o SQL é posicionail '?'"""
 
 type url = str
@@ -38,7 +38,7 @@ __all__ = [
     "email",
     "nomeado",
     "caminho",
-    "tiposSQL",
+    "primitivo",
     "posicional",
     "BOTOES_MOUSE",
     "PORCENTAGENS",

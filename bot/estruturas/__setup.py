@@ -241,10 +241,10 @@ class ResultadoSQL:
     - `None` indica que não se aplica para o comando sql"""
     colunas: tuple[str, ...]
     """Colunas das linhas retornadas (se houver)"""
-    linhas: Generator[tuple[bot.tipagem.tiposSQL, ...], None, None]
+    linhas: Generator[tuple[bot.tipagem.primitivo, ...], None, None]
     """Generator das linhas retornadas (se houver)"""
 
-    def __iter__ (self) -> Generator[tuple[bot.tipagem.tiposSQL, ...], None, None]:
+    def __iter__ (self) -> Generator[tuple[bot.tipagem.primitivo, ...], None, None]:
         """Generator do self.linhas"""
         for linha in self.linhas: yield linha
 
