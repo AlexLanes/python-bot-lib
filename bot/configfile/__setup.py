@@ -2,13 +2,15 @@
 from typing import Iterable
 from configparser import ConfigParser, ExtendedInterpolation
 # interno
-import bot
+from bot.tipagem import primitivo
+from bot.util import transformar_tipo
+from bot.windows import diretorio_execucao, extrair_nome_base
 
 
 config = ConfigParser(interpolation=ExtendedInterpolation())
-for arquivo in bot.windows.diretorio_execucao().arquivos:
+for arquivo in diretorio_execucao().arquivos:
     if not arquivo.endswith(".ini"): continue
-    config.read(bot.windows.extrair_nome_base(arquivo), encoding="utf-8")
+    config.read(extrair_nome_base(arquivo), encoding="utf-8")
 
 
 opcoes_secao = config.options
@@ -23,10 +25,11 @@ def possui_opcoes (secao: str, opcoes: Iterable[str]) -> bool:
                for opcao in opcoes)
 
 
-def obter_opcao_ou[T: bot.tipagem.primitivo] (secao: str, opcao: str, default: T = "") -> T:
+def obter_opcao_ou[T: primitivo] (secao: str, opcao: str, default: T = "") -> T:
     """Obter `opcao` de uma `secao` do configfile ou `default` caso não exista
     - Função genérica"""
-    return config.get(secao, opcao) if possui_secao(secao) and possui_opcao(secao, opcao) else default
+    return transformar_tipo(config.get(secao, opcao), type(default)) \
+        if possui_secao(secao) and possui_opcao(secao, opcao) else default
 
 
 def obter_opcoes (secao: str, opcoes: Iterable[str]) -> tuple[str, ...]:
