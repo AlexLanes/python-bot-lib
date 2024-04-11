@@ -17,12 +17,12 @@ class Navegador (ABC):
 
     driver: WebDriverEdge | WebDriverChrome | WebDriverIe
     """Driver do `Selenium`"""
-    
+
     def __del__ (self) -> None:
         """Encerrar o driver quando a variável do navegador sair do escopo"""
         self.driver.quit()
         bot.logger.informar("Navegador fechado")
-    
+
     @property
     def titulo (self) -> str:
         """Título da aba focada"""
@@ -52,7 +52,7 @@ class Navegador (ABC):
         self.driver.switch_to.window(self.abas[-1])
         bot.logger.informar(f"Fechado a aba '{titulo}'")
         return self
-    
+
     def focar_aba (self, titulo: str = None) -> None:
         """Focar na aba que contem o `titulo`
         - `titulo` None para focar na primera aba diferente da atual"""
@@ -83,7 +83,7 @@ class Navegador (ABC):
         """Realizar a ação de `hover` no `elemento`"""
         bot.logger.debug(f"Realizando ação de hover no elemento '{elemento}'")
         ActionChains(self.driver).move_to_element(elemento).perform()
-    
+
     def acessar_iframe (self, estrategia: bot.tipagem.ESTRATEGIAS_WEBELEMENT, localizador: str | Enum) -> None:
         """
         Encontra o iframe e acessa o seu escopo
@@ -98,7 +98,7 @@ class Navegador (ABC):
 
 class Edge (Navegador):
     """Navegador Edge"""
-    
+
     driver: WebDriverEdge
     """Driver Edge"""
 
@@ -114,19 +114,20 @@ class Edge (Navegador):
             "download.prompt_for_download": False,
             "download.default_directory": bot.windows.caminho_absoluto(download),
         })
-        
+
         self.driver = WebDriverEdge(options)
         self.driver.implicitly_wait(timeout)
+        self.driver.maximize_window()
 
         bot.logger.informar("Navegador Edge iniciado")
 
 
 class Chrome (Navegador):
     """Navegador Edge"""
-    
+
     driver: WebDriverChrome
     """Driver Chrome"""
-    
+
     def __init__ (self, timeout=30.0, download=rf"./downloads") -> None:
         """Inicializar o navegador Chrome
         - `timeout` utilizado na espera do `implicitly_wait`
@@ -139,9 +140,10 @@ class Chrome (Navegador):
             "download.prompt_for_download": False,
             "download.default_directory": bot.windows.caminho_absoluto(download),
         })
-        
+
         self.driver = WebDriverChrome(options)
         self.driver.implicitly_wait(timeout)
+        self.driver.maximize_window()
 
         bot.logger.informar("Navegador Chrome iniciado")
 
@@ -162,7 +164,7 @@ class Explorer (Navegador):
         options = IeOptions()
         options.attach_to_edge_chrome = True
         options.add_argument("--ignore-certificate-errors")
-        
+
         self.driver = WebDriverIe(options)
         self.driver.maximize_window()
         self.driver.implicitly_wait(timeout)
