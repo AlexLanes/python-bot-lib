@@ -26,9 +26,10 @@ DATA_INICIALIZACAO = Datetime.now(Timezone(Timedelta(hours=-3)))
 if cf.obter_opcao_ou("logger", "flag_persistencia", True):
     nome = f"{CAMINHO_PASTA_LOGS}/{DATA_INICIALIZACAO.strftime(FORMATO_NOME_LOG_PERSISTENCIA)}"
     if not bot.windows.caminho_existe(CAMINHO_PASTA_LOGS): bot.windows.criar_pasta(CAMINHO_PASTA_LOGS)
-    HANDLERS_LOG.append(logging.FileHandler(nome, "w", "utf-8"))
+    HANDLERS_LOG.insert(0, logging.FileHandler(nome, "w", "utf-8"))
 
 # inicializar logger
+root = logging.getLogger()
 logger = logging.getLogger("BOT")
 logger.setLevel(logging.DEBUG if cf.obter_opcao_ou("logger", "flag_debug", True) else logging.INFO)
 logging.basicConfig(
@@ -72,13 +73,13 @@ def limpar_log () -> None:
     """Limpar o log atual `NOME_ARQUIVO_LOG`
     - Não afeta o log de persistência"""
     handler: logging.FileHandler = HANDLERS_LOG.pop()
-    logger.removeHandler(handler)
+    root.removeHandler(handler)
     handler.close()
 
     handler = logging.FileHandler(NOME_ARQUIVO_LOG, "w", "utf-8")
     handler.setFormatter(logging.Formatter(FORMATO_MENSAGEM_LOG, FORMATO_DATA_LOG))
     HANDLERS_LOG.append(handler)
-    logger.addHandler(handler)
+    root.addHandler(handler)
 
 
 @agendar_execucao
