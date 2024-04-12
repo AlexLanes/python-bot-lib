@@ -71,12 +71,13 @@ def erro (mensagem: str) -> None:
 def limpar_log () -> None:
     """Limpar o log atual `NOME_ARQUIVO_LOG`
     - Não afeta o log de persistência"""
-    handler: logging.FileHandler = HANDLERS_LOG.pop(1)
+    handler: logging.FileHandler = HANDLERS_LOG.pop()
     logger.removeHandler(handler)
     handler.close()
 
     handler = logging.FileHandler(NOME_ARQUIVO_LOG, "w", "utf-8")
     handler.setFormatter(logging.Formatter(FORMATO_MENSAGEM_LOG, FORMATO_DATA_LOG))
+    HANDLERS_LOG.append(handler)
     logger.addHandler(handler)
 
 
