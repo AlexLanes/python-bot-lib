@@ -5,12 +5,9 @@ from inspect import stack
 from warnings import simplefilter
 from dataclasses import dataclass
 from datetime import datetime as Datetime
+from itertools import tee as duplicar_iterable
 from os.path import getmtime as ultima_alteracao
 from typing import Generator, Any, Callable, Self
-from itertools import (
-    tee as duplicar_iterable,
-    chain as interligar_iterable
-)
 from json import (
     dumps as json_dumps, 
     loads as json_parse
@@ -243,33 +240,41 @@ class ResultadoSQL:
     colunas: tuple[str, ...]
     """Colunas das linhas retornadas (se houver)"""
     linhas: Generator[tuple[bot.tipagem.primitivo, ...], None, None]
-    """Generator das linhas retornadas (se houver)"""
+    """Generator das linhas retornadas (se houver)
+    - Consumido quando iterado sobre"""
 
     def __iter__ (self) -> Generator[tuple[bot.tipagem.primitivo, ...], None, None]:
         """Generator do self.linhas"""
-        for linha in self.linhas: yield linha
+        for linha in self.linhas:
+            yield linha
 
     def __repr__ (self) -> str:
         "Representação da classe"
-        linhas, possui_linhas = self.linhas, False
-        try:
-            self.linhas = interligar_iterable([next(linhas)], linhas)
-            possui_linhas = True
+        possui_linhas = False
+        self.linhas, linhas = duplicar_iterable(self.linhas)
+        try: possui_linhas = bool(next(linhas))
         except StopIteration: pass
 
-        tipo = f"com '{self.linhas_afetadas}' linha(s) afetada(s)" if self.linhas_afetadas \
-          else f"com linha(s) e '{len(self.colunas)}' coluna(s)" if possui_linhas \
+        tipo = f"com {self.linhas_afetadas} linha(s) afetada(s)" if self.linhas_afetadas \
+          else f"com {len(self.colunas)} coluna(s) e {len(self)} linha(s)" if possui_linhas \
           else f"vazio"
+
         return f"<ResultadoSQL {tipo}>"
 
     def __bool__ (self) -> bool:
-        """Representação booleana"""
+        """Representação se possui linhas ou linhas_afetadas"""
         return "vazio" not in repr(self)
 
     def __len__ (self) -> int:
         """Obter a quantidade de linhas no retornadas"""
         self.linhas, linhas = duplicar_iterable(self.linhas)
         return sum(1 for _ in linhas)
+
+    def __getitem__ (self, campo: str) -> bot.tipagem.primitivo:
+        """Obter um campo da primeira linha"""
+        self.linhas, linhas = duplicar_iterable(self.linhas)
+        linha = next(linhas)
+        return linha[self.colunas.index(campo)]
 
     @property
     def __dict__ (self) -> dict[str, int | None | list[dict]]:
