@@ -45,12 +45,12 @@ def enviar_email (destinatarios: list[bot.tipagem.email], assunto="", conteudo="
 
     # anexos
     for caminho in anexos:
-        if not bot.windows.caminho_existe(caminho) or not bot.windows.confirmar_arquivo(caminho): 
+        if not bot.windows.caminho_existe(caminho) or not bot.windows.afirmar_arquivo(caminho): 
             bot.logger.alertar(f"Erro ao anexar '{caminho}' no e-mail")
             continue
         with open(caminho, 'rb') as arquivo:
             anexo = MIMEApplication(arquivo.read())
-            nome = bot.util.remover_acentuacao(bot.windows.extrair_nome_base(caminho))
+            nome = bot.util.remover_acentuacao(bot.windows.nome_base(caminho))
             anexo.add_header("Content-Disposition", f'attachment; filename="{nome}"')
             mensagem.attach(anexo)
 

@@ -96,7 +96,7 @@ def limpar_pasta_logs () -> None:
 
     # limpar
     for caminho_log in bot.windows.listar_diretorio(caminho).arquivos:
-        nome = bot.windows.extrair_nome_base(caminho_log)
+        nome = bot.windows.nome_base(caminho_log)
         data = Datetime.strptime(nome, FORMATO_NOME_LOG_PERSISTENCIA)
         if Datetime.now() - data > limite: bot.windows.apagar_arquivo(caminho_log)
 

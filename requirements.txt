@@ -22,3 +22,6 @@ selenium
 # bot.rest
 httpx
 jsonschema
+
+# bot.windows
+win32api

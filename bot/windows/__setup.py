@@ -1,15 +1,18 @@
 # std
 import os
 import shutil
+import win32con
 # interno
 from bot.tipagem import caminho
 from bot.estruturas import Diretorio
+# externo
+import win32api
 
 
 def apagar_arquivo (caminho: caminho) -> None:
     """Apagar um arquivo"""
     if not caminho_existe(caminho): return
-    assert confirmar_arquivo(caminho), "O caminho informado não é de um arquivo"
+    assert afirmar_arquivo(caminho), f"O caminho '{caminho}' não é de um arquivo"
     os.remove(caminho)
 
 
@@ -22,11 +25,11 @@ def criar_pasta (caminho: caminho) -> caminho:
 
 def copiar_arquivo (de: caminho, para: caminho) -> caminho:
     """Copiar arquivo `de` um caminho `para` outro
-    - Retorna o caminho para o qual foi copiado"""
+    - Retorna o caminho absoluto para o qual foi copiado"""
     return caminho_absoluto(shutil.copyfile(de, para))
 
 
-def extrair_nome_base (caminho: caminho) -> str:
+def nome_base (caminho: caminho) -> str:
     """Extrair a parte do nome e formato do `caminho`"""
     return os.path.basename(caminho)
 
@@ -41,12 +44,12 @@ def caminho_existe (caminho: caminho) -> bool:
     return os.path.exists(caminho)
 
 
-def confirmar_pasta (caminho: caminho) -> bool:
+def afirmar_pasta (caminho: caminho) -> bool:
     """Confirmar se o `caminho` informado é de um diretório"""
     return os.path.isdir(caminho)
 
 
-def confirmar_arquivo (caminho: caminho) -> bool:
+def afirmar_arquivo (caminho: caminho) -> bool:
     """Confirmar se o `caminho` informado é de um arquivo"""
     return os.path.isfile(caminho)
 
@@ -61,14 +64,14 @@ def cmd (comando: str) -> None:
 def listar_diretorio (caminhoPasta: caminho) -> Diretorio:
     """Lista os caminhos dos arquivos e pastas do `caminhoPasta`"""
     assert caminho_existe(caminhoPasta), f"Caminho informado '{caminhoPasta}' não existe"
-    assert confirmar_pasta(caminhoPasta), f"Caminho informado '{caminhoPasta}' não é de uma pasta"
+    assert afirmar_pasta(caminhoPasta), f"Caminho informado '{caminhoPasta}' não é de uma pasta"
 
     caminhoPasta = caminho_absoluto(caminhoPasta)
     diretorio = Diretorio(caminhoPasta, [], [])
     for item in os.listdir(caminhoPasta):
         caminho = f"{caminhoPasta}\\{item}"
-        if confirmar_pasta(caminho): diretorio.pastas.append(caminho)
-        elif confirmar_arquivo(caminho): diretorio.arquivos.append(caminho)
+        if afirmar_pasta(caminho): diretorio.pastas.append(caminho)
+        elif afirmar_arquivo(caminho): diretorio.arquivos.append(caminho)
 
     return diretorio
 
@@ -78,16 +81,50 @@ def diretorio_execucao () -> Diretorio:
     return listar_diretorio(os.getcwd())
 
 
+def resolucao_tela () -> tuple[int, int]:
+    """Obter a resolução da tela atual"""
+    nome_tela = win32api.EnumDisplayDevices(None, 0).DeviceName
+    configuracoes = win32api.EnumDisplaySettings(nome_tela, win32con.ENUM_CURRENT_SETTINGS)
+    return (configuracoes.PelsWidth, configuracoes.PelsHeight)
+
+
+def alterar_resolucao (largura: int, altura: int) -> None:
+    """Alterar a resolução da tela
+    - A resolução deve estar presente nas resoluções aceitadas pelas configurações da tela"""
+    from bot.logger import informar, alertar
+    informar(f"Alterando a resolução da tela para {largura}x{altura}")
+    if resolucao_tela() == (largura, altura):
+        return informar("Resolução da tela desejada já definida")
+
+    # configura a nova resolução
+    nome_tela = win32api.EnumDisplayDevices(None, 0).DeviceName
+    configuracoes = win32api.EnumDisplaySettings(nome_tela, win32con.ENUM_CURRENT_SETTINGS)
+    configuracoes.PelsWidth = largura
+    configuracoes.PelsHeight = altura
+    configuracoes.Fields = configuracoes.Fields | win32con.DM_PELSWIDTH | win32con.DM_PELSHEIGHT
+
+    # alterar
+    win32api.ChangeDisplaySettingsEx(nome_tela, configuracoes)
+
+    # confirmar
+    configuracoes = win32api.EnumDisplaySettings(nome_tela, win32con.ENUM_CURRENT_SETTINGS)
+    if (configuracoes.PelsWidth, configuracoes.PelsHeight) == (largura, altura):
+        informar(f"Resolução da tela alterada")
+    else: alertar("Resolução da tela não foi alterada")
+
+
 __all__ = [
     "cmd",
+    "nome_base",
     "criar_pasta",
+    "afirmar_pasta",
     "caminho_existe",
     "apagar_arquivo",
     "copiar_arquivo",
-    "confirmar_pasta",
+    "resolucao_tela",
+    "afirmar_arquivo",
     "listar_diretorio",
     "caminho_absoluto",
-    "confirmar_arquivo",
-    "extrair_nome_base",
+    "alterar_resolucao",
     "diretorio_execucao"
 ]

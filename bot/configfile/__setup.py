@@ -4,13 +4,13 @@ from configparser import ConfigParser, ExtendedInterpolation
 # interno
 from bot.tipagem import primitivo
 from bot.util import transformar_tipo
-from bot.windows import diretorio_execucao, extrair_nome_base
+from bot.windows import diretorio_execucao, nome_base
 
 
 config = ConfigParser(interpolation=ExtendedInterpolation())
 for arquivo in diretorio_execucao().arquivos:
     if not arquivo.endswith(".ini"): continue
-    config.read(extrair_nome_base(arquivo), encoding="utf-8")
+    config.read(nome_base(arquivo), encoding="utf-8")
 
 
 opcoes_secao = config.options
