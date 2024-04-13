@@ -239,11 +239,11 @@ class ResultadoSQL:
     - `None` indica que não se aplica para o comando sql"""
     colunas: tuple[str, ...]
     """Colunas das linhas retornadas (se houver)"""
-    linhas: Generator[tuple[bot.tipagem.primitivo, ...], None, None]
+    linhas: Generator[tuple[bot.tipagem.tipoSQL, ...], None, None]
     """Generator das linhas retornadas (se houver)
     - Consumido quando iterado sobre"""
 
-    def __iter__ (self) -> Generator[tuple[bot.tipagem.primitivo, ...], None, None]:
+    def __iter__ (self) -> Generator[tuple[bot.tipagem.tipoSQL, ...], None, None]:
         """Generator do self.linhas"""
         for linha in self.linhas:
             yield linha
@@ -270,7 +270,7 @@ class ResultadoSQL:
         self.linhas, linhas = duplicar_iterable(self.linhas)
         return sum(1 for _ in linhas)
 
-    def __getitem__ (self, campo: str) -> bot.tipagem.primitivo:
+    def __getitem__ (self, campo: str) -> bot.tipagem.tipoSQL:
         """Obter um campo da primeira linha"""
         self.linhas, linhas = duplicar_iterable(self.linhas)
         linha = next(linhas)

@@ -1,13 +1,7 @@
 # std
 from typing import Literal, Iterable
+from datetime import datetime, date, time
 
-
-type primitivo = str | int | float | bool | None
-"""Tipos primitivos do Python"""
-type nomeado = dict[str, primitivo]
-"""Parâmetros necessários quando o SQL é nomeado ':nome'"""
-type posicional = Iterable[primitivo]
-"""Parâmetros necessários quando o SQL é posicionail '?'"""
 
 type url = str
 """String formato url"""
@@ -17,6 +11,16 @@ type email = str
 """String formato E-mail"""
 type caminho = str
 """Caminho relativo ou absoluto"""
+type primitivo = str | int | float | bool | None
+"""Tipos primitivos do Python"""
+
+type tipoSQL = primitivo | date | time | datetime 
+"""Tipos possível de retorno do ResultadoSQL"""
+type nomeado = dict[str, tipoSQL]
+"""Parâmetros necessários quando o SQL é nomeado ':nome'"""
+type posicional = Iterable[tipoSQL]
+"""Parâmetros necessários quando o SQL é posicionail '?'"""
+
 
 DIRECOES_SCROLL = Literal["cima", "baixo"]
 """Direções de scroll do mouse"""
@@ -36,6 +40,7 @@ __all__ = [
     "url",
     "char",
     "email",
+    "tipoSQL",
     "nomeado",
     "caminho",
     "primitivo",
