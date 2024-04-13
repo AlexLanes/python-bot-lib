@@ -291,7 +291,11 @@ class ResultadoSQL:
         - `transformar_string` flag se os dados serão convertidos em `str`"""
         self.linhas, linhas = duplicar_iterable(self.linhas)
         return DataFrame(
-            (tuple(str(valor) for valor in linha) for linha in linhas) if transformar_string else linhas, 
+            (
+                tuple(str(valor) if valor != None else valor
+                      for valor in linha)
+                for linha in linhas
+            ) if transformar_string else linhas, 
             self.colunas,
             nan_to_null=True
         )
