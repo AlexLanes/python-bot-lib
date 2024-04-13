@@ -286,10 +286,15 @@ class ResultadoSQL:
                            for linha in linhas]
         }
 
-    def to_dataframe (self) -> DataFrame:
-        """Salvar o resultado em um `polars.DataFrame`"""
+    def to_dataframe (self, transformar_string=False) -> DataFrame:
+        """Salvar o resultado em um `polars.DataFrame`
+        - `transformar_string` flag se os dados serão convertidos em `str`"""
         self.linhas, linhas = duplicar_iterable(self.linhas)
-        return DataFrame(linhas, self.colunas, nan_to_null=True)
+        return DataFrame(
+            (tuple(str(valor) for valor in linha) for linha in linhas) if transformar_string else linhas, 
+            self.colunas,
+            nan_to_null=True
+        )
 
 
 class Resultado [T]:
