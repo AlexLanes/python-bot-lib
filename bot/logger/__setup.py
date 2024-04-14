@@ -12,19 +12,20 @@ import bot
 from bot import configfile as cf
 
 
-NOME_ARQUIVO_LOG = ".log" # útima execução
+NOME_ARQUIVO_LOG = ".log" # última execução
+CAMINHO_PASTA_LOGS  = "./logs" # persistência
+
 FORMATO_DATA_LOG = "%Y-%m-%dT%H:%M:%S"
+FORMATO_NOME_LOG_PERSISTENCIA = "%Y-%m-%dT%H-%M-%S.log"
 FORMATO_MENSAGEM_LOG = "%(asctime)s | nome(%(name)s) | level(%(levelname)s) | %(message)s"
+
+INICIADO_EM = Datetime.now(Timezone(Timedelta(hours=-3)))
 HANDLERS_LOG = [logging.StreamHandler(sys.stdout), 
                 logging.FileHandler(NOME_ARQUIVO_LOG, "w", "utf-8")]
 
-CAMINHO_PASTA_LOGS  = "./logs"
-FORMATO_NOME_LOG_PERSISTENCIA = "%Y-%m-%dT%H-%M-%S.log"
-DATA_INICIALIZACAO = Datetime.now(Timezone(Timedelta(hours=-3)))
-
 # adicionar a persistência do log. Default: True
 if cf.obter_opcao_ou("logger", "flag_persistencia", True):
-    nome = f"{CAMINHO_PASTA_LOGS}/{DATA_INICIALIZACAO.strftime(FORMATO_NOME_LOG_PERSISTENCIA)}"
+    nome = "/".join(( CAMINHO_PASTA_LOGS, INICIADO_EM.strftime(FORMATO_NOME_LOG_PERSISTENCIA) ))
     if not bot.windows.caminho_existe(CAMINHO_PASTA_LOGS): bot.windows.criar_pasta(CAMINHO_PASTA_LOGS)
     HANDLERS_LOG.insert(0, logging.FileHandler(nome, "w", "utf-8"))
 
