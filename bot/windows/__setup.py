@@ -1,12 +1,13 @@
 # std
 import os
 import shutil
-import win32con
+import subprocess
 # interno
 from bot.tipagem import caminho
 from bot.estruturas import Diretorio
-# externo
-import win32api
+
+
+CAMINHO_QRES = r".\bot\windows\QRes.exe"
 
 
 def apagar_arquivo (caminho: caminho) -> None:
@@ -54,13 +55,6 @@ def afirmar_arquivo (caminho: caminho) -> bool:
     return os.path.isfile(caminho)
 
 
-def cmd (comando: str) -> None:
-    """Realizar um comando no `prompt`
-    - Levar em consideração o diretório de execução atual
-    - Lança exceção se o comando for inválido"""
-    os.system(comando)
-
-
 def listar_diretorio (caminhoPasta: caminho) -> Diretorio:
     """Lista os caminhos dos arquivos e pastas do `caminhoPasta`"""
     assert caminho_existe(caminhoPasta), f"Caminho informado '{caminhoPasta}' não existe"
@@ -81,50 +75,77 @@ def diretorio_execucao () -> Diretorio:
     return listar_diretorio(os.getcwd())
 
 
-def resolucao_tela () -> tuple[int, int]:
-    """Obter a resolução da tela atual"""
-    nome_tela = win32api.EnumDisplayDevices(None, 0).DeviceName
-    configuracoes = win32api.EnumDisplaySettings(nome_tela, win32con.ENUM_CURRENT_SETTINGS)
-    return (configuracoes.PelsWidth, configuracoes.PelsHeight)
+def cmd (comando: str) -> None:
+    """Realizar um `comando` no `prompt`
+    - Levar em consideração o diretório de execução atual
+    - Lança exceção se o comando for inválido"""
+    os.system(comando)
+
+
+def powershell (comando: str, timeout: float | None = None) -> str:
+    """Realizar um `comando` no `Windows PowerShell`
+    - `stdout` do comando é retornado
+    - Levar em consideração o diretório de execução atual
+    - Lança exceção se o comando for inválido"""
+    return subprocess.check_output(comando, shell=True, timeout=timeout, encoding="utf-8")
+
+
+def informacoes_resolucao () -> tuple[tuple[int, int], list[tuple[int, int]]]:
+    """Obter informações sobre resolução da tela
+    - `tuple[0]` Resolução atual da tela
+    - `tuple[1]` Resoluções disponíveis"""
+    resolucao_atual = tuple(map(int, 
+        powershell(rf"{CAMINHO_QRES} /S").split("\n")[3].split(",")[0].split("x")
+    ))
+
+    resolucoes_unicas = sorted(
+        tuple(map(int, resolucao.split("x")))
+        for resolucao in { 
+            linha_com_resolucao.split(",")[0]
+            for linha_com_resolucao in powershell(rf"{CAMINHO_QRES} /L").split("\n")[3:-1]
+        }
+    )
+
+    return (resolucao_atual, resolucoes_unicas)
 
 
 def alterar_resolucao (largura: int, altura: int) -> None:
     """Alterar a resolução da tela
-    - A resolução deve estar presente nas resoluções aceitadas pelas configurações da tela"""
+    - Utilizado o `QRes.exe` pois funciona para `RDPs`
+    - A resolução deve estar presente nas disponíveis em configurações de tela do windows"""
     from bot.logger import informar, alertar
     informar(f"Alterando a resolução da tela para {largura}x{altura}")
-    if resolucao_tela() == (largura, altura):
-        return informar("Resolução da tela desejada já definida")
 
-    # configura a nova resolução
-    nome_tela = win32api.EnumDisplayDevices(None, 0).DeviceName
-    configuracoes = win32api.EnumDisplaySettings(nome_tela, win32con.ENUM_CURRENT_SETTINGS)
-    configuracoes.PelsWidth = largura
-    configuracoes.PelsHeight = altura
-    configuracoes.Fields = configuracoes.Fields | win32con.DM_PELSWIDTH | win32con.DM_PELSHEIGHT
+    # checar
+    desejada = (largura, altura)
+    atual, disponiveis = informacoes_resolucao()
+    if atual == desejada:
+        return informar("Resolução da tela desejada já se encontra definida")
+    if desejada not in disponiveis:
+        return alertar("Resolução não disponível")
 
     # alterar
-    win32api.ChangeDisplaySettingsEx(nome_tela, configuracoes)
+    sucesso = ['Mode Ok...']
+    resultado = powershell(rf"{CAMINHO_QRES} /X:{largura} /Y:{altura}").split("\n")[3:-1]
 
     # confirmar
-    configuracoes = win32api.EnumDisplaySettings(nome_tela, win32con.ENUM_CURRENT_SETTINGS)
-    if (configuracoes.PelsWidth, configuracoes.PelsHeight) == (largura, altura):
-        informar(f"Resolução da tela alterada")
-    else: alertar("Resolução da tela não foi alterada")
+    if resultado == sucesso: informar(f"Resolução da tela alterada")
+    else: alertar(f"Resolução da tela não foi alterada corretamente\n\t{resultado}")
 
 
 __all__ = [
     "cmd",
     "nome_base",
+    "powershell",
     "criar_pasta",
     "afirmar_pasta",
     "caminho_existe",
     "apagar_arquivo",
     "copiar_arquivo",
-    "resolucao_tela",
     "afirmar_arquivo",
     "listar_diretorio",
     "caminho_absoluto",
     "alterar_resolucao",
-    "diretorio_execucao"
+    "diretorio_execucao",
+    "informacoes_resolucao"
 ]
