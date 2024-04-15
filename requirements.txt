@@ -14,6 +14,7 @@ PyScreeze
 
 # bot.teclado e bot.mouse
 pynput
+win32gui
 pyperclip
 
 # bot.navegador

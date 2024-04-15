@@ -1,17 +1,19 @@
 # std
 from time import sleep
+from typing import Literal
 # interno
 import bot
 from bot.estruturas import Coordenada
 # externo
 from pyscreeze import pixel
 from pynput.mouse import Controller, Button
+from win32gui import GetCursorInfo as get_cursor_info
 
 
 mouse = Controller()
 
 
-def obter_posicao_mouse () -> tuple[int, int]:
+def posicao_mouse () -> tuple[int, int]:
     """Obter a posição (X, Y) do mouse"""
     return mouse.position
 
@@ -22,7 +24,7 @@ def obter_x_y (coordenada: tuple[int, int] | Coordenada | None) -> tuple[int, in
     c = coordenada # apelido
     if isinstance(c, Coordenada): return c.transformar() # centro da coordenada
     if isinstance(c, tuple) and len(c) >= 2: return (c[0], c[1])
-    return obter_posicao_mouse()
+    return posicao_mouse()
 
 
 def mover_mouse (coordenada: tuple[int, int] | Coordenada) -> None:
@@ -49,16 +51,23 @@ def scroll_vertical (quantidade: int, direcao: bot.tipagem.DIRECOES_SCROLL = "ba
         sleep(delay)
 
 
-def obter_rgb_mouse () -> tuple[int, int, int]:
+def cor_mouse () -> tuple[int, int, int]:
     """Obter o RGB da posição atual do mouse
     - `r, g, b = obter_rgb_mouse()`"""
-    return pixel(*obter_posicao_mouse())
+    return pixel(*posicao_mouse())
+
+
+def tipo_ponteiro () -> Literal["normal", "clicavel", "texto", "indefinido"]:
+    """Obter o tipo do ponteiro atual do mouse"""
+    return { 65541: "texto", 65539: "normal", 65567: "clicavel" } \
+        .get(get_cursor_info()[1], "indefinido")
 
 
 __all__ = [
+    "cor_mouse",
     "mover_mouse",
     "clicar_mouse",
-    "scroll_vertical",
-    "obter_rgb_mouse",
-    "obter_posicao_mouse"
+    "tipo_ponteiro",
+    "posicao_mouse",
+    "scroll_vertical"
 ]
