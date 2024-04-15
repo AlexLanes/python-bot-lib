@@ -30,6 +30,9 @@ def obter_x_y (coordenada: tuple[int, int] | Coordenada | None) -> tuple[int, in
 def mover_mouse (coordenada: tuple[int, int] | Coordenada) -> None:
     """Mover o mouse até a `coordenada`"""
     mouse.position = obter_x_y(coordenada)
+    # atualizar o ponteiro
+    sleep(0.02)
+    mouse.move(0, 0)
 
 
 def clicar_mouse (coordenada: Coordenada | tuple[int, int] = None, 
