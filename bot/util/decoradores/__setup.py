@@ -1,8 +1,8 @@
 # std
+from time import sleep
 from pstats import Stats
 from typing import Callable
 from cProfile import Profile
-from time import perf_counter, sleep
 from multiprocessing.pool import ThreadPool
 from multiprocessing.context import TimeoutError as Timeout
 # interno
@@ -47,8 +47,8 @@ def tempo_execucao (func: Callable):
     """Loggar o tempo de execução da função
     - Função"""
     def tempo_execucao (*args, **kwargs):
-        inicio, resultado = perf_counter(), func(*args, **kwargs)
-        tempo = bot.util.expandir_tempo(perf_counter() - inicio)
+        cronometro, resultado = bot.util.cronometro(), func(*args, **kwargs)
+        tempo = bot.util.expandir_tempo(cronometro())
         bot.logger.informar(f"Função({func.__name__}) executada em {tempo}")
         return resultado
     return tempo_execucao

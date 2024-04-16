@@ -12,9 +12,9 @@ def aguardar_condicao (condicao: Callable[[], bool], timeout: int, delay=0.1) ->
     """Repetir a função `condição` por `timeout` segundos até que resulte em `True`
     - Retorna um `bool` indicando se a `condição` foi atendida
     - Exceções são ignoradas"""
-    inicio = perf_counter()
+    tempo = cronometro()
 
-    while perf_counter() - inicio < timeout:
+    while tempo() < timeout:
         try:
             if condicao(): return True
         except: pass
@@ -75,8 +75,16 @@ def transformar_tipo[T: primitivo] (valor: str, tipo: type[T]) -> T:
         case _: return None
 
 
+def cronometro () -> Callable[[], float]:
+    """Inicializa um cronômetro que retorna o tempo passado a cada chamada na função
+    - Arredondado para 3 casas decimais"""
+    inicio = perf_counter()
+    return lambda: round(perf_counter() - inicio, 3)
+
+
 __all__ = [
     "normalizar",
+    "cronometro",
     "expandir_tempo",
     "transformar_tipo",
     "aguardar_condicao",

@@ -1,6 +1,5 @@
 # std
 from io import BytesIO
-from time import perf_counter
 # interno
 import bot
 from bot.estruturas import Coordenada
@@ -97,9 +96,10 @@ class LeitorOCR:
         """Extrair texto e coordenadas da tela na posição `coordenada` 
         - `regiao` vazia para ler a tela inteira
         - `for texto, coordenada in leitor.ler_tela()`"""
-        inicio = perf_counter()
-        imagem = capturar_tela(regiao, True)
-        extracoes = self.__ler(imagem)
+        cronometro = bot.util.cronometro()
+        extracoes = self.__ler(
+            capturar_tela(regiao, True)
+        )
 
         # corrigir offset com a regiao informada
         for _, coordenada in extracoes:
@@ -107,57 +107,62 @@ class LeitorOCR:
             coordenada.x += regiao.x
             coordenada.y += regiao.y
 
-        bot.logger.debug(f"Leitura da tela realizada em { bot.util.expandir_tempo(perf_counter() - inicio) }")
+        tempo = bot.util.expandir_tempo(cronometro())
+        bot.logger.debug(f"Leitura da tela realizada em {tempo}")
         return extracoes
 
     def ler_imagem (self, imagem: bot.tipagem.caminho | Image.Image | bytes) -> list[tuple[str, Coordenada]]:
         """Extrair texto e coordenadas de uma imagem
         - `imagem` pode ser o caminho até o arquivo, bytes da image ou `Image` do módulo `pillow`
         - `for texto, coordenada in leitor.ler_imagem()`"""
-        inicio = perf_counter()
-        imagem = transformar_pillow(imagem)
-        extracoes = self.__ler(imagem)
-        bot.logger.debug(f"Leitura da imagem realizada em { bot.util.expandir_tempo(perf_counter() - inicio) }")
+        cronometro = bot.util.cronometro()
+        extracoes = self.__ler(
+            transformar_pillow(imagem)
+        )
+
+        tempo = bot.util.expandir_tempo(cronometro())
+        bot.logger.debug(f"Leitura da imagem realizada em {tempo}")
         return extracoes
 
     def __ler (self, imagem: Image.Image) -> list[tuple[str, Coordenada]]:
         """Receber a imagem e extrair os dados"""
         imagem: np.ndarray = np.asarray(imagem)
-        extracoes: list[tuple[str, Coordenada]] = []
-        dados: list[tuple[ list[list[int]], str, float ]] = self.__reader.readtext(imagem, mag_ratio=2, min_size=5)
-
-        for box, texto, confianca in dados:
-            if confianca < self.__confianca: continue
-            coordenada = Coordenada.from_box((box[0][0], box[1][0], box[0][1], box[2][1]))
-            extracoes.append((texto, coordenada))
-
-        return extracoes
+        return [
+            (texto, Coordenada.from_box((box[0][0], box[1][0], box[0][1], box[2][1])))
+            for box, texto, confianca in self.__reader.readtext(imagem, mag_ratio=2, min_size=5)
+            if confianca >= self.__confianca
+        ]
 
     def detectar_tela (self, regiao: Coordenada = None) -> list[Coordenada]:
         """Extrair coordenadas da tela
         - `regiao` vazia para ler a tela inteira
         - `confiança` não se aplica na detecção"""
-        inicio = perf_counter()
-        imagem = capturar_tela(regiao, True)
-        coordenadas = self.__detectar(imagem)
+        cronometro = bot.util.cronometro()
+        coordenadas = self.__detectar(
+            capturar_tela(regiao, True)
+        )
 
         # corrigir offset com a regiao informada
         for coordenada in coordenadas:
             if not regiao: break # região não foi informada, não há o que corrigir
             coordenada.x += regiao.x
             coordenada.y += regiao.y
-
-        bot.logger.debug(f"Tela detectada em { bot.util.expandir_tempo(perf_counter() - inicio) }")
+    
+        tempo = bot.util.expandir_tempo(cronometro())
+        bot.logger.debug(f"Tela detectada em {tempo}")
         return coordenadas
 
     def detectar_imagem (self, imagem: bot.tipagem.caminho | Image.Image | bytes) -> list[Coordenada]:
         """Extrair coordenadas de uma imagem
         - `imagem` pode ser o caminho até o arquivo, bytes da image ou `Image` do módulo `pillow`
         - `confiança` não se aplica na detecção"""
-        inicio = perf_counter()
-        imagem = transformar_pillow(imagem)
-        coordenadas = self.__detectar(imagem)
-        bot.logger.debug(f"Imagem detectada em { bot.util.expandir_tempo(perf_counter() - inicio) }")
+        cronometro = bot.util.cronometro()
+        coordenadas = self.__detectar(
+            transformar_pillow(imagem)
+        )
+
+        tempo = bot.util.expandir_tempo(cronometro())
+        bot.logger.debug(f"Imagem detectada em {tempo}")
         return coordenadas
 
     def __detectar (self, imagem: Image.Image) -> list[Coordenada]:
