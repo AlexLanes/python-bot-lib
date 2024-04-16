@@ -30,10 +30,11 @@ def obter_x_y (coordenada: tuple[int, int] | Coordenada | None) -> tuple[int, in
 def mover_mouse (coordenada: tuple[int, int] | Coordenada, delay=0.0) -> None:
     """Mover o mouse até a `coordenada`
     - `delay` é necessário para aguardar atualizar o tipo do ponteiro"""
+    delay /= 2
     mouse.position = obter_x_y(coordenada)
-    sleep(delay)
     # atualizar o ponteiro
-    mouse.move(0, 0)
+    mouse.move(1, -1); sleep(delay)
+    mouse.move(-1, 1); sleep(delay)
 
 
 def clicar_mouse (coordenada: Coordenada | tuple[int, int] = None, 
