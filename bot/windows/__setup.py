@@ -87,7 +87,8 @@ def powershell (comando: str, timeout: float | None = None) -> str:
     - `stdout` do comando é retornado
     - Levar em consideração o diretório de execução atual
     - Lança exceção se o comando for inválido"""
-    return subprocess.check_output(comando, shell=True, timeout=timeout, encoding="utf-8")
+    return subprocess.check_output(comando, shell=True, timeout=timeout) \
+                     .decode("utf-8", "ignore")
 
 
 def informacoes_resolucao () -> tuple[tuple[int, int], list[tuple[int, int]]]:
