@@ -14,6 +14,7 @@ from json import (
 )
 from xml.etree.ElementTree import (
     Element,
+    indent as indentar_xml,
     parse as xml_from_file,
     tostring as xml_to_string,
     fromstring as xml_from_string
@@ -161,13 +162,26 @@ class ElementoXML:
         - `namespaces` para utilizar namespace no `xpath`, informar um dicionario { ns: url }"""
         return [ElementoXML(e) for e in self.__e.findall(xpath, namespaces)]
 
-    def adicionar (self, elemento: ElementoXML) -> None:
-        """Adicionar `elemento` como último filho"""
-        self.__e.append(elemento.__e)
+    def adicionar (self, *elementos: ElementoXML) -> Self:
+        """Adicionar os `elementos` na última posição"""
+        self.__e.extend(elemento.__e for elemento in elementos)
+        return self
 
-    def remover (self, elemento: ElementoXML) -> None:
+    def inserir (self, elemento: ElementoXML, index=0) -> Self:
+        """Inserir o `elemento` na posição `index`"""
+        self.__e.insert(index, elemento.__e)
+        return self
+
+    def remover (self, elemento: ElementoXML) -> Self:
         """Remover `elemento` filho do elemento atual"""
         self.__e.remove(elemento.__e)
+        return self
+
+    def indentar (self) -> Self:
+        """Indentar o XML
+        - Altera versão `str()"""
+        indentar_xml(self.__e, space=" " * 4)
+        return self
 
     def copiar (self) -> ElementoXML:
         """Criar uma cópia do `ElementoXML`"""
