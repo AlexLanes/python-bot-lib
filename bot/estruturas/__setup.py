@@ -156,7 +156,7 @@ class ElementoXML:
         - Para remover ou adicionar elementos, utilizar as funções próprias"""
         return [ElementoXML(e) for e in self.__e]
 
-    def encontrar (self, xpath: str, namespaces: dict[str, str] = None) -> list[ElementoXML]:
+    def encontrar (self, xpath: str, namespaces: dict[str, bot.tipagem.url] = None) -> list[ElementoXML]:
         """Encontrar elementos que resultem no `xpath` informado
         - `xpath` deve retornar em elementos apenas, não em texto ou atributo
         - `namespaces` para utilizar namespace no `xpath`, informar um dicionario { ns: url }"""
@@ -179,7 +179,7 @@ class ElementoXML:
 
     def indentar (self) -> Self:
         """Indentar o XML
-        - Altera versão `str()"""
+        - Altera a versão do `str()"""
         indentar_xml(self.__e, space=" " * 4)
         return self
 
@@ -493,6 +493,7 @@ class Janela:
         return self
     def focar (self) -> Self:
         """Focar na janela"""
+        if self.minimizada: self.restaurar()
         self.__janela.set_focus()
         return self
     def fechar (self) -> None:
