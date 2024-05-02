@@ -29,9 +29,11 @@ from pywinauto import Application, Desktop
 from pywinauto.controls.hwndwrapper import HwndWrapper
 
 
-TimeConfig.closeclick_retry = 0.01 # reduzir o timeout para fechar elemento
-TimeConfig.window_find_timeout = 0.1 # reduzir o timeout na busca por elemento
 simplefilter('ignore', category=UserWarning) # ignorar warnings do pywinauto
+# reduzir o timeouts busca e fechamento de elemento e janelas
+TimeConfig.closeclick_retry = 0.01
+TimeConfig.window_find_retry = 0.01
+TimeConfig.window_find_timeout = 1.0
 
 
 def json_stringify (item: Any, indentar=True) -> str:
