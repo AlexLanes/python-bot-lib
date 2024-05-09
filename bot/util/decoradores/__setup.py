@@ -70,25 +70,26 @@ def perfil_execucao (func: Callable):
         stats = stats.func_profiles
         
         # Loggar o Dataframe com algumas opções de formatação
-        kwargs = { "tbl_rows": 1000, "tbl_hide_dataframe_shape": True, "fmt_str_lengths": 1000, "tbl_hide_column_data_types": True }
-        with bot.database.polars.Config(**kwargs):
-            bot.logger.debug("\n" * 2 + 
-                f"1 - Nome da função: {func.__name__}\n" +
-                f"2 - Tempo de execução: {tempo:.3f} segundos\n" +
-                bot.database.polars.DataFrame({
-                    "nome": [
-                        funcao if stats[funcao].file_name == "~" 
-                        else stats[funcao].file_name.removeprefix(cwd).lstrip("\\") + f":{stats[funcao].line_number}({funcao})"
-                        for funcao in stats
-                    ],
-                    "tempo_acumulado": [stats[funcao].cumtime for funcao in stats],
-                    "tempo_execucao": [stats[funcao].tottime for funcao in stats],
-                    "chamadas": [stats[funcao].ncalls for funcao in stats]
-                })
-                .filter(bot.database.polars.col("tempo_acumulado") >= 0.1)
-                .__str__() 
-                + "\n"
-            )
+        df = bot.database.formatar_dataframe(
+            bot.database.polars.DataFrame({
+                "nome": [
+                    funcao if stats[funcao].file_name == "~" 
+                    else stats[funcao].file_name.removeprefix(cwd).lstrip("\\") + f":{stats[funcao].line_number}({funcao})"
+                    for funcao in stats
+                ],
+                "tempo_acumulado": [stats[funcao].cumtime for funcao in stats],
+                "tempo_execucao": [stats[funcao].tottime for funcao in stats],
+                "chamadas": [stats[funcao].ncalls for funcao in stats]
+            })
+            .filter(bot.database.polars.col("tempo_acumulado") >= 0.1)
+        )
+        bot.logger.debug("\n" * 2 + 
+            f"1 - Nome da função: {func.__name__}\n" +
+            f"2 - Tempo de execução: {tempo:.3f} segundos\n" +
+            df + 
+            "\n"
+        )
+
         return resultado
     return perfil_execucao
 
