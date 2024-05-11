@@ -108,7 +108,7 @@ class DatabaseODBC:
         if isinstance(parametros, dict):
             ref_parametros = parametros
             sql, nomes = sql_nomeado_para_posicional(sql, parametros)
-            parametros = (ref_parametros[nome] for nome in nomes)
+            parametros = [ref_parametros[nome] for nome in nomes]
 
         cursor = self.__conexao.execute(sql, parametros) if parametros else self.__conexao.execute(sql)
         colunas = tuple(coluna[0] for coluna in cursor.description) if cursor.description else tuple()
