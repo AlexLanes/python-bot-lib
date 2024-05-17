@@ -269,7 +269,7 @@ class ResultadoSQL:
         possui_linhas = False
         self.linhas, linhas = duplicar_iterable(self.linhas)
         try: possui_linhas = bool(next(linhas))
-        except StopIteration: pass
+        except: pass
 
         tipo = f"com {self.linhas_afetadas} linha(s) afetada(s)" if self.linhas_afetadas \
           else f"com {len(self.colunas)} coluna(s) e {len(self)} linha(s)" if possui_linhas \
