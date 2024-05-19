@@ -34,6 +34,9 @@ simplefilter('ignore', category=UserWarning) # ignorar warnings do pywinauto
 TimeConfig.closeclick_retry = 0.01
 TimeConfig.window_find_retry = 0.01
 TimeConfig.window_find_timeout = 1.0
+TimeConfig.after_setfocus_wait = 0.01
+TimeConfig.after_clickinput_wait = 0.01
+TimeConfig.after_setcursorpos_wait = 0.01
 
 
 def json_stringify (item: Any, indentar=True) -> str:
