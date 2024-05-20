@@ -42,7 +42,7 @@ def clicar_mouse (coordenada: Coordenada | tuple[int, int] = None,
                   quantidade=1, delay=0.5) -> None:
     """Clicar com o `botão` do mouse na `coordenada` `quantidade` vezes
     - Default `coordenada`: posição atual do mouse"""
-    if coordenada: mover_mouse(coordenada) # mover mouse se requisitado
+    if coordenada: mover_mouse(coordenada, delay=delay) # mover mouse se requisitado
     botao: Button = Button[botao] # Enum do botão
     mouse.click(botao, max(1, quantidade)) # clicar
     sleep(delay)
