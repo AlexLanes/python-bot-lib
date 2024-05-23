@@ -2,6 +2,7 @@
 from io import BytesIO
 # interno
 import bot
+from bot import tipagem
 from bot.estruturas import Coordenada
 # externo
 import pyscreeze
@@ -12,7 +13,7 @@ from PIL import Image
 pyscreeze.USE_IMAGE_NOT_FOUND_EXCEPTION = False
 
 
-def transformar_pillow (imagem: str | Image.Image | bytes) -> Image.Image:
+def transformar_pillow (imagem: tipagem.imagem) -> Image.Image:
     """Receber o formato esperado e transformar para uma imagem do `pillow`"""
     if isinstance(imagem, str): return Image.open(imagem)
     if isinstance(imagem, bytes): return Image.open(BytesIO(imagem))
@@ -28,9 +29,8 @@ def capturar_tela (regiao: Coordenada = None, cinza=False) -> Image.Image:
     return imagem.convert("L") if cinza else imagem
 
 
-def procurar_imagem (imagem: bot.tipagem.caminho | Image.Image | bytes, confianca: bot.tipagem.PORCENTAGENS = "0.9", segundos=0, regiao: Coordenada = None, cinza=False) -> Coordenada | None:
+def procurar_imagem (imagem: tipagem.imagem, confianca: tipagem.PORCENTAGENS = "0.9", segundos=0, regiao: Coordenada = None, cinza=False) -> Coordenada | None:
     """Procurar a `imagem` na tela, com `confianca`% de confiança na procura e na `regiao` da tela informada
-    - `imagem` pode ser o caminho até o arquivo, bytes da image ou `Image` do módulo `pillow`
     - `regiao` especifica uma parte da tela
     - `segundos` tempo de procuraa pela imagem
     - `cinza` compara ambas imagem como grayscale"""
@@ -45,9 +45,8 @@ def procurar_imagem (imagem: bot.tipagem.caminho | Image.Image | bytes, confianc
     return Coordenada(*box) if box else None
 
 
-def procurar_imagens (imagem: bot.tipagem.caminho | Image.Image | bytes, confianca: bot.tipagem.PORCENTAGENS = "0.9", regiao: Coordenada = None, cinza=False) -> list[Coordenada] | None:
+def procurar_imagens (imagem: tipagem.imagem, confianca: tipagem.PORCENTAGENS = "0.9", regiao: Coordenada = None, cinza=False) -> list[Coordenada] | None:
     """Procurar todas as vezes que a `imagem` aparece na tela, com `confianca`% de confiança na procura e na `regiao` da tela informada
-    - `imagem` pode ser o caminho até o arquivo, bytes da image ou `Image` do módulo `pillow`
     - `regiao` especifica uma parte da tela
     - `cinza` compara ambas imagem como grayscale"""
     imagem = transformar_pillow(imagem)
@@ -64,16 +63,18 @@ def procurar_imagens (imagem: bot.tipagem.caminho | Image.Image | bytes, confian
     return coordenadas
 
 
-def obter_cores_imagem (imagem: bot.tipagem.caminho | Image.Image | bytes, limite: int | slice = 10) -> list[tuple[int, tuple[int, int, int]]]:
-    """Obter as cores RGB e frequencia de cada pixel da `imagem`
-    - `imagem` pode ser o caminho até o arquivo, bytes da image ou `Image` do módulo `pillow`
-    - `limite` quantidade que será retornada dos mais frequentes
-    - `for (frequencia, cor) in obter_cores_imagem()`"""
+def cores_imagem (imagem: tipagem.imagem, limite: int | slice = 10) -> list[tuple[int, tipagem.rgb]]:
+    """Obter a frequencia e cores RGB de cada pixel da `imagem`
+    - `limite` quantidade que será retornada das mais frequentes
+    - `for frequencia, cor in cores_imagem()`"""
     # extrair cores
     imagem = transformar_pillow(imagem)
-    itens = [(frequencia, (r, g, b)) for frequencia, (r, g, b, *_) in imagem.getcolors(10000)]
+    itens: list[tuple[int, tipagem.rgb]] = [
+        (frequencia, (r, g, b)) 
+        for frequencia, (r, g, b, *_) in imagem.getcolors(10000)
+    ]
     itens.sort(key=lambda item: item[0], reverse=True) # ordernar pelos mais frequentes
-    
+
     # aplicar o slice
     limite = limite if isinstance(limite, slice) else slice(limite) 
     itens = itens[limite]
@@ -81,11 +82,18 @@ def obter_cores_imagem (imagem: bot.tipagem.caminho | Image.Image | bytes, limit
     return itens
 
 
+def cor_similar (cor1: tipagem.rgb, cor2: tipagem.rgb, tolerancia=20) -> bool:
+    """Comparar se as cores `rgb` são similares com base na `tolerancia`
+    - `tolerancia mínima` 0 (Cores são idênticas)
+    - `tolerancia máxima` 441 (Branco x Preto)"""
+    return np.linalg.norm(np.array(cor1) - np.array(cor2)) < tolerancia
+
+
 class LeitorOCR:
     """Classe de abstração do EasyOCR
     - Caso possua GPU da NVIDIA, instalar o `CUDA Toolkit` e instalar as bibliotecas indicadas pelo pytorch https://pytorch.org/get-started/locally/"""
 
-    def __init__ (self, confianca: bot.tipagem.PORCENTAGENS = "0.4"):
+    def __init__ (self, confianca: tipagem.PORCENTAGENS = "0.4"):
         """Inicia o leitor OCR
         - `confianca` porcentagem mínima de confiança no texto extraído `(entre 0.0 e 1.0)`"""
         from easyocr import Reader
@@ -111,9 +119,8 @@ class LeitorOCR:
         bot.logger.debug(f"Leitura da tela realizada em {tempo}")
         return extracoes
 
-    def ler_imagem (self, imagem: bot.tipagem.caminho | Image.Image | bytes) -> list[tuple[str, Coordenada]]:
+    def ler_imagem (self, imagem: tipagem.imagem) -> list[tuple[str, Coordenada]]:
         """Extrair texto e coordenadas de uma imagem
-        - `imagem` pode ser o caminho até o arquivo, bytes da image ou `Image` do módulo `pillow`
         - `for texto, coordenada in leitor.ler_imagem()`"""
         cronometro = bot.util.cronometro()
         extracoes = self.__ler(
@@ -152,9 +159,8 @@ class LeitorOCR:
         bot.logger.debug(f"Tela detectada em {tempo}")
         return coordenadas
 
-    def detectar_imagem (self, imagem: bot.tipagem.caminho | Image.Image | bytes) -> list[Coordenada]:
+    def detectar_imagem (self, imagem: tipagem.imagem) -> list[Coordenada]:
         """Extrair coordenadas de uma imagem
-        - `imagem` pode ser o caminho até o arquivo, bytes da image ou `Image` do módulo `pillow`
         - `confiança` não se aplica na detecção"""
         cronometro = bot.util.cronometro()
         coordenadas = self.__detectar(
@@ -176,8 +182,9 @@ class LeitorOCR:
 
 __all__ = [
     "LeitorOCR",
+    "cor_similar",
+    "cores_imagem",
     "capturar_tela",
     "procurar_imagem",
-    "procurar_imagens",
-    "obter_cores_imagem"
+    "procurar_imagens"
 ]

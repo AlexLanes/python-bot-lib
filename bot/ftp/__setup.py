@@ -1,4 +1,3 @@
-
 # std
 import ftplib
 from typing import IO

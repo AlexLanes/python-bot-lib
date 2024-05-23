@@ -1,6 +1,8 @@
 # std
 from typing import Literal, Iterable
 from datetime import datetime, date, time
+# externo
+from PIL.Image import Image
 
 
 type url = str
@@ -21,6 +23,12 @@ type nomeado = dict[str, tipoSQL]
 type posicional = Iterable[tipoSQL]
 """Parâmetros necessários quando o SQL é posicionail '?'"""
 
+type rgb = tuple[int, int, int]
+"""Tipo da cor RGB"""
+type imagem = caminho | Image | bytes
+"""Tipo de imagem aceito pelas funções
+- `caminho` até o arquivo | `bytes` da imagem | `Image` do módulo `pillow`"""
+
 
 DIRECOES_SCROLL = Literal["cima", "baixo"]
 """Direções de scroll do mouse"""
@@ -38,8 +46,10 @@ BACKENDS_JANELA = Literal["win32", "uia"]
 
 __all__ = [
     "url",
+    "rgb",
     "char",
     "email",
+    "imagem",
     "tipoSQL",
     "nomeado",
     "caminho",
