@@ -105,9 +105,7 @@ class LeitorOCR:
         - `regiao` vazia para ler a tela inteira
         - `for texto, coordenada in leitor.ler_tela()`"""
         cronometro = bot.util.cronometro()
-        extracoes = self.__ler(
-            capturar_tela(regiao, True)
-        )
+        extracoes = self.__ler(capturar_tela(regiao, True))
 
         # corrigir offset com a regiao informada
         for _, coordenada in extracoes:
@@ -123,10 +121,7 @@ class LeitorOCR:
         """Extrair texto e coordenadas de uma imagem
         - `for texto, coordenada in leitor.ler_imagem()`"""
         cronometro = bot.util.cronometro()
-        extracoes = self.__ler(
-            transformar_pillow(imagem)
-        )
-
+        extracoes = self.__ler(transformar_pillow(imagem))
         tempo = bot.util.expandir_tempo(cronometro())
         bot.logger.debug(f"Leitura da imagem realizada em {tempo}")
         return extracoes
@@ -136,7 +131,7 @@ class LeitorOCR:
         imagem: np.ndarray = np.asarray(imagem)
         return [
             (texto, Coordenada.from_box((box[0][0], box[1][0], box[0][1], box[2][1])))
-            for box, texto, confianca in self.__reader.readtext(imagem, mag_ratio=2, min_size=5)
+            for box, texto, confianca in self.__reader.readtext(imagem, mag_ratio=2, min_size=5, slope_ths=0.25)
             if confianca >= self.__confianca
         ]
 
@@ -145,9 +140,7 @@ class LeitorOCR:
         - `regiao` vazia para ler a tela inteira
         - `confiança` não se aplica na detecção"""
         cronometro = bot.util.cronometro()
-        coordenadas = self.__detectar(
-            capturar_tela(regiao, True)
-        )
+        coordenadas = self.__detectar(capturar_tela(regiao, True))
 
         # corrigir offset com a regiao informada
         for coordenada in coordenadas:
@@ -163,10 +156,7 @@ class LeitorOCR:
         """Extrair coordenadas de uma imagem
         - `confiança` não se aplica na detecção"""
         cronometro = bot.util.cronometro()
-        coordenadas = self.__detectar(
-            transformar_pillow(imagem)
-        )
-
+        coordenadas = self.__detectar(transformar_pillow(imagem))
         tempo = bot.util.expandir_tempo(cronometro())
         bot.logger.debug(f"Imagem detectada em {tempo}")
         return coordenadas
@@ -174,10 +164,12 @@ class LeitorOCR:
     def __detectar (self, imagem: Image.Image) -> list[Coordenada]:
         """Receber a imagem e detectar as coordenadas"""
         imagem: np.ndarray = np.asarray(imagem)
-        boxes, _ = self.__reader.detect(imagem, min_size=5, mag_ratio=2)
+        boxes, _ = self.__reader.detect(imagem, min_size=5, mag_ratio=2, slope_ths=0.25)
         boxes: list[tuple[np.int32, ...]] = np.concatenate(boxes)
-        return [Coordenada.from_box(box)
-                for box in boxes]
+        return [
+            Coordenada.from_box(box)
+            for box in boxes
+        ]
 
 
 __all__ = [
