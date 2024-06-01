@@ -11,6 +11,7 @@ numpy
 pillow
 easyocr
 PyScreeze
+opencv-python
 
 # bot.teclado e bot.mouse
 pynput

@@ -5,8 +5,8 @@ import bot
 from bot import tipagem
 from bot.estruturas import Coordenada
 # externo
-import pyscreeze
 import numpy as np
+import pyscreeze, cv2
 from PIL import Image
 
 
@@ -21,18 +21,22 @@ def transformar_pillow (imagem: tipagem.imagem) -> Image.Image:
 
 
 @bot.util.decoradores.retry(2, 10)
-def capturar_tela (regiao: Coordenada = None, cinza=False) -> Image.Image:
+def capturar_tela (regiao: Coordenada = None, binarizar=False) -> Image.Image:
     """Realizar uma captura de tela
     - `regiao` especifica uma parte da tela
-    - `cinza` transforma a imagem para o formato grayscale"""
+    - `binarizar` transforma a imagem para o formato binário"""
     imagem = pyscreeze.screenshot(region=tuple(regiao) if regiao else None)
-    return imagem.convert("L") if cinza else imagem
+    if not binarizar: return imagem
+    # aplicar binarização
+    imagem = cv2.cvtColor(np.array(imagem), cv2.COLOR_BGR2GRAY)
+    imagem = cv2.threshold(imagem, 128, 255, cv2.THRESH_BINARY)[1]
+    return Image.fromarray(imagem)
 
 
 def procurar_imagem (imagem: tipagem.imagem, confianca: tipagem.PORCENTAGENS = "0.9", segundos=0, regiao: Coordenada = None, cinza=False) -> Coordenada | None:
     """Procurar a `imagem` na tela, com `confianca`% de confiança na procura e na `regiao` da tela informada
     - `regiao` especifica uma parte da tela
-    - `segundos` tempo de procuraa pela imagem
+    - `segundos` tempo de procura pela imagem
     - `cinza` compara ambas imagem como grayscale"""
     imagem = transformar_pillow(imagem)
     box = pyscreeze.locateOnScreen(
