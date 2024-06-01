@@ -21,15 +21,20 @@ def transformar_pillow (imagem: tipagem.imagem) -> Image.Image:
 
 
 @bot.util.decoradores.retry(2, 10)
-def capturar_tela (regiao: Coordenada = None, binarizar=False) -> Image.Image:
+def capturar_tela (regiao: Coordenada = None, cinza=False) -> Image.Image:
     """Realizar uma captura de tela
     - `regiao` especifica uma parte da tela
-    - `binarizar` transforma a imagem para o formato binário"""
+    - `cinza` transforma a imagem para o formato grayscale"""
     imagem = pyscreeze.screenshot(region=tuple(regiao) if regiao else None)
-    if not binarizar: return imagem
-    # aplicar binarização
+    return imagem.convert("L") if cinza else imagem
+
+
+def binarizar (imagem: tipagem.imagem) -> Image.Image:
+    """Aplicar binarização da imagem
+    - Pixels serão transformados em preto ou branco"""
+    imagem = transformar_pillow(imagem)
     imagem = cv2.cvtColor(np.array(imagem), cv2.COLOR_BGR2GRAY)
-    imagem = cv2.threshold(imagem, 128, 255, cv2.THRESH_BINARY)[1]
+    imagem = cv2.threshold(imagem, 0, 255, cv2.THRESH_OTSU)[1]
     return Image.fromarray(imagem)
 
 
@@ -109,7 +114,7 @@ class LeitorOCR:
         - `regiao` vazia para ler a tela inteira
         - `for texto, coordenada in leitor.ler_tela()`"""
         cronometro = bot.util.cronometro()
-        extracoes = self.__ler(capturar_tela(regiao, True))
+        extracoes = self.__ler(capturar_tela(regiao))
 
         # corrigir offset com a regiao informada
         for _, coordenada in extracoes:
@@ -144,7 +149,7 @@ class LeitorOCR:
         - `regiao` vazia para ler a tela inteira
         - `confiança` não se aplica na detecção"""
         cronometro = bot.util.cronometro()
-        coordenadas = self.__detectar(capturar_tela(regiao, True))
+        coordenadas = self.__detectar(capturar_tela(regiao))
 
         # corrigir offset com a regiao informada
         for coordenada in coordenadas:
@@ -177,6 +182,7 @@ class LeitorOCR:
 
 
 __all__ = [
+    "binarizar",
     "LeitorOCR",
     "cor_similar",
     "cores_imagem",
