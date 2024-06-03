@@ -33,7 +33,6 @@ simplefilter('ignore', category=UserWarning) # ignorar warnings do pywinauto
 # reduzir o timeouts busca e fechamento de elemento e janelas
 TimeConfig.closeclick_retry = 0.01
 TimeConfig.window_find_retry = 0.01
-TimeConfig.window_find_timeout = 1.0
 TimeConfig.after_setfocus_wait = 0.01
 TimeConfig.after_clickinput_wait = 0.01
 TimeConfig.after_setcursorpos_wait = 0.01
