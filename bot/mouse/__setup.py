@@ -32,23 +32,33 @@ def obter_x_y (coordenada: tuple[int, int] | Coordenada | None) -> tuple[int, in
 def mover_mouse (coordenada: tuple[int, int] | Coordenada) -> None:
     """Mover o mouse até a `coordenada`"""
     coordenada = obter_x_y(coordenada)
+    # mover
     set_cursor_position(coordenada)
     mouse.position = coordenada
+    # esperar atualizar
+    sleep(0.01)
+    bot.util.aguardar_condicao(lambda: coordenada == mouse.position == get_cursor_position(), 0.1, 0.002)
 
 
-def clicar_mouse (coordenada: Coordenada | tuple[int, int] = None, 
-                  botao: bot.tipagem.BOTOES_MOUSE = "left", 
-                  quantidade=1, delay=0.1) -> None:
+def clicar_mouse (coordenada: Coordenada | tuple[int, int] = None,
+                  botao: bot.tipagem.BOTOES_MOUSE = "left",
+                  quantidade=1,
+                  delay=0.1) -> None:
     """Clicar com o `botão` do mouse na `coordenada` `quantidade` vezes
-    - Default `coordenada`: posição atual do mouse"""
+    - `coordenada=None` posição atual do mouse"""
     if coordenada: mover_mouse(coordenada) # mover mouse se requisitado
     mouse.click(Button[botao], max(1, quantidade))
     sleep(delay)
 
 
-def scroll_vertical (quantidade: int, direcao: bot.tipagem.DIRECOES_SCROLL = "baixo", delay=0.05) -> None:
-    """Realizar o scroll vertical na posição atual do mouse `quantidade` vezes na `direcao` informada"""
+def scroll_vertical (quantidade=1,
+                     direcao: bot.tipagem.DIRECOES_SCROLL = "baixo",
+                     coordenada: Coordenada | tuple[int, int] = None,
+                     delay=0.05) -> None:
+    """Realizar o scroll vertical na posição atual do mouse `quantidade` vezes na `direcao` informada
+    - `coordenada=None` posição atual do mouse"""
     quantidade = max(1, quantidade)
+    if coordenada: mover_mouse(coordenada) # mover mouse se requisitado
     for _ in range(quantidade):
         mouse.scroll(0, -1 if direcao == "baixo" else 1)
         sleep(delay)
