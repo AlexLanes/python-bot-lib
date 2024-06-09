@@ -236,8 +236,10 @@ class Coordenada:
         - `yOffset` topo, centro, baixo = 0.0, 0.5, 1.0"""
         # enforça o range entre 0.0 e 1.0
         xOffset, yOffset = max(0.0, min(1.0, xOffset)), max(0.0, min(1.0, yOffset))
-        return (self.x + int(self.largura * xOffset), 
-                self.y + int(self.altura * yOffset))
+        return (
+            self.x + int(self.largura * xOffset),
+            self.y + int(self.altura * yOffset)
+        )
 
     @classmethod
     def from_box (cls, box: tuple[int, int, int, int]) -> Coordenada:
@@ -300,20 +302,25 @@ class ResultadoSQL:
         self.linhas, linhas = duplicar_iterable(self.linhas)
         return {
             "linhas_afetadas": self.linhas_afetadas,
-            "resultados": [{ coluna: valor for coluna, valor in zip(self.colunas, linha) } 
-                           for linha in linhas]
+            "resultados": [
+                { 
+                    coluna: valor
+                    for coluna, valor in zip(self.colunas, linha)
+                }
+                for linha in linhas
+            ]
         }
 
     def to_dataframe (self, transformar_string=False) -> DataFrame:
         """Salvar o resultado em um `polars.DataFrame`
         - `transformar_string` flag se os dados serão convertidos em `str`"""
         self.linhas, linhas = duplicar_iterable(self.linhas)
+        to_string = lambda linha: tuple(
+            str(valor) if valor != None else None
+            for valor in linha
+        )
         return DataFrame(
-            (
-                tuple(str(valor) if valor != None else valor
-                      for valor in linha)
-                for linha in linhas
-            ) if transformar_string else linhas, 
+            map(to_string, linhas) if transformar_string else linhas,
             self.colunas,
             nan_to_null=True
         )

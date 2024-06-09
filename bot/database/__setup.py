@@ -18,8 +18,11 @@ def sql_nomeado_para_posicional (sql: str, parametros: bot.tipagem.nomeado) -> t
     if sql in cache: return cache[sql]
 
     sql_transformado = sql
-    ordem_nomes = [nome for nome in regex.findall(r"(?<=:)\w+", sql) 
-                   if nome in parametros]
+    ordem_nomes = [
+        nome
+        for nome in regex.findall(r"(?<=:)\w+", sql)
+        if nome in parametros
+    ]
 
     # converter SQL
     ordenar_por_tamanho = { "key": lambda x: len(x), "reverse": True }
@@ -80,8 +83,10 @@ class DatabaseODBC:
         """Nomes das tabelas e schemas disponíveis
         - `for tabela, schema in database.tabelas()`"""
         cursor = self.__conexao.cursor()
-        itens = [(tabela, schema if schema else None) 
-                 for _, schema, tabela, *_ in cursor.tables(tableType="TABLE", schema=schema)]
+        itens = [
+            (tabela, schema if schema else None)
+            for _, schema, tabela, *_ in cursor.tables(tableType="TABLE", schema=schema)
+        ]
         itens.sort(key=lambda item: item[0]) # ordernar pelo nome das tabelas
         return itens
 
@@ -89,8 +94,10 @@ class DatabaseODBC:
         """Nomes das colunas e tipos da tabela
         - `for coluna, tipo in database.colunas(tabela, schema)`"""
         cursor = self.__conexao.cursor()
-        return [(item[3], item[5]) 
-                for item in cursor.columns(tabela, schema=schema)]
+        return [
+            (item[3], item[5])
+            for item in cursor.columns(tabela, schema=schema)
+        ]
 
     def commit (self) -> None:
         """Commitar alterações feitas na conexão"""
@@ -169,8 +176,10 @@ class Sqlite:
     def colunas (self, tabela: str) -> list[tuple[str, str]]:
         """Nomes das colunas e tipos da tabela
         - `for coluna, tipo in database.colunas(tabela)`"""
-        return [(coluna, tipo) 
-                for _, coluna, tipo, *_, in self.execute(f"PRAGMA table_info({tabela})")]
+        return [
+            (coluna, tipo)
+            for _, coluna, tipo, *_, in self.execute(f"PRAGMA table_info({tabela})")
+        ]
 
     def commit (self) -> None:
         """Commitar alterações feitas na conexão"""
