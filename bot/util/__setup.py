@@ -1,7 +1,7 @@
 # std
 import re
-from itertools import zip_longest
 from unicodedata import normalize
+from difflib import SequenceMatcher
 from time import sleep, perf_counter
 from typing import Callable, Iterable
 # interno
@@ -37,17 +37,27 @@ def normalizar (string: str) -> str:
     return re.sub(r"\W", "", string)
 
 
-def index_melhor_match (texto: str, opcoes: Iterable[str]) -> int:
-    """Encontrar o index da melhor opção nas `opcoes` que seja parecido com o `texto`
+def index_texto (texto: str, opcoes: Iterable[str]) -> int:
+    """Encontrar o index da melhor opção do `texto` nas `opcoes` fornecidas
     - Se o index for -1, significa que nenhuma opção gerou um resultado satisfatório"""
-    texto, scores = normalizar(texto), []
-    for opcao in opcoes:
-        opcao = normalizar(opcao)
-        score = sum(1 if chars[0] == chars[1] else -1 for chars in zip_longest(texto, opcao))
-        scores.append(score)
-    
-    score = max(scores)
-    return scores.index(score) if score >= 1 else -1
+    # opção exata
+    opcoes = list(opcoes)
+    if texto in opcoes: return opcoes.index(texto)
+
+    # opção normalizada
+    texto = normalizar(texto)
+    opcoes = [normalizar(opcao) for opcao in opcoes]
+    if texto in opcoes: return opcoes.index(texto)
+
+    # comparando similaridade dos caracteres
+    # algorítimo `gestalt pattern matching`
+    def calcular_similaridade (a: str, b: str) -> float:
+        punicao_tamanho = abs(len(a) - len(b)) * 0.05
+        return SequenceMatcher(None, a, b).ratio() - punicao_tamanho
+    similaridades = [calcular_similaridade(texto, opcao) for opcao in opcoes]
+
+    maior = max(similaridades)
+    return similaridades.index(maior) if maior >= 0.6 else -1
 
 
 def expandir_tempo (segundos: int | float) -> str:
@@ -62,7 +72,7 @@ def expandir_tempo (segundos: int | float) -> str:
         segundos %= medida
         if len(tempos) == 2: break
 
-    return " e ".join(tempo for tempo in tempos)
+    return " e ".join(tempos)
 
 
 def transformar_tipo[T: primitivo] (valor: str, tipo: type[T]) -> T:
@@ -85,9 +95,9 @@ def cronometro () -> Callable[[], float]:
 __all__ = [
     "normalizar",
     "cronometro",
+    "index_texto",
     "expandir_tempo",
     "transformar_tipo",
     "aguardar_condicao",
-    "remover_acentuacao",
-    "index_melhor_match"
+    "remover_acentuacao"
 ]
