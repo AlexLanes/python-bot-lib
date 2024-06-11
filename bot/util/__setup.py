@@ -37,27 +37,35 @@ def normalizar (string: str) -> str:
     return re.sub(r"\W", "", string)
 
 
-def index_texto (texto: str, opcoes: Iterable[str]) -> int:
-    """Encontrar o index da melhor opção do `texto` nas `opcoes` fornecidas
-    - Se o index for -1, significa que nenhuma opção gerou um resultado satisfatório"""
-    # opção exata
+def encontrar_texto[T] (texto: str,
+                        opcoes: Iterable[T],
+                        key: Callable[[T], str] = None) -> T | None:
+    """Encontrar a melhor opção em `opções` onde igual ou parecido ao `texto`
+    - `None` caso nenhuma opção gerou um resultado satisfatório
+    - `key` pode ser informado uma função para apontar para a `str` caso `opções` não seja uma `list[str]`"""
     opcoes = list(opcoes)
-    if texto in opcoes: return opcoes.index(texto)
+    key = key or (lambda opcao: opcao)
+    textos = [key(opcao) for opcao in opcoes]
+
+    # opção exata
+    if texto in textos:
+        return opcoes[textos.index(texto)]
 
     # opção normalizada
     texto = normalizar(texto)
-    opcoes = [normalizar(opcao) for opcao in opcoes]
-    if texto in opcoes: return opcoes.index(texto)
+    textos = [normalizar(opcao) for opcao in textos]
+    if texto in textos:
+        return opcoes[textos.index(texto)]
 
     # comparando similaridade dos caracteres
     # algorítimo `gestalt pattern matching`
     def calcular_similaridade (a: str, b: str) -> float:
         punicao_tamanho = abs(len(a) - len(b)) * 0.05
         return SequenceMatcher(None, a, b).ratio() - punicao_tamanho
-    similaridades = [calcular_similaridade(texto, opcao) for opcao in opcoes]
+    similaridades = [calcular_similaridade(texto, t) for t in textos]
 
     maior = max(similaridades)
-    return similaridades.index(maior) if maior >= 0.6 else -1
+    return opcoes[similaridades.index(maior)] if maior >= 0.6 else None
 
 
 def expandir_tempo (segundos: int | float) -> str:
@@ -95,8 +103,8 @@ def cronometro () -> Callable[[], float]:
 __all__ = [
     "normalizar",
     "cronometro",
-    "index_texto",
     "expandir_tempo",
+    "encontrar_texto",
     "transformar_tipo",
     "aguardar_condicao",
     "remover_acentuacao"
