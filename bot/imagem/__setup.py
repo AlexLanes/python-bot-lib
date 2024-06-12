@@ -184,6 +184,7 @@ class LeitorOCR:
 __all__ = [
     "binarizar",
     "LeitorOCR",
+    "Coordenada",
     "cor_similar",
     "cores_imagem",
     "capturar_tela",

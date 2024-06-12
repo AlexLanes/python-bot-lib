@@ -451,14 +451,17 @@ class Janela:
             return
 
         titulo_normalizado = bot.util.normalizar(titulo)
-        titulos = [titulo for titulo in self.titulos_janelas()
-                   if titulo_normalizado in bot.util.normalizar(titulo)]
+        titulos = [
+            titulo
+            for titulo in self.titulos_janelas()
+            if titulo_normalizado in bot.util.normalizar(titulo)
+        ]
         assert titulos, f"Janela de titulo '{titulo}' não foi encontrada"
 
         self.__janela = Desktop(backend).window(title=titulos[0], class_name=class_name, visible_only=True)
         self.__aplicacao = Application(backend).connect(title=titulos[0], class_name=class_name, visible_only=True)
 
-    def __eq__ (self, other) -> bool:
+    def __eq__ (self, other: Janela) -> bool:
         """Comparar se o handler de uma janela é o mesmo que a outra"""
         if not isinstance(other, Janela): return False
         return self.__janela.handle == other.__janela.handle
@@ -526,9 +529,11 @@ class Janela:
         """Listar os titulos das janelas abertas
         - `@staticmethod`"""
         janelas: list[HwndWrapper] = Desktop().windows(visible_only=True)
-        return { titulo
-                 for janela in janelas 
-                 if (titulo := janela.window_text()) }
+        return {
+            titulo
+            for janela in janelas
+            if (titulo := janela.window_text())
+        }
 
 
 __all__ = [

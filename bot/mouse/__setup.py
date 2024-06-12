@@ -72,6 +72,7 @@ def cor_mouse () -> bot.tipagem.rgb:
 
 __all__ = [
     "cor_mouse",
+    "Coordenada",
     "mover_mouse",
     "clicar_mouse",
     "posicao_mouse",
