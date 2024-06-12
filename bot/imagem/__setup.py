@@ -1,5 +1,7 @@
 # std
 from io import BytesIO
+from typing import Iterable
+from functools import cache
 # interno
 import bot
 from bot import tipagem
@@ -179,6 +181,77 @@ class LeitorOCR:
             Coordenada.from_box(box)
             for box in boxes
         ]
+
+    @staticmethod
+    def encontrar_textos (textos: Iterable[str], extracao: list[tuple[str, Coordenada]]) -> list[Coordenada | None]:
+        """Encontrar as coordenadas dos `textos` na `extraçao` retornada pela a leitura da tela
+        - Resultado de retorno é na mesma ordem que `textos`
+        - `None` caso não tenha sido encontrado o `texto`
+        - Ordem dos métodos de procura
+            1. exato
+            2. normalizado exato
+            3. similaridade entre textos
+            4. similaridade entre textos levando em conta que o texto pode estar na `extraçao` concatenado com espaço com outro texto"""
+        # copiar
+        textos = list(textos)
+
+        # 1 2 3
+        coordenadas = [
+            (bot.util.encontrar_texto(texto, extracao, lambda item: item[0]) or (None, None))[1]
+            for texto in textos
+        ]
+        if all(coordenadas) or all(c in coordenadas for _, c in extracao):
+            return coordenadas
+
+        # --------------------------------------------------- #
+        # 4 - Magia negra                                     #
+        # Textos muito juntos podem ser concatenados pelo OCR #
+        # --------------------------------------------------- #
+
+        @cache
+        def gerar_combinacoes (texto: str, coordenada: Coordenada, quantidade=1) -> list[tuple[str, Coordenada]]:
+            """Gerar combinações do `(texto, coordenada)` de acordo com a `quantidade` de palavras desejadas"""
+            palavras, quantidade = texto.split(), max(1, quantidade)
+            combinacoes_possiveis = len(palavras) - quantidade + 1
+            largura_letra = coordenada.largura / (len(texto) or 1)
+
+            combinacoes, offset_largura = [], 0.0
+            for i in range(combinacoes_possiveis):
+                palavra = " ".join(palavras[i : i + quantidade])
+                c = Coordenada(
+                    round(coordenada.x + offset_largura),
+                    coordenada.y,
+                    round(len(palavra) * largura_letra),
+                    coordenada.altura
+                )
+                combinacoes.append((palavra, c))
+                offset_largura += (1 + len(palavras[i])) * largura_letra
+
+            return combinacoes
+
+        # ordenar os textos decrescente para a palavra maior ter prioridade
+        nao_encontrados = sorted(
+            (index, textos[index])
+            for index in range(len(textos))
+            if not coordenadas[index] # já encontrado
+        )
+        nao_encontrados.sort(key=lambda item: item[1].lower(), reverse=True)
+
+        for index, texto in nao_encontrados:
+            qtd_palavras = len(texto.split(" "))
+            # tentar encontrar um Match para o `texto` em `extração`
+            for texto_extracao, coordenada in extracao:
+                if coordenada in coordenadas: continue # coordenada já está sendo utilizada
+                if len(texto_extracao.split(" ")) <= 1: continue # desnecessário
+                # checar Match
+                combinacoes = gerar_combinacoes(texto_extracao, coordenada, qtd_palavras)
+                _, coordenada = bot.util.encontrar_texto(texto, combinacoes, lambda item: item[0]) or (None, None)
+                if not coordenada or any(coordenada in c for c in coordenadas if c): continue # não encontrada ou sendo utilizada
+                # inserir coordenada e finalizar procura do `texto` atual
+                coordenadas[index] = coordenada
+                break
+
+        return coordenadas
 
 
 __all__ = [

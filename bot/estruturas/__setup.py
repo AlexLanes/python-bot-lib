@@ -229,6 +229,9 @@ class Coordenada:
         return x in range(self.x, self.x + self.largura + 1) \
            and y in range(self.y, self.y + self.altura + 1)
 
+    def __hash__ (self) -> int:
+        return hash(repr(self))
+
     def transformar (self, xOffset=0.5, yOffset=0.5) -> tuple[int, int]:
         """Transformar as cordenadas para a posição (X, Y) de acordo com a porcentagem `xOffset` e `yOffset`
         - (X, Y) central caso os offsets não tenham sido informados
