@@ -66,7 +66,7 @@ def encontrar_texto[T] (texto: str,
         return SequenceMatcher(None, a, b).ratio() - punicao_tamanho
     similaridades = [calcular_similaridade(texto, t) for t in textos]
 
-    maior = max(similaridades); print(texto, maior)
+    maior = max(similaridades)
     return opcoes[similaridades.index(maior)] if maior >= 0.6 else None
 
 
