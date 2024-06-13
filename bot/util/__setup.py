@@ -62,7 +62,7 @@ def encontrar_texto[T] (texto: str,
     def calcular_similaridade (a: str, b: str) -> float:
         # punir uma quantidade se tiver diferença no tamanho
         # ou punir bastante se for a mesma quantidade de caracteres
-        punicao_tamanho = abs((len(a) - len(b)) * 0.03) or 0.12
+        punicao_tamanho = abs((len(a) - len(b)) * 0.05) or 0.15
         return SequenceMatcher(None, a, b).ratio() - punicao_tamanho
     similaridades = [calcular_similaridade(texto, t) for t in textos]
 
