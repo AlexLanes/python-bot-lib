@@ -127,15 +127,15 @@ class ElementoXML:
         """Iterator dos elementos"""
         for e in self.elementos: yield e
 
-    def __getitem__ (self, valor: int | str) -> ElementoXML:
-        """Obter o elemento filho na posição `int` ou o primeiro elemento de nome `str`"""
-        if isinstance(valor, int): 
-            if valor >= len(self): raise IndexError(f"Elemento possui apenas '{len(self)}' filho(s)")
-            return self.elementos[valor]
-        if isinstance(valor, str):
-            if not any(e.nome == valor for e in self): raise KeyError(f"Nome do elemento '{valor}' inexistente nos filhos")
-            return [e for e in self if e.nome == valor][0]
-        raise TypeError(f"Tipo do valor inesperado '{type(valor)}'")
+    def __getitem__ (self, valor: int | str) -> ElementoXML | None:
+        """Obter o elemento filho na posição `int` ou o primeiro elemento de nome `str`
+        - `None` caso não seja possível"""
+        elementos = self.elementos
+        if isinstance(valor, int) and valor < len(elementos):
+            return elementos[valor]
+        if isinstance(valor, str) and any(e for e in elementos if e.nome == valor):
+            return [e for e in elementos if e.nome == valor][0]
+        return None
 
     @property
     def __dict__ (self) -> dict[str, str | None | list[dict]]:
