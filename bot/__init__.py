@@ -13,6 +13,7 @@ import bot.tipagem as tipagem
 import bot.teclado as teclado
 import bot.windows as windows
 import bot.database as database
+import bot.formatos as formatos
 import bot.navegador as navegador
 import bot.argumentos as argumentos
 import bot.estruturas as estruturas
