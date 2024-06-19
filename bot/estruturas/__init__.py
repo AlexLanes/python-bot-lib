@@ -1,3 +1,3 @@
-"""Módulo para tratar estruturas de dados"""
+"""Módulo com estruturas de dados"""
 
 from .__setup import *
