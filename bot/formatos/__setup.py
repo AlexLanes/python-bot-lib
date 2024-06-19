@@ -8,10 +8,11 @@ from json import (
 )
 from xml.etree.ElementTree import (
     Element,
+    register_namespace,
     indent as indentar_xml,
     parse as xml_from_file,
     tostring as xml_to_string,
-    fromstring as xml_from_string
+    fromstring as xml_from_string,
 )
 # interno
 import bot
@@ -102,20 +103,17 @@ class ElementoXML:
     """Classe de manipulação do XML
     - Abstração do módulo `xml.etree.ElementTree`"""
 
-    __e: Element
+    __elemento: Element
 
-    def __init__ (self, xml: str) -> None:
-        """Inicializar Elemento
-        - `xml` pode ser uma string xml ou o caminho até o arquivo .xml"""
-        if isinstance(xml, str): # criação exposta do __init__
-            xml = xml.lstrip() # remover espaços vazios no começo
-            self.__e = xml_from_string(xml) if xml.startswith("<") else xml_from_file(xml).getroot() # parse
-        elif isinstance(xml, Element): self.__e = xml # comportamento interno na criação e iteração dos elementos
-        else: raise TypeError(f"Tipo '{type(xml)}' inesperado para o xml")
+    def __init__ (self, nome: str, texto: str = None, namespace: bot.tipagem.url = None, atributos: dict[str, str] = None) -> None:
+        """Inicializar um `ElementoXML` simples"""
+        nome = f"{{{namespace}}}{nome}" if namespace else nome
+        self.__elemento = Element(nome, atributos or {})
+        self.__elemento.text = texto
 
     def __str__ (self) -> str:
         """Versão `text/xml` do ElementoXML"""
-        return xml_to_string(self.__e, "unicode")
+        return xml_to_string(self.__elemento, "unicode")
 
     def __len__ (self) -> int:
         """Quantidade de elemento(s) filho(s)"""
@@ -150,7 +148,7 @@ class ElementoXML:
     def __nome_namespace (self) -> tuple[str, bot.tipagem.url | None]:
         """Extrair nome e namespace do `Element` tag
         - `nome, namespace = self.__nome_namespace()`"""
-        tag = self.__e.tag
+        tag = self.__elemento.tag
         if tag.startswith("{") and "}" in tag:
             idx = tag.index("}")
             return (tag[idx + 1 :], tag[1 : idx])
@@ -165,79 +163,101 @@ class ElementoXML:
     def nome (self, nome: str) -> None:
         """Setar nome do elemento"""
         _, namespace = self.__nome_namespace()
-        self.__e.tag = f"{{{namespace}}}{nome}" if namespace else nome
+        self.__elemento.tag = f"{{{namespace}}}{nome}" if namespace else nome
 
     @property
     def namespace (self) -> bot.tipagem.url | None:
-        """Namespace do elemento"""
+        """Namespace do elemento
+        - Não leva em conta o `xmlns` do parente"""
         return self.__nome_namespace()[1]
 
     @namespace.setter
     def namespace (self, namespace: bot.tipagem.url | None) -> None:
         """Setar namespace do elemento"""
-        nome = self.__nome_namespace()[0]
-        self.__e.tag = f"{{{namespace}}}{nome}" if namespace else nome
+        nome, _ = self.__nome_namespace()
+        self.__elemento.tag = f"{{{namespace}}}{nome}" if namespace else nome
 
     @property
     def texto (self) -> str | None:
         """Texto do elemento"""
-        return self.__e.text
+        return self.__elemento.text
 
     @texto.setter
     def texto (self, valor: str | None) -> None:
         """Setar texto"""
-        self.__e.text = valor
+        self.__elemento.text = valor
 
     @property
     def atributos (self) -> dict[str, str]:
         """Atributos do elemento"""
-        return self.__e.attrib
-    
+        return self.__elemento.attrib
+
     @property
     def elementos (self) -> list[ElementoXML]:
         """Elementos filhos do elemento
         - Para remover ou adicionar elementos, utilizar as funções próprias"""
-        return [ElementoXML(e) for e in self.__e]
+        return [
+            ElementoXML.__from_element(element)
+            for element in self.__elemento
+        ]
 
     def encontrar (self, xpath: str, namespaces: dict[str, bot.tipagem.url] = None) -> list[ElementoXML]:
         """Encontrar elementos que resultem no `xpath` informado
         - `xpath` deve retornar em elementos apenas, não em texto ou atributo
         - `namespaces` para utilizar namespace no `xpath`, informar um dicionario { ns: url }"""
-        return [ElementoXML(e) for e in self.__e.findall(xpath, namespaces)]
+        return [
+            ElementoXML.__from_element(element)
+            for element in self.__elemento.findall(xpath, namespaces)
+        ]
 
     def adicionar (self, *elementos: ElementoXML) -> Self:
         """Adicionar os `elementos` na última posição"""
-        self.__e.extend(elemento.__e for elemento in elementos)
+        self.__elemento.extend(
+            elemento.__elemento
+            for elemento in elementos
+        )
         return self
 
     def inserir (self, elemento: ElementoXML, index=0) -> Self:
         """Inserir o `elemento` na posição `index`"""
-        self.__e.insert(index, elemento.__e)
+        self.__elemento.insert(index, elemento.__elemento)
         return self
 
     def remover (self, elemento: ElementoXML) -> Self:
         """Remover `elemento` filho do elemento atual"""
-        self.__e.remove(elemento.__e)
+        self.__elemento.remove(elemento.__elemento)
         return self
 
     def indentar (self) -> Self:
         """Indentar o XML
         - Altera a versão do `str()"""
-        indentar_xml(self.__e, space=" " * 4)
+        indentar_xml(self.__elemento, space=" " * 4)
         return self
 
     def copiar (self) -> ElementoXML:
         """Criar uma cópia do `ElementoXML`"""
         return ElementoXML(str(self))
 
+    @staticmethod
+    def registrar_prefixo (prefixo: str, namespace: bot.tipagem.url) -> bot.tipagem.url:
+        """Registrar o `prefixo` para o determinado `namespace`
+        - Retorna o `namespace`"""
+        return register_namespace(prefixo, namespace) or namespace
+
     @classmethod
-    def criar (cls, nome: str, texto: str = None, namespace: bot.tipagem.url = None, atributos: dict[str, str] = {}) -> ElementoXML:
-        """Criar um `ElementoXML` simples
-        - `@classmethod`"""
-        nome = f"{{{namespace}}}{nome}" if namespace else nome
-        elemento = Element(nome, atributos)
-        elemento.text = texto
-        return cls(elemento)
+    def __from_element (cls, element: Element) -> ElementoXML:
+        """Criação do `ElementoXML` diretamente com um `Element`"""
+        elemento = cls.__new__(cls)
+        elemento.__elemento = element
+        return elemento
+
+    @classmethod
+    def parse (cls, xml: str) -> ElementoXML:
+        """Parse do `xml` para um `ElementoXML`
+        - `xml` pode ser uma string xml ou o caminho até o arquivo .xml"""
+        xml = xml.lstrip() # remover espaços vazios no começo
+        element = xml_from_string(xml) if xml.startswith("<") else xml_from_file(xml).getroot()
+        return ElementoXML.__from_element(element)
 
 
 __all__ = [
