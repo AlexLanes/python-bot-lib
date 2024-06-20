@@ -130,7 +130,7 @@ class ElementoXML:
 
     def __bool__ (self) -> bool:
         """Formato `bool`"""
-        return len(self) or self.texto
+        return bool(len(self) or self.texto)
 
     def __getitem__ (self, valor: int | str) -> ElementoXML | None:
         """Obter o elemento filho na posição `int` ou o primeiro elemento de nome `str`
