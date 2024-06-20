@@ -117,7 +117,7 @@ class ElementoXML:
 
     def __len__ (self) -> int:
         """Quantidade de elemento(s) filho(s)"""
-        return len(self.elementos)
+        return len(self.elementos())
 
     def __repr__ (self) -> str:
         """Representação do ElementoXML"""
@@ -125,15 +125,20 @@ class ElementoXML:
 
     def __iter__ (self) -> Generator[ElementoXML, None, None]:
         """Iterator dos elementos"""
-        for e in self.elementos: yield e
+        for elemento in self.elementos():
+            yield elemento
+
+    def __bool__ (self) -> bool:
+        """Formato `bool`"""
+        return len(self) or self.texto
 
     def __getitem__ (self, valor: int | str) -> ElementoXML | None:
         """Obter o elemento filho na posição `int` ou o primeiro elemento de nome `str`
         - `None` caso não seja possível"""
-        elementos = self.elementos
+        elementos = self.elementos()
         if isinstance(valor, int) and valor < len(elementos):
             return elementos[valor]
-        if isinstance(valor, str) and any(e for e in elementos if e.nome == valor):
+        if isinstance(valor, str) and any(True for e in elementos if e.nome == valor):
             return [e for e in elementos if e.nome == valor][0]
         return None
 
@@ -146,7 +151,7 @@ class ElementoXML:
         return dicionario
 
     def __nome_namespace (self) -> tuple[str, bot.tipagem.url | None]:
-        """Extrair nome e namespace do `Element` tag
+        """Extrair nome e namespace do `Element.tag`
         - `nome, namespace = self.__nome_namespace()`"""
         tag = self.__elemento.tag
         if tag.startswith("{") and "}" in tag:
@@ -192,7 +197,6 @@ class ElementoXML:
         """Atributos do elemento"""
         return self.__elemento.attrib
 
-    @property
     def elementos (self) -> list[ElementoXML]:
         """Elementos filhos do elemento
         - Para remover ou adicionar elementos, utilizar as funções próprias"""
@@ -236,7 +240,7 @@ class ElementoXML:
 
     def copiar (self) -> ElementoXML:
         """Criar uma cópia do `ElementoXML`"""
-        return ElementoXML(str(self))
+        return ElementoXML.parse(str(self))
 
     @staticmethod
     def registrar_prefixo (prefixo: str, namespace: bot.tipagem.url) -> bot.tipagem.url:
