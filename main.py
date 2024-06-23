@@ -1,5 +1,3 @@
-# std
-from time import sleep
 # interno
 import bot
 
@@ -7,7 +5,6 @@ import bot
 @bot.util.decoradores.tempo_execucao
 def main():
     """Fluxo principal"""
-    from queue import PriorityQueue
     pass
 
 
