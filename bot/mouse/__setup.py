@@ -37,7 +37,8 @@ def mover_mouse (coordenada: tuple[int, int] | Coordenada) -> None:
     mouse.position = coordenada
     # esperar atualizar
     sleep(0.01)
-    bot.util.aguardar_condicao(lambda: coordenada == mouse.position == get_cursor_position(), 0.1, 0.002)
+    c = coordenada
+    bot.util.aguardar_condicao(lambda: c == mouse.position and c == get_cursor_position(), 0.1, 0.002)
 
 
 def clicar_mouse (coordenada: Coordenada | tuple[int, int] = None,
