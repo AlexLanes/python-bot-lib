@@ -7,7 +7,7 @@ argumentos = argv[1:] # primeiro argumento é sempre o nome do arquivo iniciado
 posicionais: list[str] = []
 nomeados: dict[str, str | None] = {}
 
-def inicializar_argumentos () -> bool:
+def inicializar () -> bool:
     """Inicializar os argumentos posicionais e nomeados
     - Retorna indicação se há algum argumento"""
     # posicionais
@@ -45,7 +45,7 @@ def nomeado_ou[T: bot.tipagem.primitivo] (nome: str, default: T = "") -> T:
         bot.util.transformar_tipo(nomeados[nome], type(default))
 
 # inicializar no primeiro `import` do pacote
-if inicializar_argumentos():
+if inicializar():
     mensagem = f"Argumento(s) de inicialização encontrado(s)\n\tPosicionais: {posicionais}\n\tNomeados: {nomeados}"
     bot.logger.informar(mensagem)
 
