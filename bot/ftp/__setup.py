@@ -7,13 +7,17 @@ import bot
 import bot.configfile as cf
 from bot.tipagem import caminho
 
-
 class FTP:
     """Classe de abstração do `ftplib`"""
     __ftp: ftplib.FTP
 
     def __init__ (self) -> None:
-        """Iniciar conexão com o FTP de acordo com as variáveis de ambiente .ini documentadas no módulo"""
+        """Iniciar conexão com o FTP de acordo com as variáveis de ambiente .ini documentadas no módulo
+        - Variáveis .ini `[FTP] -> host, user, password, timeout, port`
+            - `host` Obrigatório
+            - `user, password` Opcionais
+            - `port` Opcional `Default: 21`
+            - `timeout` Opcional `Default: 5.0`"""
         # instanciar e conectar
         self.__ftp = ftplib.FTP()
         host = cf.obter_opcoes("FTP", ["host"])[0]
@@ -92,6 +96,5 @@ class FTP:
         - Passível de exceção"""
         bot.logger.informar(f"Removendo arquivo FTP no diretório atual '{nome_arquivo}'")
         self.__ftp.delete(nome_arquivo)
-
 
 __all__ = ["FTP"]
