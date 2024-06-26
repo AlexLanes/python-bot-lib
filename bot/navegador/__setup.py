@@ -4,6 +4,7 @@ from enum import Enum
 from typing import Self
 # interno
 import bot
+from bot.util import normalizar
 # externo
 from selenium.webdriver import ActionChains
 from selenium.webdriver.remote.webelement import WebElement
@@ -53,20 +54,39 @@ class Navegador (ABC):
         bot.logger.informar(f"Fechado a aba '{titulo}'")
         return self
 
-    def focar_aba (self, titulo: str = None) -> None:
+    def focar_aba (self, titulo: str | None = None) -> Self:
         """Focar na aba que contem o `titulo`
-        - `titulo` None para focar na primera aba diferente da atual"""
-        original = self.driver.current_window_handle
+        - `None` para focar na última aba"""
+        titulo = normalizar(titulo) if titulo else None
+        if not titulo:
+            self.driver.switch_to.window(self.abas[-1])
+            return self
+
         for aba in self.abas:
             self.driver.switch_to.window(aba)
-            if (titulo == None and aba != original) or (titulo != None and bot.util.normalizar(titulo) in bot.util.normalizar(self.driver.title)):
-                return bot.logger.informar(f"O navegador focou na aba '{self.driver.title}'")
-            self.driver.switch_to.window(original)
+            if titulo not in normalizar(self.driver.title): continue
+            bot.logger.informar(f"O navegador focou na aba '{self.driver.title}'")
+            break
 
-        bot.logger.alertar(f"Nenhuma aba encontrada que possua o título '{titulo}' foi encontrada")
+        return self
+
+    def alterar_frame (self, frame: str | WebElement | None = None) -> Self:
+        """Alterar o frame atual do DOM da página para o `frame` contendo `@name, @id ou WebElement`
+        - Necessário para encontrar e interagir com `WebElements` dentro de `<iframes>`
+        - `None` para retornar ao default_content (raiz)"""
+        bot.logger.debug(f"Alterando frame da aba '{self.titulo}'")
+        s = self.driver.switch_to
+        s.frame(frame) if frame else s.default_content()
+        return self
+
+    def hover_elemento (self, elemento: WebElement) -> Self:
+        """Realizar a ação de hover no `elemento`"""
+        bot.logger.debug(f"Realizando ação de hover no elemento '{elemento}'")
+        ActionChains(self.driver).move_to_element(elemento).perform()
+        return self
 
     def encontrar_elemento (self, estrategia: bot.tipagem.ESTRATEGIAS_WEBELEMENT, localizador: str | Enum) -> WebElement | None:
-        """Encontrar elemento(s) na aba atual com base em um `localizador` para a `estrategia` selecionada"""
+        """Encontrar elemento na aba atual com base em um `localizador` para a `estrategia` selecionada"""
         localizador: str = localizador if isinstance(localizador, str) else str(localizador.value)
         bot.logger.debug(f"Procurando elemento no navegador ('{estrategia}', '{localizador}')")
         try: return self.driver.find_element(estrategia, localizador)
@@ -77,23 +97,7 @@ class Navegador (ABC):
         localizador = localizador if isinstance(localizador, str) else str(localizador.value)
         bot.logger.debug(f"Procurando elementos no navegador ('{estrategia}', '{localizador}')")
         elementos = self.driver.find_elements(estrategia, localizador)
-        return elementos if len(elementos) else None
-
-    def hover_elemento (self, elemento: WebElement) -> None:
-        """Realizar a ação de `hover` no `elemento`"""
-        bot.logger.debug(f"Realizando ação de hover no elemento '{elemento}'")
-        ActionChains(self.driver).move_to_element(elemento).perform()
-
-    def acessar_iframe (self, estrategia: bot.tipagem.ESTRATEGIAS_WEBELEMENT, localizador: str | Enum) -> None:
-        """
-        Encontra o iframe e acessa o seu escopo
-
-        IMPORTANTE: A DOM é atualizada dentro de `IFRAMES`, portanto é necessário alternar o escopo do WebDriver entre os IFRAMEs antes de interagir com os elementos.
-        Use `navegador.driver.switch_to.default_content()` para voltar ao escopo global da página.
-        """
-        bot.logger.debug(f"Acessando escopo do IFRAME")
-        iframe = self.encontrar_elemento(estrategia, localizador)
-        self.driver.switch_to.frame(iframe)
+        return elementos or None
 
 
 class Edge (Navegador):
