@@ -1,4 +1,4 @@
-"""Módulo com estruturas de dados"""
+"""Módulo agregador de estruturas de dados"""
 
 from .__setup import *
 from .__janela import *

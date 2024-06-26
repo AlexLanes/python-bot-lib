@@ -2,7 +2,6 @@
 import bisect, typing
 from collections import deque as Deque
 
-
 class Stack [T]:
     """Last In First Out"""
 
@@ -63,7 +62,6 @@ class Stack [T]:
         - `IndexError` caso `self.empty()`"""
         return self.__dq.pop()
 
-
 class Queue [T]:
     """Fist In First Out"""
 
@@ -123,7 +121,6 @@ class Queue [T]:
         """Obter o primeiro elemento e remover da Queue
         - `IndexError` caso `self.empty()`"""
         return self.__dq.popleft()
-
 
 class PriorityQueue [T]:
     """Queue com prioridade na ordem natural"""
@@ -203,7 +200,6 @@ class PriorityQueue [T]:
         """Obter o elemento com maior prioridade e remover da PriorityQueue
         - `IndexError` caso `self.empty()`"""
         return self.__dq.pop()
-
 
 __all__ = [
     "Stack",

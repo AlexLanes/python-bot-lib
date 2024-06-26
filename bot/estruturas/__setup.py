@@ -11,7 +11,6 @@ import bot
 # externo
 from polars import DataFrame
 
-
 @dataclass
 class Coordenada:
     """Coordenada de uma região na tela"""
@@ -63,7 +62,6 @@ class Coordenada:
         x, y = int(box[0]), int(box[2])
         largura, altura = int(box[1] - x), int(box[3] - y)
         return cls(x, y, largura, altura)
-
 
 @dataclass
 class ResultadoSQL:
@@ -139,7 +137,6 @@ class ResultadoSQL:
             nan_to_null=True
         )
 
-
 class Resultado [T]:
     """Classe `genérica` de utilização para retornar resultado ou erro de alguma chamada"""
     __valor: T | None
@@ -176,7 +173,6 @@ class Resultado [T]:
         if not self: return default
         return self.__valor
 
-
 @dataclass
 class Diretorio:
     """Armazena os caminhos de pastas e arquivos presentes no diretório"""
@@ -202,7 +198,6 @@ class Diretorio:
 
         return arquivos
 
-
 class InfoStack:
     """Informações do `Stack` de execução"""
     nome: str
@@ -221,7 +216,6 @@ class InfoStack:
         self.funcao = stack()[index].function
         caminho, self.nome = stack()[index].filename.rsplit("\\", 1)
         self.caminho = f"{caminho[0].upper()}{caminho[1:]}" # forçar upper no primeiro char
-
 
 @dataclass
 class Email:
@@ -243,7 +237,6 @@ class Email:
     anexos: list[tuple[str, str, bytes]]
     """Anexos do e-mail
     - `for nome, tipo, conteudo in email.anexos:`"""
-
 
 __all__ = [
     "Email",

@@ -11,7 +11,6 @@ from pywinauto.timings import TimeConfig
 from pywinauto import Application, Desktop
 from pywinauto.controls.hwndwrapper import HwndWrapper
 
-
 # ignorar warnings do pywinauto
 simplefilter('ignore', category=UserWarning)
 # reduzir o timeouts busca e fechamento de elementos e janelas
@@ -20,7 +19,6 @@ TimeConfig.window_find_retry = 0.01
 TimeConfig.after_setfocus_wait = 0.01
 TimeConfig.after_clickinput_wait = 0.01
 TimeConfig.after_setcursorpos_wait = 0.01
-
 
 class Janela:
     """Classe de interação com as janelas abertas. 
@@ -127,6 +125,5 @@ class Janela:
             for janela in janelas
             if (titulo := janela.window_text())
         }
-
 
 __all__ = ["Janela"]
