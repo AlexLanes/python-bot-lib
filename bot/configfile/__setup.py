@@ -6,7 +6,7 @@ from bot.tipagem import primitivo
 from bot.util import transformar_tipo
 from bot.windows import diretorio_execucao, nome_base
 
-# inicializar no primeiro `import` do pacote
+"""inicializar no primeiro `import` do pacote"""
 CONFIG = ConfigParser(interpolation=ExtendedInterpolation())
 for arquivo in diretorio_execucao().arquivos:
     if not arquivo.endswith(".ini"): continue
