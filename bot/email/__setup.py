@@ -18,9 +18,8 @@ from datetime import (
 # interno
 import bot
 
-
 def enviar_email (destinatarios: list[bot.tipagem.email], assunto="", conteudo="", anexos: list[bot.tipagem.caminho] = []) -> None:
-    """Enviar email para uma lista de `destinatarios` com `assunto`, `conteudo` e, opcionalmente, uma lista de caminhos `anexos`
+    """Enviar email para uma lista de `destinatarios` com `assunto`, `conteudo` e, lista de `anexos`
     - Abstração `smtplib`
     - `conteudo` pode ser uma string html se começar com "<"
     - Variáveis .ini `[email.enviar] -> user, password, host`"""
@@ -61,18 +60,17 @@ def enviar_email (destinatarios: list[bot.tipagem.email], assunto="", conteudo="
         if erro := smtp.sendmail(_from, destinatarios, mensagem.as_string()): 
             bot.logger.alertar(f"Erro ao enviar e-mail: {bot.estruturas.json_stringify(erro)}")
 
-
-def obter_email (limite: int | slice = None, query="ALL", visualizar=False) -> Generator[bot.estruturas.Email, None, None]:
+def obter_emails (limite: int | slice = None, query="ALL", visualizar=False) -> Generator[bot.estruturas.Email, None, None]:
     """Obter e-mails de uma `Inbox`
     - Abstração `imaplib`
     - Variáveis .ini `[email.obter] -> user, password, host`
     - `visualizar` Flag caso queria marcar o e-mail como a flag de visualizado
+    - `query` pode variar de acordo com gmail e outlook. No outlook não é necessário as aspas simples em alguns casos
     - `query` search-criteria do fetch de acordo com documentação (https://www.marshallsoft.com/ImapSearch.htm)
         - ALL = Todos os emails
         - UNSEEN = Emails não vistos
         - FROM 'example@gmail.com' = Emails recebidos de
-        - (OR (TO 'example@gmail.com') (FROM 'example@gmail.com')) = Emails enviados para OU recebidos de
-    -  `query` pode variar de acordo com gmail e outlook. No outlook não é necessário as aspas simples em alguns casos"""
+        - (OR (TO 'example@gmail.com') (FROM 'example@gmail.com')) = Emails enviados para OU recebidos de"""
     limite = limite if isinstance(limite, slice) else slice(limite)
     # variaveis do configfile
     user, password, host = bot.configfile.obter_opcoes("email.obter", ["user", "password", "host"])
@@ -111,7 +109,7 @@ def obter_email (limite: int | slice = None, query="ALL", visualizar=False) -> G
         uids: bytes = imap.search(None, query)[1][0] # ids em byte
         uids: list[str] = uids.decode().split(" ") # transformar para uma lista de ids em string
         uids = [*reversed(uids)][limite] # inverter para os mais recentes primeiro e aplicar o slice nos ids
-        
+
         if not uids or uids[0] == "": return
 
         for uid in uids:
@@ -152,6 +150,6 @@ def obter_email (limite: int | slice = None, query="ALL", visualizar=False) -> G
 
 
 __all__ = [
-    "obter_email",
+    "obter_emails",
     "enviar_email"
 ]

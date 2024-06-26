@@ -1,4 +1,3 @@
-"""Módulo agregrador de funções de envio e leitura de e-mail
-- Espera um arquivo `.ini` com as variáveis utilizadas"""
+"""Módulo agregrador de funções para envio e leitura de e-mail"""
 
 from .__setup import *
