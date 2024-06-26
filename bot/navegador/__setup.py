@@ -30,6 +30,11 @@ class Navegador (ABC):
         return self.driver.title
 
     @property
+    def url (self) -> bot.tipagem.url:
+        """Url atual da aba focada"""
+        return self.driver.current_url
+
+    @property
     def abas (self) -> list[str]:
         """ID das abas/janelas abertas do driver atual do navegador"""
         return self.driver.window_handles
