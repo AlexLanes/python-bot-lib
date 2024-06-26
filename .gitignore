@@ -13,3 +13,6 @@
 /build
 /dist
 **.spec
+
+# teste
+teste.py
