@@ -5,10 +5,8 @@ from typing import Iterable
 # interno
 import bot
 # externo
-import polars
-import pyodbc
+import polars, pyodbc
 from xlsxwriter import Workbook
-
 
 cache = {}
 def sql_nomeado_para_posicional (sql: str, parametros: bot.tipagem.nomeado) -> tuple[str, list[str]]:
@@ -34,6 +32,20 @@ def sql_nomeado_para_posicional (sql: str, parametros: bot.tipagem.nomeado) -> t
     cache[sql] = resultado
     return resultado
 
+def formatar_dataframe (df: polars.DataFrame,
+                        linhas_maximas = 1000,
+                        esconder_shape = True,
+                        tamanho_maximo_str = 1000,
+                        esconder_tipo_coluna = True) -> str:
+    """Formatar o `df` para sua versão em string"""
+    kwargs = { 
+        "tbl_rows": linhas_maximas, 
+        "tbl_hide_dataframe_shape": esconder_shape, 
+        "fmt_str_lengths": tamanho_maximo_str, 
+        "tbl_hide_column_data_types": esconder_tipo_coluna 
+    }
+    with bot.database.polars.Config(**kwargs):
+        return str(df)
 
 class DatabaseODBC:
     """Classe para manipulação de Databases via drivers ODBC
@@ -145,7 +157,6 @@ class DatabaseODBC:
         - `@staticmethod`"""
         return pyodbc.drivers()
 
-
 class Sqlite:
     """Classe de abstração do módulo `sqlite3`"""
 
@@ -216,23 +227,6 @@ class Sqlite:
                 self.execute(f"SELECT * FROM {tabela}") \
                     .to_dataframe() \
                     .write_excel(excel, tabela, autofit=True)
-
-
-def formatar_dataframe (df: polars.DataFrame,
-                        linhas_maximas = 1000,
-                        esconder_shape = True,
-                        tamanho_maximo_str = 1000,
-                        esconder_tipo_coluna = True) -> str:
-    """Formatar o `df` para sua versão em string"""
-    kwargs = { 
-        "tbl_rows": linhas_maximas, 
-        "tbl_hide_dataframe_shape": esconder_shape, 
-        "fmt_str_lengths": tamanho_maximo_str, 
-        "tbl_hide_column_data_types": esconder_tipo_coluna 
-    }
-    with bot.database.polars.Config(**kwargs):
-        return str(df)
-
 
 __all__ = [
     "polars",
