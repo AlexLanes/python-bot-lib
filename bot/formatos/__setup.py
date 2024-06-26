@@ -24,16 +24,13 @@ from jsonschema import (
     validate as validate_schema
 )
 
-
 def yaml_stringify (item: Any) -> str:
     """Transforma o `item` em uma string YAML"""
     return yaml.dump(Json(item).stringify(), sort_keys=False, indent=4)
 
-
 def yaml_parse (string: str) -> Any:
     """Realizar o parse de uma string YAML"""
     return yaml.load(string, yaml.FullLoader)
-
 
 class Json [T]:
     """Manipulação e validação de JSON"""
@@ -99,7 +96,6 @@ class Json [T]:
         try: return Json(json_parse(json))
         except JSONDecodeError as erro:
             return bot.logger.alertar(f"Falha ao realizar o parse no json\n\t{json}\n\t{erro.msg}")
-
 
 class ElementoXML:
     """Classe de manipulação do XML
@@ -280,7 +276,6 @@ class ElementoXML:
         xml = xml.lstrip() # remover espaços vazios no começo
         element = xml_from_string(xml) if xml.startswith("<") else xml_from_file(xml).getroot()
         return ElementoXML.__from_element(element)
-
 
 __all__ = [
     "Json",
