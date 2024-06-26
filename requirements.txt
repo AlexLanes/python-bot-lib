@@ -15,7 +15,7 @@ opencv-python
 
 # bot.teclado e bot.mouse
 pynput
-win32api
+pywin32
 pyperclip
 
 # bot.navegador
