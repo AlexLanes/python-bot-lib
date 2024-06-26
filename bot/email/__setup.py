@@ -148,7 +148,6 @@ def obter_emails (limite: int | slice = None, query="ALL", visualizar=False) -> 
 
             yield email
 
-
 __all__ = [
     "obter_emails",
     "enviar_email"
