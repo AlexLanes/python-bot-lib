@@ -4,7 +4,6 @@ from datetime import datetime, date, time
 # externo
 from PIL.Image import Image
 
-
 type url = str
 """String formato url"""
 type char = str
@@ -29,7 +28,6 @@ type imagem = caminho | Image | bytes
 """Tipo de imagem aceito pelas funções
 - `caminho` até o arquivo | `bytes` da imagem | `Image` do módulo `pillow`"""
 
-
 DIRECOES_SCROLL = Literal["cima", "baixo"]
 """Direções de scroll do mouse"""
 BOTOES_MOUSE = Literal["left", "middle", "right"]
@@ -42,7 +40,6 @@ BOTOES_TECLADO = Literal["alt", "alt_l", "alt_r", "alt_gr", "backspace", "caps_l
 """Botões especiais aceitos pelo `pynput`"""
 BACKENDS_JANELA = Literal["win32", "uia"]
 """Backends aceitos pelo `pywinauto`"""
-
 
 __all__ = [
     "url",
