@@ -12,7 +12,6 @@ from selenium.webdriver import Ie as WebDriverIe, IeOptions
 from selenium.webdriver import Edge as WebDriverEdge, EdgeOptions
 from selenium.webdriver import Chrome as WebDriverChrome, ChromeOptions
 
-
 class Navegador (ABC):
     """Classe do navegador abstrata que deve ser herdada"""
 
@@ -104,7 +103,6 @@ class Navegador (ABC):
         elementos = self.driver.find_elements(estrategia, localizador)
         return elementos or None
 
-
 class Edge (Navegador):
     """Navegador Edge"""
 
@@ -129,7 +127,6 @@ class Edge (Navegador):
         self.driver.maximize_window()
 
         bot.logger.informar("Navegador Edge iniciado")
-
 
 class Chrome (Navegador):
     """Navegador Edge"""
@@ -156,7 +153,6 @@ class Chrome (Navegador):
 
         bot.logger.informar("Navegador Chrome iniciado")
 
-
 class Explorer (Navegador):
     r"""Navegador Internet Explorer
     - Selenium avisa sobre a necesidade do driver no %PATH%, mas consegui utilizar sem o driver
@@ -179,7 +175,6 @@ class Explorer (Navegador):
         self.driver.implicitly_wait(timeout)
 
         bot.logger.informar("Navegador Edge, modo Internet Explorer, iniciado")
-
 
 __all__ = [
     "Edge",
