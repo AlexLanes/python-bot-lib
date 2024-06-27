@@ -7,7 +7,7 @@ pyyaml
 pywinauto
 
 # bot.imagem
-numpy
+numpy==1.26.4
 pillow
 PyScreeze
 opencv-python
