@@ -6,9 +6,6 @@
 /logs
 .ini
 
-# ambiente virtual
-/venv
-
 # pyinstaller / setuptools / build.py
 /build
 /dist
