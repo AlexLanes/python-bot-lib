@@ -1,7 +1,5 @@
 """Pacote agregador dos módulos do Bot"""
 
-
-# interno
 import bot.ftp as ftp
 import bot.util as util
 import bot.http as http
