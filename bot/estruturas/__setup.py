@@ -184,7 +184,7 @@ class Diretorio:
     """Lista contendo o caminho de cada arquivo do diretório"""
 
     def __repr__ (self) -> str:
-        return f'<Diretorio "{self.caminho}" com {len(self.pastas)} pasta(s) e {len(self.arquivos)} arquivos(s)>'
+        return f"<Diretorio '{self.caminho}' com {len(self.pastas)} pasta(s) e {len(self.arquivos)} arquivos(s)>"
 
     def query_data_alteracao_arquivos (self,
                                        inicio=Datetime.now().replace(hour=0, minute=0, second=0, microsecond=0),
