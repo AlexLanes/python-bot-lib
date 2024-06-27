@@ -9,10 +9,12 @@
 # ambiente virtual
 /venv
 
-# pyinstaller
+# pyinstaller / setuptools / build.py
 /build
 /dist
 **.spec
+build.py
+**.egg-info
 
 # teste
 teste.py

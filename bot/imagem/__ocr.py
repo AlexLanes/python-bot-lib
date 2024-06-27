@@ -16,7 +16,8 @@ class LeitorOCR:
     def __init__ (self, confianca: bot.tipagem.PORCENTAGENS = "0.4"):
         """Inicia o leitor OCR
         - `confianca` porcentagem mínima de confiança no texto extraído `(entre 0.0 e 1.0)`"""
-        from easyocr import Reader
+        try: from easyocr import Reader
+        except ImportError: raise ImportError("Instale o bot com o parâmetro opcional [ocr] para utulizar o LeitorOCR")
         self.__reader = Reader(["en"])
         self.__confianca = max(0.0, min(1.0, float(confianca)))
 
