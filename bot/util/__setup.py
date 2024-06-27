@@ -7,7 +7,6 @@ from typing import Callable, Iterable
 # interno
 from bot.tipagem import primitivo
 
-
 def aguardar_condicao (condicao: Callable[[], bool], timeout: int, delay=0.1) -> bool:
     """Repetir a função `condição` por `timeout` segundos até que resulte em `True`
     - Retorna um `bool` indicando se a `condição` foi atendida
@@ -22,20 +21,17 @@ def aguardar_condicao (condicao: Callable[[], bool], timeout: int, delay=0.1) ->
 
     return False
 
-
 def remover_acentuacao (string: str) -> str:
     """Remover a acentuação de uma string"""
     nfkd = normalize("NFKD", str(string))
     ascii = nfkd.encode("ASCII", "ignore")
     return ascii.decode("utf-8", "ignore")
 
-
 def normalizar (string: str) -> str:
     """Strip, lower, replace espaços por underline, remoção de acentuação e remoção de caracteres != `a-zA-Z0-9_`"""
     string = re.sub(r"\s+", "_", string.strip().lower())
     string = remover_acentuacao(string)
     return re.sub(r"\W", "", string)
-
 
 def encontrar_texto[T] (texto: str,
                         opcoes: Iterable[T],
@@ -69,7 +65,6 @@ def encontrar_texto[T] (texto: str,
     maior = max(similaridades) if similaridades else 0
     return opcoes[similaridades.index(maior)] if maior >= 0.6 else None
 
-
 def expandir_tempo (segundos: int | float) -> str:
     """Expandir a medida `segundos` para as duas primeiras unidades de grandeza
     - Hora, Minuto, Segundo ou Milissegundo"""
@@ -84,7 +79,6 @@ def expandir_tempo (segundos: int | float) -> str:
 
     return " e ".join(tempos)
 
-
 def transformar_tipo[T: primitivo] (valor: str, tipo: type[T]) -> T:
     """Fazer a transformação do `valor` para `type(tipo)`
     - Função genérica"""
@@ -94,13 +88,11 @@ def transformar_tipo[T: primitivo] (valor: str, tipo: type[T]) -> T:
         case "<class 'bool'>": return valor.lower().strip() == "true"
         case _: return None
 
-
 def cronometro () -> Callable[[], float]:
     """Inicializa um cronômetro que retorna o tempo passado a cada chamada na função
     - Arredondado para 3 casas decimais"""
     inicio = perf_counter()
     return lambda: round(perf_counter() - inicio, 3)
-
 
 __all__ = [
     "normalizar",

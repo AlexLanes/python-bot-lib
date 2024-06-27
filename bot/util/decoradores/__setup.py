@@ -8,7 +8,6 @@ from multiprocessing.context import TimeoutError as Timeout
 # interno
 import bot
 
-
 def setar_timeout (segundos: float):
     """Executar a função por `segundos` até retornar ou `TimeoutError` caso ultrapasse o tempo
     - Função"""
@@ -20,7 +19,6 @@ def setar_timeout (segundos: float):
             raise TimeoutError(mensagem)
         return setar_timeout
     return setar_timeout
-
 
 def retry (tentativas=3, segundos=10):
     """Realizar `tentativas` de se chamar uma função, aguardar `segundos` e tentar novamente em caso de erro
@@ -42,7 +40,6 @@ def retry (tentativas=3, segundos=10):
         return retry
     return retry
 
-
 def tempo_execucao (func: Callable):
     """Loggar o tempo de execução da função
     - Função"""
@@ -52,7 +49,6 @@ def tempo_execucao (func: Callable):
         bot.logger.informar(f"Função({func.__name__}) executada em {tempo}")
         return resultado
     return tempo_execucao
-
 
 def perfil_execucao (func: Callable):
     """Loggar o perfil de execução da função
@@ -92,7 +88,6 @@ def perfil_execucao (func: Callable):
 
         return resultado
     return perfil_execucao
-
 
 __all__ = [
     "retry",
