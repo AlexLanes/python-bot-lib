@@ -1,4 +1,4 @@
-"""Pacote agregador dos módulos do Bot"""
+"""Pacote com funcionalidades gerais para criação de Bots"""
 
 import bot.ftp as ftp
 import bot.util as util
