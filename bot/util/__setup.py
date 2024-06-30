@@ -5,7 +5,7 @@ from difflib import SequenceMatcher
 from time import sleep, perf_counter
 from typing import Callable, Iterable
 # interno
-from bot.tipagem import primitivo
+from .. import tipagem
 
 def aguardar_condicao (condicao: Callable[[], bool], timeout: int, delay=0.1) -> bool:
     """Repetir a função `condição` por `timeout` segundos até que resulte em `True`
@@ -79,7 +79,7 @@ def expandir_tempo (segundos: int | float) -> str:
 
     return " e ".join(tempos)
 
-def transformar_tipo[T: primitivo] (valor: str, tipo: type[T]) -> T:
+def transformar_tipo[T: tipagem.primitivo] (valor: str, tipo: type[T]) -> T:
     """Fazer a transformação do `valor` para `type(tipo)`
     - Função genérica"""
     match str(tipo):

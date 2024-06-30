@@ -7,7 +7,7 @@ from datetime import datetime as Datetime
 from itertools import tee as duplicar_iterable
 from os.path import getmtime as ultima_alteracao
 # interno
-import bot
+from .. import tipagem, logger, windows
 # externo
 from polars import DataFrame
 
@@ -71,11 +71,11 @@ class ResultadoSQL:
     - `None` indica que não se aplica para o comando sql"""
     colunas: tuple[str, ...]
     """Colunas das linhas retornadas (se houver)"""
-    linhas: Generator[tuple[bot.tipagem.tipoSQL, ...], None, None]
+    linhas: Generator[tuple[tipagem.tipoSQL, ...], None, None]
     """Generator das linhas retornadas (se houver)
     - Consumido quando iterado sobre"""
 
-    def __iter__ (self) -> Generator[tuple[bot.tipagem.tipoSQL, ...], None, None]:
+    def __iter__ (self) -> Generator[tuple[tipagem.tipoSQL, ...], None, None]:
         """Generator do self.linhas"""
         for linha in self.linhas:
             yield linha
@@ -102,7 +102,7 @@ class ResultadoSQL:
         self.linhas, linhas = duplicar_iterable(self.linhas)
         return sum(1 for _ in linhas)
 
-    def __getitem__ (self, campo: str) -> bot.tipagem.tipoSQL:
+    def __getitem__ (self, campo: str) -> tipagem.tipoSQL:
         """Obter um campo da primeira linha"""
         self.linhas, linhas = duplicar_iterable(self.linhas)
         linha = next(linhas)
@@ -148,7 +148,7 @@ class Resultado [T]:
             self.__valor = funcao(*args, **kwargs)
             self.__erro = None
         except Exception as erro:
-            bot.logger.alertar(f"Função '{funcao.__name__}' executada pelo <Resultado[T]> apresentou erro")
+            logger.alertar(f"Função '{funcao.__name__}' executada pelo <Resultado[T]> apresentou erro")
             self.__valor = None
             self.__erro = erro
 
@@ -176,11 +176,11 @@ class Resultado [T]:
 @dataclass
 class Diretorio:
     """Armazena os caminhos de pastas e arquivos presentes no diretório"""
-    caminho: bot.tipagem.caminho
+    caminho: tipagem.caminho
     """Caminho absoluto do diretorio"""
-    pastas: list[bot.tipagem.caminho]
+    pastas: list[tipagem.caminho]
     """Lista contendo o caminho de cada pasta do diretório"""
-    arquivos: list[bot.tipagem.caminho]
+    arquivos: list[tipagem.caminho]
     """Lista contendo o caminho de cada arquivo do diretório"""
 
     def __repr__ (self) -> str:
@@ -188,7 +188,7 @@ class Diretorio:
 
     def query_data_alteracao_arquivos (self,
                                        inicio=Datetime.now().replace(hour=0, minute=0, second=0, microsecond=0),
-                                       fim=Datetime.now()) -> list[tuple[bot.tipagem.caminho, Datetime]]:
+                                       fim=Datetime.now()) -> list[tuple[tipagem.caminho, Datetime]]:
         """Consultar arquivos do diretório com base na data de alteração
         - Default: Hoje
         - Retorna uma lista `(caminho, data)` ordenado pelos mais antigos"""
@@ -209,7 +209,7 @@ class InfoStack:
     """Nome da função"""
     linha: int
     """Linha do item executado"""
-    caminho: bot.tipagem.caminho
+    caminho: tipagem.caminho
     """Caminho do arquivo"""
 
     def __init__ (self, index=1) -> None:
@@ -217,18 +217,18 @@ class InfoStack:
         - `Default` arquivo que chamou o `InfoStack()`"""
         frame = stack()[index]
         self.linha, self.funcao = frame.lineno, frame.function
-        self.nome = bot.windows.nome_base(frame.filename)
-        self.caminho = bot.windows.nome_diretorio(frame.filename)
+        self.nome = windows.nome_base(frame.filename)
+        self.caminho = windows.nome_diretorio(frame.filename)
 
     @staticmethod
-    def caminhos () -> list[bot.tipagem.caminho]:
+    def caminhos () -> list[tipagem.caminho]:
         """Listar os caminhos dos callers no stack de execução
         - `[0] topo stack`
         - `[-1] começo stack`"""
         return [
-            bot.windows.caminho_absoluto(frame.filename)
+            windows.caminho_absoluto(frame.filename)
             for frame in stack()
-            if bot.windows.afirmar_arquivo(frame.filename)
+            if windows.afirmar_arquivo(frame.filename)
         ]
 
 @dataclass
@@ -236,9 +236,9 @@ class Email:
     """Classe para armazenar informações extraídas de Email"""
     uid: int
     """id do e-mail"""
-    remetente: bot.tipagem.email
+    remetente: tipagem.email
     """Remetente que enviou o e-mail"""
-    destinatarios: list[bot.tipagem.email]
+    destinatarios: list[tipagem.email]
     """Destinatários que receberam o e-mail"""
     assunto: str
     """Assunto do e-mail"""

@@ -1,9 +1,8 @@
 # std
 from io import BytesIO
 # interno
-import bot
-from bot import tipagem
-from bot.estruturas import Coordenada
+from .. import tipagem, util
+from ..estruturas import Coordenada
 # externo
 import numpy as np
 import pyscreeze, cv2
@@ -17,7 +16,7 @@ def transformar_pillow (imagem: tipagem.imagem) -> Image.Image:
     if isinstance(imagem, bytes): return Image.open(BytesIO(imagem))
     return imagem
 
-@bot.util.decoradores.retry(2, 10)
+@util.decoradores.retry(2, 10)
 def capturar_tela (regiao: Coordenada = None, cinza=False) -> Image.Image:
     """Realizar uma captura de tela
     - `regiao` especifica uma parte da tela

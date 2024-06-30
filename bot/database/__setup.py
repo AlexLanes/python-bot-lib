@@ -3,13 +3,13 @@ import sqlite3
 import re as regex
 from typing import Iterable
 # interno
-import bot
+from .. import tipagem, database, logger, estruturas
 # externo
 import polars, pyodbc
 from xlsxwriter import Workbook
 
 cache = {}
-def sql_nomeado_para_posicional (sql: str, parametros: bot.tipagem.nomeado) -> tuple[str, list[str]]:
+def sql_nomeado_para_posicional (sql: str, parametros: tipagem.nomeado) -> tuple[str, list[str]]:
     """Transformar o sql parametrizado `nomeado` para `posicional`
     - `index[0]` SQL transformado
     - `index[1]` Ordem dos nomes parametrizados no `sql`"""
@@ -44,7 +44,7 @@ def formatar_dataframe (df: polars.DataFrame,
         "fmt_str_lengths": tamanho_maximo_str, 
         "tbl_hide_column_data_types": esconder_tipo_coluna 
     }
-    with bot.database.polars.Config(**kwargs):
+    with database.polars.Config(**kwargs):
         return str(df)
 
 class DatabaseODBC:
@@ -74,7 +74,7 @@ class DatabaseODBC:
         # escolher um driver dos encontrados (preferência ao `unicode`)
         unicode = [driver for driver in existentes if "unicode" in driver.lower()]
         nome_driver = unicode[0] if unicode else existentes[0]
-        bot.logger.informar(f"Iniciando conexão ODBC com o driver '{nome_driver}'")
+        logger.informar(f"Iniciando conexão ODBC com o driver '{nome_driver}'")
 
         # montar a conexão
         kwargs["driver"] = nome_driver
@@ -84,7 +84,7 @@ class DatabaseODBC:
 
     def __del__ (self) -> None:
         """Fechar a conexão quando sair do escopo"""
-        bot.logger.informar(f"Encerrando conexão com o database")
+        logger.informar(f"Encerrando conexão com o database")
         try: self.__conexao.close()
         except: pass
 
@@ -119,7 +119,7 @@ class DatabaseODBC:
         """Reverter as alterações, pós commit, feitas na conexão"""
         self.__conexao.rollback()
 
-    def execute (self, sql: str, parametros: bot.tipagem.nomeado | bot.tipagem.posicional = None) -> bot.estruturas.ResultadoSQL:
+    def execute (self, sql: str, parametros: tipagem.nomeado | tipagem.posicional = None) -> estruturas.ResultadoSQL:
         """Executar uma única instrução SQL
         - `sql` Comando que será executado. Recomendado ser parametrizado com argumentos posicionais `?` ou nomeados `:nome`
         - `parametros` Parâmetros presentes no `sql`"""
@@ -133,9 +133,9 @@ class DatabaseODBC:
         colunas = tuple(coluna[0] for coluna in cursor.description) if cursor.description else tuple()
         linhas_afetadas = cursor.rowcount if cursor.rowcount >= 0 and not colunas else None
         gerador = (tuple(linha) for linha in cursor)
-        return bot.estruturas.ResultadoSQL(linhas_afetadas, colunas, gerador)
+        return estruturas.ResultadoSQL(linhas_afetadas, colunas, gerador)
 
-    def execute_many (self, sql: str, parametros: Iterable[bot.tipagem.nomeado] | Iterable[bot.tipagem.posicional]) -> bot.estruturas.ResultadoSQL:
+    def execute_many (self, sql: str, parametros: Iterable[tipagem.nomeado] | Iterable[tipagem.posicional]) -> estruturas.ResultadoSQL:
         """Executar uma ou mais instruções SQL
         - Utilizar apenas comandos SQL que resultem em `linhas_afetadas`
         - `sql` Comando que será executado. Recomendado ser parametrizado com argumentos posicionais `?` ou nomeados `:nome`
@@ -148,8 +148,8 @@ class DatabaseODBC:
                 resultado = self.execute(sql, parametro)
                 if resultado.linhas_afetadas: total_linhas_afetadas += resultado.linhas_afetadas
             except pyodbc.DatabaseError as erro: 
-                bot.logger.alertar(f"Erro ao executar o parâmetro {parametro}\n\t{[ *erro.args ]}")
-        return bot.estruturas.ResultadoSQL(total_linhas_afetadas, tuple(), (x for x in []))
+                logger.alertar(f"Erro ao executar o parâmetro {parametro}\n\t{[ *erro.args ]}")
+        return estruturas.ResultadoSQL(total_linhas_afetadas, tuple(), (x for x in []))
 
     @staticmethod
     def listar_drivers () -> list[str]:
@@ -167,12 +167,12 @@ class Sqlite:
         """Inicialização do banco de dados
         - `database` caminho para o arquivo .db ou .sqlite, 
         - Default carregar apenas na memória"""
-        bot.logger.informar(f"Iniciando conexão Sqlite com o database '{database}'")
+        logger.informar(f"Iniciando conexão Sqlite com o database '{database}'")
         self.__conexao = sqlite3.connect(database, 5)
 
     def __del__ (self) -> None:
         """Fechar a conexão quando sair do escopo"""
-        bot.logger.informar(f"Encerrando conexão com o database")
+        logger.informar(f"Encerrando conexão com o database")
         try: self.__conexao.close()
         except: pass
 
@@ -200,7 +200,7 @@ class Sqlite:
         """Reverter as alterações, pós commit, feitas na conexão"""
         self.__conexao.rollback()
 
-    def execute (self, sql: str, parametros: bot.tipagem.nomeado | bot.tipagem.posicional = None) -> bot.estruturas.ResultadoSQL:
+    def execute (self, sql: str, parametros: tipagem.nomeado | tipagem.posicional = None) -> estruturas.ResultadoSQL:
         """Executar uma única instrução SQL
         - `sql` Comando que será executado. Recomendado ser parametrizado com argumentos posicionais `?` ou nomeados `:nome`
         - `parametros` Parâmetros presentes no `sql`"""
@@ -208,9 +208,9 @@ class Sqlite:
         colunas = tuple(coluna[0] for coluna in cursor.description) if cursor.description else tuple()
         linhas_afetadas = cursor.rowcount if cursor.rowcount >= 0 and not colunas else None
         gerador = (linha for linha in cursor)
-        return bot.estruturas.ResultadoSQL(linhas_afetadas, colunas, gerador)
+        return estruturas.ResultadoSQL(linhas_afetadas, colunas, gerador)
 
-    def execute_many (self, sql: str, parametros: Iterable[bot.tipagem.nomeado] | Iterable[bot.tipagem.posicional]) -> bot.estruturas.ResultadoSQL:
+    def execute_many (self, sql: str, parametros: Iterable[tipagem.nomeado] | Iterable[tipagem.posicional]) -> estruturas.ResultadoSQL:
         """Executar uma ou mais instruções SQL
         - `sql` Comando que será executado. Recomendado ser parametrizado com argumentos nomeados `:nome` ou posicionais `?`
         - `parametros` Lista dos parâmetros presentes no `sql`"""
@@ -218,7 +218,7 @@ class Sqlite:
         colunas = tuple(coluna[0] for coluna in cursor.description) if cursor.description else tuple()
         linhas_afetadas = cursor.rowcount if cursor.rowcount >= 0 and not colunas else None
         gerador = (linha for linha in cursor)
-        return bot.estruturas.ResultadoSQL(linhas_afetadas, colunas, gerador)
+        return estruturas.ResultadoSQL(linhas_afetadas, colunas, gerador)
 
     def to_excel (self, caminho="resultado.xlsx") -> None:
         """Salvar as linhas de todas as tabelas da conexão em um arquivo excel"""

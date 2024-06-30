@@ -1,8 +1,8 @@
 # std
 from time import sleep
 # interno
-import bot
-from bot.estruturas import Coordenada
+from .. import util, tipagem
+from ..estruturas import Coordenada
 # externo
 from pyscreeze import pixel
 from pynput.mouse import Controller, Button
@@ -34,9 +34,9 @@ def mover_mouse (coordenada: tuple[int, int] | Coordenada) -> None:
     # esperar atualizar
     sleep(0.01)
     c = coordenada
-    bot.util.aguardar_condicao(lambda: c == MOUSE.position and c == get_cursor_position(), 0.1, 0.002)
+    util.aguardar_condicao(lambda: c == MOUSE.position and c == get_cursor_position(), 0.1, 0.002)
 
-def clicar_mouse (botao: bot.tipagem.BOTOES_MOUSE = "left",
+def clicar_mouse (botao: tipagem.BOTOES_MOUSE = "left",
                   quantidade=1,
                   coordenada: Coordenada | tuple[int, int] = None,
                   delay=0.1) -> None:
@@ -46,7 +46,7 @@ def clicar_mouse (botao: bot.tipagem.BOTOES_MOUSE = "left",
     sleep(delay)
 
 def scroll_vertical (quantidade=1,
-                     direcao: bot.tipagem.DIRECOES_SCROLL = "baixo",
+                     direcao: tipagem.DIRECOES_SCROLL = "baixo",
                      coordenada: Coordenada | tuple[int, int] = None,
                      delay=0.05) -> None:
     """Realizar o scroll vertical `quantidade` vezes para a `direcao` na `coordenada` ou posição atual"""
@@ -56,7 +56,7 @@ def scroll_vertical (quantidade=1,
         MOUSE.scroll(0, -1 if direcao == "baixo" else 1)
         sleep(delay)
 
-def cor_mouse () -> bot.tipagem.rgb:
+def cor_mouse () -> tipagem.rgb:
     """Obter o RGB da posição atual do mouse
     - `r, g, b = cor_mouse()`"""
     return pixel(*posicao_mouse())

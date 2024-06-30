@@ -15,7 +15,7 @@ from xml.etree.ElementTree import (
     fromstring as xml_from_string,
 )
 # interno
-import bot
+from .. import logger, tipagem
 # externo
 import yaml
 from jsonschema import (
@@ -84,9 +84,9 @@ class Json [T]:
         """Validar se o `json` está de acordo com o `schema`"""
         try: return validate_schema(self.__item, schema) == None
         except SchemaError as erro:
-            bot.logger.alertar(f"Schema de validação do {self} apresentou erro\n\t{erro.message}\n\t{schema}")
+            logger.alertar(f"Schema de validação do {self} apresentou erro\n\t{erro.message}\n\t{schema}")
         except ValidationError as erro:
-            bot.logger.alertar(f"Validação do {self} apresentou erro\n\t{erro.message}\n\t{self.__item}")
+            logger.alertar(f"Validação do {self} apresentou erro\n\t{erro.message}\n\t{self.__item}")
         return False
 
     @classmethod
@@ -95,16 +95,16 @@ class Json [T]:
         - `None` caso ocorra falha"""
         try: return Json(json_parse(json))
         except JSONDecodeError as erro:
-            return bot.logger.alertar(f"Falha ao realizar o parse no json\n\t{json}\n\t{erro.msg}")
+            return logger.alertar(f"Falha ao realizar o parse no json\n\t{json}\n\t{erro.msg}")
 
 class ElementoXML:
     """Classe de manipulação do XML
     - Abstração do módulo `xml.etree.ElementTree`"""
 
     __elemento: Element
-    __prefixos: dict[str, bot.tipagem.url] = {}
+    __prefixos: dict[str, tipagem.url] = {}
 
-    def __init__ (self, nome: str, texto: str = None, namespace: bot.tipagem.url = None, atributos: dict[str, str] = None) -> None:
+    def __init__ (self, nome: str, texto: str = None, namespace: tipagem.url = None, atributos: dict[str, str] = None) -> None:
         """Inicializar um `ElementoXML` simples"""
         nome = f"{{{namespace}}}{nome}" if namespace else nome
         self.__elemento = Element(nome, atributos or {})
@@ -155,7 +155,7 @@ class ElementoXML:
         elemento[self.nome] = [e.__dict__ for e in self] if len(self) else self.texto
         return elemento
 
-    def __nome_namespace (self) -> tuple[str, bot.tipagem.url | None]:
+    def __nome_namespace (self) -> tuple[str, tipagem.url | None]:
         """Extrair nome e namespace do `Element.tag`
         - `nome, namespace = self.__nome_namespace()`"""
         tag = self.__elemento.tag
@@ -176,13 +176,13 @@ class ElementoXML:
         self.__elemento.tag = f"{{{namespace}}}{nome}" if namespace else nome
 
     @property
-    def namespace (self) -> bot.tipagem.url | None:
+    def namespace (self) -> tipagem.url | None:
         """`Namespace` do elemento
         - Não leva em conta o `xmlns` do parente"""
         return self.__nome_namespace()[1]
 
     @namespace.setter
-    def namespace (self, namespace: bot.tipagem.url | None) -> None:
+    def namespace (self, namespace: tipagem.url | None) -> None:
         """Setar `namespace` do elemento"""
         nome, _ = self.__nome_namespace()
         self.__elemento.tag = f"{{{namespace}}}{nome}" if namespace else nome
@@ -198,12 +198,12 @@ class ElementoXML:
         self.__elemento.text = valor
 
     @property
-    def atributos (self) -> dict[str, bot.tipagem.url]:
+    def atributos (self) -> dict[str, tipagem.url]:
         """`Atributos` do elemento"""
         return self.__elemento.attrib
 
     @atributos.setter
-    def atributos (self, valor: dict[str, bot.tipagem.url]) -> None:
+    def atributos (self, valor: dict[str, tipagem.url]) -> None:
         """Setar `atributos`"""
         self.__elemento.attrib = valor
 
@@ -215,7 +215,7 @@ class ElementoXML:
             for elemento in self.__elemento
         ]
 
-    def encontrar (self, xpath: str, namespaces: dict[str, bot.tipagem.url] = None) -> list[ElementoXML]:
+    def encontrar (self, xpath: str, namespaces: dict[str, tipagem.url] = None) -> list[ElementoXML]:
         """Encontrar elementos que resultem no `xpath` informado
         - `xpath` deve retornar em elementos apenas, não em texto ou atributo
         - `namespaces` para utilizar prefixos no `xpath`, informar um dicionario { ns: url } ou registrar_prefixo()"""
@@ -256,7 +256,7 @@ class ElementoXML:
         return ElementoXML.parse(str(self))
 
     @staticmethod
-    def registrar_prefixo (prefixo: str, namespace: bot.tipagem.url) -> bot.tipagem.url:
+    def registrar_prefixo (prefixo: str, namespace: tipagem.url) -> tipagem.url:
         """Registrar o `prefixo` para o determinado `namespace`
         - Retorna o `namespace`"""
         ElementoXML.__prefixos[prefixo] = namespace

@@ -1,7 +1,7 @@
 # std
 import os, shutil, subprocess, itertools
 # interno
-from bot import tipagem, estruturas
+from .. import tipagem, estruturas
 
 # caminho para QRes no pacote do bot
 CAMINHO_QRES = rf"{os.path.dirname(__file__)}\QRes.exe"

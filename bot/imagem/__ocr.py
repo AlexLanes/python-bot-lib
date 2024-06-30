@@ -2,8 +2,8 @@
 from typing import Iterable
 from functools import cache
 # interno
-import bot
-from bot.estruturas import Coordenada
+from ..estruturas import Coordenada
+from .. import util, logger, tipagem
 from .__setup import capturar_tela, transformar_pillow
 # externo
 import numpy as np
@@ -13,7 +13,7 @@ class LeitorOCR:
     """Classe de abstração do EasyOCR
     - Caso possua GPU da NVIDIA, instalar o `CUDA Toolkit` e instalar as bibliotecas indicadas pelo pytorch https://pytorch.org/get-started/locally/"""
 
-    def __init__ (self, confianca: bot.tipagem.PORCENTAGENS = "0.4"):
+    def __init__ (self, confianca: tipagem.PORCENTAGENS = "0.4"):
         """Inicia o leitor OCR
         - `confianca` porcentagem mínima de confiança no texto extraído `(entre 0.0 e 1.0)`"""
         try: from easyocr import Reader
@@ -25,7 +25,7 @@ class LeitorOCR:
         """Extrair texto e coordenadas da tela na posição `coordenada` 
         - `regiao` vazia para ler a tela inteira
         - `for texto, coordenada in leitor.ler_tela()`"""
-        cronometro = bot.util.cronometro()
+        cronometro = util.cronometro()
         extracoes = self.__ler(capturar_tela(regiao, True))
 
         # corrigir offset com a regiao informada
@@ -34,17 +34,17 @@ class LeitorOCR:
             coordenada.x += regiao.x
             coordenada.y += regiao.y
 
-        tempo = bot.util.expandir_tempo(cronometro())
-        bot.logger.debug(f"Leitura da tela realizada em {tempo}")
+        tempo = util.expandir_tempo(cronometro())
+        logger.debug(f"Leitura da tela realizada em {tempo}")
         return extracoes
 
-    def ler_imagem (self, imagem: bot.tipagem.imagem) -> list[tuple[str, Coordenada]]:
+    def ler_imagem (self, imagem: tipagem.imagem) -> list[tuple[str, Coordenada]]:
         """Extrair texto e coordenadas de uma imagem
         - `for texto, coordenada in leitor.ler_imagem()`"""
-        cronometro = bot.util.cronometro()
+        cronometro = util.cronometro()
         extracoes = self.__ler(transformar_pillow(imagem))
-        tempo = bot.util.expandir_tempo(cronometro())
-        bot.logger.debug(f"Leitura da imagem realizada em {tempo}")
+        tempo = util.expandir_tempo(cronometro())
+        logger.debug(f"Leitura da imagem realizada em {tempo}")
         return extracoes
 
     def __ler (self, imagem: Image.Image) -> list[tuple[str, Coordenada]]:
@@ -60,7 +60,7 @@ class LeitorOCR:
         """Extrair coordenadas da tela
         - `regiao` vazia para ler a tela inteira
         - `confiança` não se aplica na detecção"""
-        cronometro = bot.util.cronometro()
+        cronometro = util.cronometro()
         coordenadas = self.__detectar(capturar_tela(regiao, True))
 
         # corrigir offset com a regiao informada
@@ -69,17 +69,17 @@ class LeitorOCR:
             coordenada.x += regiao.x
             coordenada.y += regiao.y
     
-        tempo = bot.util.expandir_tempo(cronometro())
-        bot.logger.debug(f"Tela detectada em {tempo}")
+        tempo = util.expandir_tempo(cronometro())
+        logger.debug(f"Tela detectada em {tempo}")
         return coordenadas
 
-    def detectar_imagem (self, imagem: bot.tipagem.imagem) -> list[Coordenada]:
+    def detectar_imagem (self, imagem: tipagem.imagem) -> list[Coordenada]:
         """Extrair coordenadas de uma imagem
         - `confiança` não se aplica na detecção"""
-        cronometro = bot.util.cronometro()
+        cronometro = util.cronometro()
         coordenadas = self.__detectar(transformar_pillow(imagem))
-        tempo = bot.util.expandir_tempo(cronometro())
-        bot.logger.debug(f"Imagem detectada em {tempo}")
+        tempo = util.expandir_tempo(cronometro())
+        logger.debug(f"Imagem detectada em {tempo}")
         return coordenadas
 
     def __detectar (self, imagem: Image.Image) -> list[Coordenada]:
@@ -107,7 +107,7 @@ class LeitorOCR:
 
         # 1 2 3
         coordenadas = [
-            (bot.util.encontrar_texto(texto, extracao, lambda item: item[0]) or (None, None))[1]
+            (util.encontrar_texto(texto, extracao, lambda item: item[0]) or (None, None))[1]
             for texto in textos
         ]
         if all(coordenadas) or all(c in coordenadas for _, c in extracao):
@@ -155,7 +155,7 @@ class LeitorOCR:
                 if len(texto_extracao.split(" ")) <= 1: continue # desnecessário
                 # checar Match
                 combinacoes = gerar_combinacoes(texto_extracao, coordenada, qtd_palavras)
-                _, coordenada = bot.util.encontrar_texto(texto, combinacoes, lambda item: item[0]) or (None, None)
+                _, coordenada = util.encontrar_texto(texto, combinacoes, lambda item: item[0]) or (None, None)
                 if not coordenada or any(coordenada in c for c in coordenadas if c): continue # não encontrada ou sendo utilizada
                 # inserir coordenada e finalizar procura do `texto` atual
                 coordenadas[index] = coordenada

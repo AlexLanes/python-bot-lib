@@ -4,8 +4,8 @@ import ctypes
 from typing import Self
 from warnings import simplefilter
 # interno
-import bot
 from . import Coordenada
+from .. import util, tipagem
 # externo
 from pywinauto.timings import TimeConfig
 from pywinauto import Application, Desktop
@@ -31,7 +31,7 @@ class Janela:
 
     def __init__ (self, titulo: str = None,
                         class_name: str = None,
-                        backend: bot.tipagem.BACKENDS_JANELA = "win32") -> None:
+                        backend: tipagem.BACKENDS_JANELA = "win32") -> None:
         """Inicializar a conexão com a janela
         - Se o `titulo` e `class_name` forem omitidos, será pego a janela focada atual
         - `backend` varia de acordo com a janela, testar com ambos para encontrar o melhor"""
@@ -41,11 +41,11 @@ class Janela:
             self.__aplicacao = Application(backend).connect(handle=handle)
             return
 
-        titulo_normalizado = bot.util.normalizar(titulo)
+        titulo_normalizado = util.normalizar(titulo)
         titulos = [
             titulo
             for titulo in self.titulos_janelas()
-            if titulo_normalizado in bot.util.normalizar(titulo)
+            if titulo_normalizado in util.normalizar(titulo)
         ]
         assert titulos, f"Janela de titulo '{titulo}' não foi encontrada"
 

@@ -3,7 +3,7 @@ from time import sleep
 from atexit import register
 from typing import Callable
 # interno
-import bot
+from .. import tipagem
 # externo
 import pyperclip
 from pynput.keyboard import Controller, Key, Listener
@@ -11,7 +11,7 @@ from pynput.keyboard import Controller, Key, Listener
 TECLADO = Controller()
 CALLBACKS: dict[str, Callable[[], None]] = {}
 
-def apertar_tecla (tecla: bot.tipagem.BOTOES_TECLADO, quantidade=1, delay=0.1) -> None:
+def apertar_tecla (tecla: tipagem.BOTOES_TECLADO, quantidade=1, delay=0.1) -> None:
     """Apertar e soltar uma tecla `qtd` vezes
     - `tecla` pode ser do `BOTOES_TECLADO` ou um `char`"""
     tecla: Key | str = tecla if len(tecla) == 1 else Key[tecla]
@@ -19,7 +19,7 @@ def apertar_tecla (tecla: bot.tipagem.BOTOES_TECLADO, quantidade=1, delay=0.1) -
         TECLADO.tap(tecla)
         sleep(delay)
 
-def atalho_teclado (teclas: list[bot.tipagem.BOTOES_TECLADO], delay=0.5) -> None:
+def atalho_teclado (teclas: list[tipagem.BOTOES_TECLADO], delay=0.5) -> None:
     """Apertar as `teclas` sequencialmente e depois soltá-las em ordem reversa
     - `tecla` pode ser do `BOTOES_TECLADO` ou um `char`"""
     teclas: list[Key | str] = [
@@ -51,7 +51,7 @@ def texto_copiado (apagar=False) -> str:
     if apagar: copiar_texto("")
     return texto
 
-def observar_tecla (tecla: bot.tipagem.BOTOES_TECLADO, callback: Callable[[], None]) -> None:
+def observar_tecla (tecla: tipagem.BOTOES_TECLADO, callback: Callable[[], None]) -> None:
     """Observar quando a `tecla` é apertada e chamar o `callback`
     - `tecla` pode ser do `BOTOES_TECLADO` ou um `char`"""
     CALLBACKS[tecla] = callback

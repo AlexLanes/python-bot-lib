@@ -3,9 +3,7 @@ import ftplib
 from typing import IO
 from io import BytesIO
 # interno
-import bot
-import bot.configfile as cf
-from bot.tipagem import caminho
+from .. import configfile, logger, tipagem, estruturas
 
 class FTP:
     """Classe de abstração do `ftplib`"""
@@ -20,21 +18,21 @@ class FTP:
             - `timeout` Opcional `Default: 5.0`"""
         # instanciar e conectar
         self.__ftp = ftplib.FTP()
-        host = cf.obter_opcoes("FTP", ["host"])[0]
-        bot.logger.informar(f"Conectando ao servidor FTP '{host}'")
+        host = configfile.obter_opcoes("FTP", ["host"])[0]
+        logger.informar(f"Conectando ao servidor FTP '{host}'")
         self.__ftp.connect(host=host,
-                           port=cf.obter_opcao_ou("FTP", "port", 21),
-                           timeout=cf.obter_opcao_ou("FTP", "timeout", 5.0))
+                           port=configfile.obter_opcao_ou("FTP", "port", 21),
+                           timeout=configfile.obter_opcao_ou("FTP", "timeout", 5.0))
 
         # login
-        usuario, senha = cf.obter_opcao_ou("FTP", "user"), cf.obter_opcao_ou("FTP", "password")
+        usuario, senha = configfile.obter_opcao_ou("FTP", "user"), configfile.obter_opcao_ou("FTP", "password")
         if usuario:
-            bot.logger.informar(f"Realizando o login com o usuário '{usuario}'")
+            logger.informar(f"Realizando o login com o usuário '{usuario}'")
             self.__ftp.login(usuario, senha)
 
     def __del__ (self, *args) -> None:
         """Encerrar conexão ao sair do escopo"""
-        bot.logger.informar("Encerrando conexão FTP")
+        logger.informar("Encerrando conexão FTP")
         try: self.__ftp.quit()
         except: pass
 
@@ -42,24 +40,24 @@ class FTP:
         return f"<FTP conexão com o host '{self.__ftp.host}'>"
 
     @property
-    def diretorio (self) -> caminho:
+    def diretorio (self) -> tipagem.caminho:
         """Diretório atual do FTP"""
         return self.__ftp.pwd()
 
-    def alterar_diretorio (self, caminho: caminho) -> None:
+    def alterar_diretorio (self, caminho: tipagem.caminho) -> None:
         """Alterar o diretório atual
         - Passível de exceção"""
-        bot.logger.informar(f"Alterando diretório do FTP para '{caminho}'")
+        logger.informar(f"Alterando diretório do FTP para '{caminho}'")
         try: self.__ftp.cwd(caminho)
         except Exception as erro:
             erro.add_note(f"Caminho informado: '{caminho}'")
             erro.add_note(f"Caminhos existentes: {self.listar_diretorio().pastas}")
             raise
 
-    def listar_diretorio (self) -> bot.estruturas.Diretorio:
+    def listar_diretorio (self) -> estruturas.Diretorio:
         """Listar arquivos e pastas do diretório atual"""
         cwd = self.diretorio
-        diretorio = bot.estruturas.Diretorio(cwd, [], [])
+        diretorio = estruturas.Diretorio(cwd, [], [])
         del diretorio.query_data_alteracao_arquivos # não suportado
 
         for nome, infos in self.__ftp.mlsd():
@@ -72,7 +70,7 @@ class FTP:
     def obter_arquivo (self, nome_arquivo: str) -> bytes:
         """Obter conteúdo do arquivo `nome` no diretório atual
         - Passível de exceção"""
-        bot.logger.informar(f"Obtendo arquivo FTP '{nome_arquivo}'")
+        logger.informar(f"Obtendo arquivo FTP '{nome_arquivo}'")
         conteudo = BytesIO()
         self.__ftp.retrbinary(f"RETR {nome_arquivo}", conteudo.write)
         return conteudo.getvalue()
@@ -81,20 +79,20 @@ class FTP:
         """Adicionar arquivo no diretório atual
         - `conteudo` pode ser qualquer tipo do `import io` -> `open()`, inclusive `BytesIO`
         - Passível de exceção"""
-        bot.logger.informar(f"Adicionado arquivo FTP no diretório atual '{nome_arquivo}'")
+        logger.informar(f"Adicionado arquivo FTP no diretório atual '{nome_arquivo}'")
         self.__ftp.storbinary(f"STOR {nome_arquivo}", conteudo)
 
     def renomear_arquivo (self, nome_atual: str, novo_nome: str) -> None:
         """Renomear arquivo no diretório atual
         - Pode ser utilizado para mover o arquivo também
         - Passível de exceção"""
-        bot.logger.informar(f"Renomeando arquivo FTP no diretório atual de '{nome_atual}' para '{novo_nome}'")
+        logger.informar(f"Renomeando arquivo FTP no diretório atual de '{nome_atual}' para '{novo_nome}'")
         self.__ftp.rename(nome_atual, novo_nome)
 
     def remover_arquivo (self, nome_arquivo: str) -> None:
         """Remover arquivo no diretório atual
         - Passível de exceção"""
-        bot.logger.informar(f"Removendo arquivo FTP no diretório atual '{nome_arquivo}'")
+        logger.informar(f"Removendo arquivo FTP no diretório atual '{nome_arquivo}'")
         self.__ftp.delete(nome_arquivo)
 
 __all__ = ["FTP"]
