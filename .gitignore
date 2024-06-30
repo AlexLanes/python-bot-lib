@@ -1,10 +1,11 @@
 # python cache
 **/__pycache__
 
-# log e configfile
-*.log
+# log / configfile / sqlite
+**..log
 /logs
-.ini
+**.ini
+**.sqlite
 
 # pyinstaller / setuptools / build.py
 /build
