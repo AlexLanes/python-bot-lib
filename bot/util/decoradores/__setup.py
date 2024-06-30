@@ -31,9 +31,9 @@ def retry (tentativas=3, segundos=10):
             for tentativa in range(1, tentativas + 1):
                 try: return func(*args, **kwargs)
                 except Exception as erro:
-                    logger.alertar(f"Tentativa {tentativa}/{tentativas} de execução da função({func.__name__}) resultou em erro\n\t{erro}")
+                    logger.erro(f"Tentativa {tentativa}/{tentativas} de execução da função({func.__name__}) resultou em erro")
                     if tentativa < tentativas: sleep(segundos) # sleep() não necessário na última tentativa
-                    else: # lançar a exceção da última tentativa
+                    else: # lançar a exceção na última tentativa
                         erro.add_note(f"Foram realizadas {tentativas} tentativa(s) de execução na função({func.__name__})")
                         raise
 

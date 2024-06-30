@@ -49,7 +49,7 @@ def procurar_imagem (imagem: tipagem.imagem,
         region=tuple(regiao) if regiao else None,
         grayscale=cinza
     )
-    return Coordenada(*box) if box else None
+    return Coordenada(*map(int, box)) if box else None
 
 def procurar_imagens (imagem: tipagem.imagem,
                       confianca: tipagem.PORCENTAGENS = "0.9",
@@ -65,7 +65,7 @@ def procurar_imagens (imagem: tipagem.imagem,
 
     coordenadas: list[Coordenada] = []
     for box in boxes:
-        coordenada = Coordenada(*box) # transformar para Coordenada
+        coordenada = Coordenada(*map(int, box)) # transformar para Coordenada
         if all(coordenada not in c for c in coordenadas): # filtrar duplicações
             coordenadas.append(coordenada)
 
