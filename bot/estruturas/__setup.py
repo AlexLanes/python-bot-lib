@@ -215,10 +215,21 @@ class InfoStack:
     def __init__ (self, index=1) -> None:
         """Obter informações presente no stack dos callers
         - `Default` arquivo que chamou o `InfoStack()`"""
-        self.linha = stack()[index].lineno
-        self.funcao = stack()[index].function
-        caminho, self.nome = stack()[index].filename.rsplit("\\", 1)
-        self.caminho = f"{caminho[0].upper()}{caminho[1:]}" # forçar upper no primeiro char
+        frame = stack()[index]
+        self.linha, self.funcao = frame.lineno, frame.function
+        self.nome = bot.windows.nome_base(frame.filename)
+        self.caminho = bot.windows.nome_diretorio(frame.filename)
+
+    @staticmethod
+    def caminhos () -> list[bot.tipagem.caminho]:
+        """Listar os caminhos dos callers no stack de execução
+        - `[0] topo stack`
+        - `[-1] começo stack`"""
+        return [
+            bot.windows.caminho_absoluto(frame.filename)
+            for frame in stack()
+            if bot.windows.afirmar_arquivo(frame.filename)
+        ]
 
 @dataclass
 class Email:

@@ -1,5 +1,5 @@
 # std
-import os, shutil, subprocess
+import os, shutil, subprocess, itertools
 # interno
 from bot import tipagem, estruturas
 # externo
@@ -29,9 +29,17 @@ def nome_base (caminho: tipagem.caminho) -> str:
     """Extrair a parte do nome e formato do `caminho`"""
     return os.path.basename(caminho)
 
+def nome_diretorio (caminho: tipagem.caminho) -> str:
+    """Extrair a parte do diretório do `caminho`"""
+    disco, *caminho = os.path.dirname(caminho)
+    chars = itertools.chain(disco.upper(), caminho)
+    return "".join(chars)
+
 def caminho_absoluto (caminho: tipagem.caminho) -> tipagem.caminho: 
     """Retorna a forma de caminho absoluto para o `caminho` informado"""
-    return os.path.abspath(caminho)
+    disco, *caminho = os.path.abspath(caminho)
+    chars = itertools.chain(disco.upper(), caminho)
+    return "".join(chars)
 
 def caminho_existe (caminho: tipagem.caminho) -> bool:
     """Confirmar se `caminho` existe ou não"""
@@ -126,6 +134,7 @@ __all__ = [
     "afirmar_pasta",
     "caminho_existe",
     "apagar_arquivo",
+    "nome_diretorio",
     "copiar_arquivo",
     "afirmar_arquivo",
     "listar_diretorio",
