@@ -2,11 +2,9 @@
 import os, shutil, subprocess, itertools
 # interno
 from bot import tipagem, estruturas
-# externo
-import pkg_resources
 
 # caminho para QRes no pacote do bot
-CAMINHO_QRES = pkg_resources.resource_filename("bot", "windows/QRes.exe")
+CAMINHO_QRES = rf"{os.path.dirname(__file__)}\QRes.exe"
 
 def apagar_arquivo (caminho: tipagem.caminho) -> None:
     """Apagar um arquivo"""

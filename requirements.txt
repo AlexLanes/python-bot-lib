@@ -25,6 +25,6 @@ selenium
 httpx
 jsonschema
 
-# bot.windows / setup.py
+# setup.py
 wheel
 setuptools
