@@ -27,7 +27,7 @@ CAMINHO_LOG_PERSISTENCIA = os.path.join(
     INICIALIZADO_EM.strftime(FORMATO_NOME_LOG_PERSISTENCIA)
 )
 
-"""inicializar no primeiro `import` do pacote"""
+# inicializar no primeiro `import` do pacote
 ROOT_LOGGER = logging.getLogger()
 BOT_LOGGER = logging.getLogger("BOT")
 logging.basicConfig(

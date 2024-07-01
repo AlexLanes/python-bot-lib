@@ -8,7 +8,7 @@ CAMINHO_PACOTE = windows.nome_diretorio(__file__).removesuffix(r"\argumentos")
 CAMINHO_IMPORTADOR = windows.nome_diretorio(estruturas.InfoStack.caminhos()[-1])
 DIRETORIO_EXECUCAO = CAMINHO_IMPORTADOR if CAMINHO_IMPORTADOR != CAMINHO_PACOTE else os.getcwd()
 
-"""inicializar no primeiro `import` do pacote"""
+# inicializar no primeiro `import` do pacote
 CONFIG = ConfigParser(interpolation=ExtendedInterpolation())
 for arquivo in windows.listar_diretorio(DIRETORIO_EXECUCAO).arquivos:
     if not arquivo.endswith(".ini"): continue
