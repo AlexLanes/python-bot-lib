@@ -1,8 +1,7 @@
 # std
 from __future__ import annotations
-import ctypes
 from typing import Self
-from warnings import simplefilter
+import ctypes, warnings, logging
 # interno
 from . import Coordenada
 from .. import util, tipagem
@@ -12,13 +11,18 @@ from pywinauto import Application, Desktop
 from pywinauto.controls.hwndwrapper import HwndWrapper
 
 # ignorar warnings do pywinauto
-simplefilter('ignore', category=UserWarning)
+warnings.simplefilter('ignore', category=UserWarning)
 # reduzir o timeouts busca e fechamento de elementos e janelas
 TimeConfig.closeclick_retry = 0.01
 TimeConfig.window_find_retry = 0.01
 TimeConfig.after_setfocus_wait = 0.01
 TimeConfig.after_clickinput_wait = 0.01
 TimeConfig.after_setcursorpos_wait = 0.01
+# desativar forçadamente o logger do pywinauto
+logger = logging.getLogger("pywinauto")
+logger.disabled = True
+[h.close() for h in logger.handlers]
+logger.handlers.clear()
 
 class Janela:
     """Classe de interação com as janelas abertas. 
