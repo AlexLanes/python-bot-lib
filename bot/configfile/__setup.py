@@ -2,27 +2,46 @@
 import os, typing
 from configparser import ConfigParser, ExtendedInterpolation
 # interno
-from .. import util, windows, estruturas, tipagem
+from .. import util, windows, tipagem
 
-CAMINHO_PACOTE = windows.nome_diretorio(__file__).removesuffix(r"\argumentos")
-CAMINHO_IMPORTADOR = windows.nome_diretorio(estruturas.InfoStack.caminhos()[-1])
-DIRETORIO_EXECUCAO = CAMINHO_IMPORTADOR if CAMINHO_IMPORTADOR != CAMINHO_PACOTE else os.getcwd()
-
-# inicializar no primeiro `import` do pacote
+INICIALIZADO = False
+DIRETORIO_EXECUCAO = os.getcwd()
 CONFIG = ConfigParser(interpolation=ExtendedInterpolation())
-for arquivo in windows.listar_diretorio(DIRETORIO_EXECUCAO).arquivos:
-    if not arquivo.endswith(".ini"): continue
-    CONFIG.read(arquivo, encoding="utf-8")
 
-opcoes_secao = CONFIG.options
-obter_secoes = CONFIG.sections
-possui_opcao = CONFIG.has_option
-possui_secao = CONFIG.has_section
+def inicializar () -> None:
+    """Inicializar o configfile"""
+    assert windows.afirmar_diretorio(DIRETORIO_EXECUCAO)
+    for arquivo in windows.listar_diretorio(DIRETORIO_EXECUCAO).arquivos:
+        if not arquivo.endswith(".ini"): continue
+        CONFIG.read(arquivo, encoding="utf-8")
+
+    global INICIALIZADO
+    INICIALIZADO = True
+
+def obter_secoes () -> list[str]:
+    """Obter as seções do configfile"""
+    if not INICIALIZADO: inicializar()
+    return CONFIG.sections()
+
+def opcoes_secao (secao: str) -> list[str]:
+    """Obter as opções de uma `seção` do configfile"""
+    if not INICIALIZADO: inicializar()
+    return CONFIG.options(secao)
+
+def possui_secao (secao: str) -> bool:
+    """Indicador se uma `seção` está presente no configfile"""
+    if not INICIALIZADO: inicializar()
+    return CONFIG.has_section(secao)
+
+def possui_opcao (secao: str, opcao: str) -> bool:
+    """Indicador se uma `seção` possui a `opção` no configfile"""
+    if not INICIALIZADO: inicializar()
+    return CONFIG.has_option(secao, opcao)
 
 def possui_opcoes (secao: str, opcoes: typing.Iterable[str]) -> bool:
     """Versão do `possui_opção` que aceita uma lista de `opções`"""
     return all(
-        CONFIG.has_option(secao, opcao)
+        possui_opcao(secao, opcao)
         for opcao in opcoes
     )
 

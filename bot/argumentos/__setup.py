@@ -1,13 +1,15 @@
 # std
 import sys
 # interno
-from .. import util, tipagem, logger
+from .. import util, tipagem
 
 ARGUMENTOS = sys.argv[1:] # primeiro argumento é sempre o nome do arquivo iniciado
 POSICIONAIS: list[str] = []
 NOMEADOS: dict[str, str | None] = {}
 
-"""inicializar no primeiro `import` do pacote"""
+# ------------------------------------------ #
+# Inicializar no primeiro `import` do pacote #
+# ------------------------------------------ #
 # posicionais
 while ARGUMENTOS and not ARGUMENTOS[0].startswith("--"):
     POSICIONAIS.append(ARGUMENTOS.pop(0))
@@ -16,10 +18,6 @@ for index in range(0, len(ARGUMENTOS) - 1):
     atual, proximo = ARGUMENTOS[index], ARGUMENTOS[index + 1]
     if not atual.startswith("--"): continue
     NOMEADOS[atual.lstrip("-").lower()] = proximo if not proximo.startswith("-") else None
-# informar no log
-if POSICIONAIS or NOMEADOS:
-    mensagem = f"Argumento(s) de inicialização encontrado(s)\n\tPosicionais: {POSICIONAIS}\n\tNomeados: {NOMEADOS}"
-    logger.informar(mensagem)
 
 def posicional_existe (index: int) -> bool:
     """Checar se o argumento posicional existe"""
