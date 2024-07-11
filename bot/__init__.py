@@ -19,7 +19,7 @@ from . import windows
 
 def configurar_diretorio (caminho: tipagem.caminho) -> None:
     """Configurar o diretório de execução do bot manualmente
-    - Informar o caminho para o diretório ou apenas o __file__ do main.py
+    - Informar o `caminho` para o diretório ou apenas o `__file__` do main.py
     - `configfile` e `logger` utilizam para localizarem o diretório de execução"""
     diretorio = caminho if windows.afirmar_diretorio(caminho) else windows.nome_diretorio(caminho)
     configfile.__setup.DIRETORIO_EXECUCAO = diretorio
