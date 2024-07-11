@@ -4,7 +4,7 @@ import os, shutil, subprocess, itertools
 from .. import tipagem, estruturas
 
 # caminho para QRes no pacote do bot
-CAMINHO_QRES = rf'"{os.path.dirname(__file__)}\QRes.exe"'
+CAMINHO_QRES = os.path.join(os.path.dirname(__file__), "QRes.exe")
 
 def apagar_arquivo (caminho: tipagem.caminho) -> None:
     """Apagar um arquivo"""
@@ -24,7 +24,7 @@ def copiar_arquivo (de: tipagem.caminho, para: tipagem.caminho) -> tipagem.camin
     return caminho_absoluto(shutil.copyfile(de, para))
 
 def nome_base (caminho: tipagem.caminho) -> str:
-    """Extrair a parte do nome e formato do `caminho`"""
+    """Extrair a parte final do `nome.formato` ou `nome pasta` do `caminho`"""
     return os.path.basename(caminho)
 
 def nome_diretorio (caminho: tipagem.caminho) -> str:
@@ -43,7 +43,7 @@ def caminho_existe (caminho: tipagem.caminho) -> bool:
     """Confirmar se `caminho` existe ou não"""
     return os.path.exists(caminho)
 
-def afirmar_pasta (caminho: tipagem.caminho) -> bool:
+def afirmar_diretorio (caminho: tipagem.caminho) -> bool:
     """Confirmar se o `caminho` informado é de um diretório"""
     return os.path.isdir(caminho)
 
@@ -51,16 +51,15 @@ def afirmar_arquivo (caminho: tipagem.caminho) -> bool:
     """Confirmar se o `caminho` informado é de um arquivo"""
     return os.path.isfile(caminho)
 
-def listar_diretorio (pasta: tipagem.caminho) -> estruturas.Diretorio:
-    """Lista os caminhos dos arquivos e pastas do `caminhoPasta`"""
-    assert caminho_existe(pasta), f"Caminho informado '{pasta}' não existe"
-    assert afirmar_pasta(pasta), f"Caminho informado '{pasta}' não é de uma pasta"
+def listar_diretorio (caminho: tipagem.caminho) -> estruturas.Diretorio:
+    """Lista os caminhos dos arquivos e pastas do `caminho`"""
+    assert caminho_existe(caminho), f"Caminho informado '{caminho}' não existe"
+    assert afirmar_diretorio(caminho), f"Caminho informado '{caminho}' não é de um diretório"
 
-    pasta = caminho_absoluto(pasta)
-    diretorio = estruturas.Diretorio(pasta, [], [])
-    for item in os.listdir(pasta):
-        caminho = f"{pasta}\\{item}"
-        if afirmar_pasta(caminho): diretorio.pastas.append(caminho)
+    diretorio = estruturas.Diretorio(caminho_absoluto(caminho), [], [])
+    for item in os.listdir(caminho):
+        caminho = os.path.join(diretorio.caminho, item)
+        if afirmar_diretorio(caminho): diretorio.pastas.append(caminho)
         elif afirmar_arquivo(caminho): diretorio.arquivos.append(caminho)
 
     return diretorio
@@ -69,33 +68,45 @@ def diretorio_execucao () -> estruturas.Diretorio:
     """Obter informações do diretório de execução atual"""
     return listar_diretorio(os.getcwd())
 
-def cmd (comando: str) -> None:
-    """Realizar um `comando` no `prompt`
+def executar (*argumentos: str,
+              shell = False,
+              timeout: float | None = None) -> tuple[bool, str]:
+    """Executar um comando com os `argumentos` no `prompt` ou `shell` e aguarda finalizar
+    - Retorno (sucesso, mensagem)
+    - `timeout` define o tempo limite em segundos para `TimeoutError`
     - Levar em consideração o diretório de execução atual
     - Lança exceção se o comando for inválido"""
-    os.system(comando)
+    try:
+        resultado = subprocess.run(argumentos, capture_output=True, shell=shell, timeout=timeout)
+        sucesso = resultado.returncode == 0
+        pipe = resultado.stdout if sucesso else resultado.stderr
+        return (sucesso, pipe.decode("utf-8", "ignore").strip())
+    except subprocess.TimeoutExpired as erro:
+        raise TimeoutError() from erro
 
-def powershell (comando: str, timeout: float | None = None) -> str:
-    """Realizar um `comando` no `Windows PowerShell`
-    - `stdout` do comando é retornado
+def abrir_programa (*argumentos: str) -> None:
+    """Abrir um programa em um novo processo descolado da `main thread`
     - Levar em consideração o diretório de execução atual
     - Lança exceção se o comando for inválido"""
-    return subprocess.check_output(comando, shell=True, timeout=timeout) \
-                     .decode("utf-8", "ignore")
+    subprocess.Popen(argumentos, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 def informacoes_resolucao () -> tuple[tuple[int, int], list[tuple[int, int]]]:
     """Obter informações sobre resolução da tela
     - `tuple[0]` Resolução atual da tela
     - `tuple[1]` Resoluções disponíveis"""
-    resolucao_atual = tuple(map(int, 
-        powershell(rf"{CAMINHO_QRES} /S").split("\n")[3].split(",")[0].split("x")
-    ))
+    resolucao_atual = tuple(
+        int(pixel)
+        for pixel in executar(CAMINHO_QRES, "/S")[1]
+            .split("\n")[3]
+            .split(",")[0]
+            .split("x")
+    )
 
     resolucoes_unicas = sorted(
         tuple(map(int, resolucao.split("x")))
         for resolucao in { 
             linha_com_resolucao.split(",")[0]
-            for linha_com_resolucao in powershell(rf"{CAMINHO_QRES} /L").split("\n")[3:-1]
+            for linha_com_resolucao in executar(CAMINHO_QRES, "/L")[1].split("\n")[3:]
         }
     )
 
@@ -106,37 +117,35 @@ def alterar_resolucao (largura: int, altura: int) -> None:
     - Utilizado o `QRes.exe` pois funciona para `RDPs`
     - A resolução deve estar presente nas disponíveis em configurações de tela do windows"""
     from bot.logger import informar, alertar
-    informar(f"Alterando a resolução da tela para {largura}x{altura}")
 
     # checar
     desejada = (largura, altura)
-    atual, disponiveis = informacoes_resolucao()
+    atual, _ = informacoes_resolucao()
     if atual == desejada:
         return informar("Resolução da tela desejada já se encontra definida")
-    if desejada not in disponiveis:
-        return alertar("Resolução não disponível")
 
     # alterar
-    sucesso = ['Mode Ok...']
-    resultado = powershell(rf"{CAMINHO_QRES} /X:{largura} /Y:{altura}").split("\n")[3:-1]
+    informar(f"Alterando a resolução da tela para {largura}x{altura}")
+    sucesso = "Mode Ok..."
+    _, resultado = executar(CAMINHO_QRES, f"/X:{largura}", f"/Y:{altura}")
 
     # confirmar
-    if resultado == sucesso: informar(f"Resolução da tela alterada")
-    else: alertar(f"Resolução da tela não foi alterada corretamente\n\t{resultado}")
+    if sucesso in resultado: informar(f"Resolução da tela alterada")
+    else: alertar(f"Resolução da tela não foi alterada corretamente\n\t{" ".join(resultado.split("\n")[3:])}")
 
 __all__ = [
-    "cmd",
+    "executar",
     "nome_base",
-    "powershell",
     "criar_pasta",
-    "afirmar_pasta",
     "caminho_existe",
     "apagar_arquivo",
     "nome_diretorio",
     "copiar_arquivo",
+    "abrir_programa",
     "afirmar_arquivo",
     "listar_diretorio",
     "caminho_absoluto",
+    "afirmar_diretorio",
     "alterar_resolucao",
     "diretorio_execucao",
     "informacoes_resolucao"
