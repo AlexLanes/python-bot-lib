@@ -1,4 +1,5 @@
 # std
+import base64
 from io import BytesIO
 # interno
 from .. import tipagem, util
@@ -15,6 +16,16 @@ def transformar_pillow (imagem: tipagem.imagem) -> Image.Image:
     if isinstance(imagem, str): return Image.open(imagem)
     if isinstance(imagem, bytes): return Image.open(BytesIO(imagem))
     return imagem
+
+def transformar_base64 (imagem: tipagem.imagem) -> str:
+    """Transformar a imagem para o formato `data:image/png;base64`"""
+    buffer, imagem = BytesIO(), transformar_pillow(imagem)
+    imagem.save(buffer, "PNG")
+    buffer = buffer.getvalue()
+    return ",".join((
+        "data:image/png;base64",
+        base64.b64encode(buffer).decode("utf-8")
+    ))
 
 @util.decoradores.retry(2, 10)
 def capturar_tela (regiao: Coordenada = None, cinza=False) -> Image.Image:
@@ -102,5 +113,6 @@ __all__ = [
     "cores_imagem",
     "capturar_tela",
     "procurar_imagem",
-    "procurar_imagens"
+    "procurar_imagens",
+    "transformar_base64"
 ]
