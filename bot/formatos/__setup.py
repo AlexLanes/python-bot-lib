@@ -33,34 +33,55 @@ def yaml_parse (string: str) -> Any:
     return yaml.load(string, yaml.FullLoader)
 
 class Json [T]:
-    """Manipulação e validação de JSON"""
+    """Manipulação e validação de JSON
+
+    ```
+    item = { "nome": "Alex", "dados": [{ "marco": "polo" }] }
+    json = bot.formatos.Json(item)
+    print(json, json.valor())
+    # Caminho valido
+    print(json.nome.valor(), "|", f"Valido: {bool(json.nome)}")
+    print(json["dados"].valor(), "|", f"Valido: {bool(json["dados"])}")
+    print(json.dados[0].valor(), "|", f"Valido: {bool(json.dados[0])}")
+    print(json.dados[0].marco.valor(), "|", f"Valido: {bool(json.dados[0].marco)}")
+    # Caminho invalido
+    print(json.dados[1].valor(), "|", f"Valido: {bool(json.dados[1])}")
+    print(json.dados[1]["abc"].valor(), "|", f"Valido: {bool(json.dados[1]["abc"])}")
+    ```"""
 
     __item: T
     """Representação JSON como objeto Python"""
+    __valido: bool
+    """Indicador se o caminho percorrido no `json` é valido"""
 
     def __init__ (self, item: T) -> None:
         """Inicialização com um objeto Python"""
         self.__item = item
+        self.__valido = True
 
-    def __repr__ (self) -> str:        
+    def __repr__ (self) -> str:
+        """Representação da classe"""
         tipo = self.tipo().__name__
         return f"<Json [{tipo}]>"
 
-    def __getattr__ (self, chave: str) -> Json | None:
-        """Obter o valor de uma `chave` se for um `dict`
-        - `None` caso não seja `dict` ou não possua a `chave`"""
-        if self.tipo() != dict or chave not in self.__item:
-            return None
-        return Json(self.__item[chave])
+    def __bool__ (self) -> bool:
+        """Indicador se o caminho percorrido no `json` é valido"""
+        return self.__valido
 
-    def __getitem__ (self, valor: int | str) -> Json | None:
+    def __getattr__ (self, chave: str) -> Json:
+        return self[chave]
+
+    def __getitem__ (self, valor: int | str) -> Json:
         """Obter o item filho na posição `int` ou elemento de nome `str`
-        - `None` caso não seja encontrado"""
-        if isinstance(valor, int) and self.tipo() in (list, tuple) and valor < len(self.__item):
-            return Json(self.__item[valor])
-        if isinstance(valor, str) and self.tipo() == dict and valor in self.__item:
-            return Json(self.__item[valor])
-        return None
+        - Invalidar o `json` se o caminho for invalido"""
+        try:
+            if self.tipo() in (list, tuple, dict):
+                return Json(self.__item[valor])
+
+        # caminho inválido
+        except (KeyError, IndexError): pass
+        self.__item, self.__valido = None, False
+        return self
 
     def tipo (self) -> type[T]:
         """Tipo atual do `json`"""
