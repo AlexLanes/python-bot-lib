@@ -38,7 +38,6 @@ class Json [T]:
     ```
     item = { "nome": "Alex", "dados": [{ "marco": "polo" }] }
     json = bot.formatos.Json(item)
-    print(json, json.valor())
     # Caminho valido
     print(json.nome.valor(), "|", f"Valido: {bool(json.nome)}")
     print(json["dados"].valor(), "|", f"Valido: {bool(json["dados"])}")
@@ -47,6 +46,19 @@ class Json [T]:
     # Caminho invalido
     print(json.dados[1].valor(), "|", f"Valido: {bool(json.dados[1])}")
     print(json.dados[1]["abc"].valor(), "|", f"Valido: {bool(json.dados[1]["abc"])}")
+    # Comparação
+    print(bool(json.nome))
+    print("Caminho existe" if json.dados[0].marco else "Caminho não existe")
+    print(json.nome == "Alex")
+    print(json.nome != "Xyz")
+    print({ "marco": "polo" } in json.dados)
+    # Funções
+    print(repr(json))
+    print("Obtendo o tipo do json:", json.tipo())
+    print("Obtendo o valor do json:", json.valor())
+    print("Transformando em string:", json.stringify(indentar=False))
+    print("Realizar parse de uma string json:", bot.formatos.Json.parse("[1, 2, 3]").valor())
+    print("Validar um Json de acordo com o jsonschema:", json.validar({ "type": "object", "properties": {"nome": {"type": "string"}} }))
     ```"""
 
     __item: T
@@ -55,7 +67,6 @@ class Json [T]:
     """Indicador se o caminho percorrido no `json` é valido"""
 
     def __init__ (self, item: T) -> None:
-        """Inicialização com um objeto Python"""
         self.__item = item
         self.__valido = True
 
@@ -82,6 +93,18 @@ class Json [T]:
         except (KeyError, IndexError): pass
         self.__item, self.__valido = None, False
         return self
+
+    def __eq__ (self, value: object) -> bool:
+        """Comparador `==` do valor"""
+        return self.valor() == value
+
+    def __ne__ (self, value: object) -> bool:
+        """Comparador `!=` do valor"""
+        return self.valor() != value
+
+    def __contains__ (self, value: object) -> bool:
+        """Comparador `in` do valor"""
+        return value in self.valor() if self.tipo() in (list, tuple, dict) else False
 
     def tipo (self) -> type[T]:
         """Tipo atual do `json`"""
@@ -126,7 +149,6 @@ class ElementoXML:
     __prefixos: dict[str, tipagem.url] = {}
 
     def __init__ (self, nome: str, texto: str = None, namespace: tipagem.url = None, atributos: dict[str, str] = None) -> None:
-        """Inicializar um `ElementoXML` simples"""
         nome = f"{{{namespace}}}{nome}" if namespace else nome
         self.__elemento = Element(nome, atributos or {})
         self.__elemento.text = texto
