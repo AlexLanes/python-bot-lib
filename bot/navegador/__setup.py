@@ -2,20 +2,30 @@
 from abc import ABC
 from enum import Enum
 from typing import Self
+from datetime import (
+    datetime as Datetime,
+    timedelta as TimeDelta
+)
 # interno
 from .. import util, tipagem, logger, windows
 # externo
 from selenium.webdriver import ActionChains
+from selenium.webdriver.common.keys import Keys as Teclas
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver import Ie as WebDriverIe, IeOptions
 from selenium.webdriver import Edge as WebDriverEdge, EdgeOptions
 from selenium.webdriver import Chrome as WebDriverChrome, ChromeOptions
+from selenium.common.exceptions import NoSuchElementException as ElementoNaoEncontrado
 
 class Navegador (ABC):
     """Classe do navegador abstrata que deve ser herdada"""
 
     driver: WebDriverEdge | WebDriverChrome | WebDriverIe
     """Driver do `Selenium`"""
+    diretorio_dowload: tipagem.caminho
+    """Caminho da pasta de download
+    - `Edge` | `Chrome`
+    - Não é possível alterar"""
 
     def __del__ (self) -> None:
         """Encerrar o driver quando a variável do navegador sair do escopo"""
@@ -36,6 +46,16 @@ class Navegador (ABC):
     def abas (self) -> list[str]:
         """ID das abas/janelas abertas do driver atual do navegador"""
         return self.driver.window_handles
+
+    def titulos (self) -> list[str]:
+        """Títulos das abas abertas"""
+        original, titulos = self.driver.current_window_handle, [
+            self.titulo
+            for aba in self.abas
+            if not self.driver.switch_to.window(aba)
+        ]
+        self.driver.switch_to.window(original)
+        return titulos
 
     def pesquisar (self, url: str) -> Self:
         """Pesquisar o url na aba focada"""
@@ -63,6 +83,7 @@ class Navegador (ABC):
         titulo = util.normalizar(titulo) if titulo else None
         if not titulo:
             self.driver.switch_to.window(self.abas[-1])
+            logger.informar(f"O navegador focou na aba '{self.driver.title}'")
             return self
 
         for aba in self.abas:
@@ -88,19 +109,40 @@ class Navegador (ABC):
         ActionChains(self.driver).move_to_element(elemento).perform()
         return self
 
-    def encontrar_elemento (self, estrategia: tipagem.ESTRATEGIAS_WEBELEMENT, localizador: str | Enum) -> WebElement | None:
-        """Encontrar elemento na aba atual com base em um `localizador` para a `estrategia` selecionada"""
+    def encontrar_elemento (self, estrategia: tipagem.ESTRATEGIAS_WEBELEMENT, localizador: str | Enum) -> WebElement:
+        """Encontrar elemento na aba atual com base em um `localizador` para a `estrategia` selecionada
+        - Exceção `ElementoNaoEncontrado` caso não seja encontrado"""
         localizador: str = localizador if isinstance(localizador, str) else str(localizador.value)
         logger.debug(f"Procurando elemento no navegador ('{estrategia}', '{localizador}')")
-        try: return self.driver.find_element(estrategia, localizador)
-        except: return None
+        return self.driver.find_element(estrategia, localizador)
 
-    def encontrar_elementos (self, estrategia: tipagem.ESTRATEGIAS_WEBELEMENT, localizador: str | Enum) -> list[WebElement] | None:
+    def encontrar_elementos (self, estrategia: tipagem.ESTRATEGIAS_WEBELEMENT, localizador: str | Enum) -> list[WebElement]:
         """Encontrar elemento(s) na aba atual com base em um `localizador` para a `estrategia` selecionada"""
         localizador = localizador if isinstance(localizador, str) else str(localizador.value)
         logger.debug(f"Procurando elementos no navegador ('{estrategia}', '{localizador}')")
         elementos = self.driver.find_elements(estrategia, localizador)
-        return elementos or None
+        return elementos
+
+    def aguardar_download (self, timeout=60) -> tipagem.caminho:
+        """Aguardar um novo arquivo no diretório de download por `timeout` segundos
+        - Retorna o caminho para o arquivo
+        - Ignora os arquivos com o formato `.crdownload`
+        - Exceção `TimeoutError` caso não finalize no tempo estipulado"""
+        caminho_arquivo: tipagem.caminho | None = None
+        inicio = Datetime.now() - TimeDelta(seconds=1)
+
+        def download_finalizado () -> bool:
+            nonlocal inicio, caminho_arquivo
+            arquivos = windows.listar_diretorio(self.diretorio_dowload) \
+                              .query_data_alteracao_arquivos(inicio, Datetime.now())
+            if not arquivos or any(caminho.endswith(".crdownload") for caminho, _ in arquivos):
+                return False
+            caminho_arquivo = arquivos[-1][0]
+            return True
+
+        if not util.aguardar_condicao(download_finalizado, timeout, 1):
+            raise TimeoutError(f"Espera por download não encontrou nenhum arquivo novo após {timeout} segundos")
+        return caminho_arquivo
 
 class Edge (Navegador):
     """Navegador Edge"""
@@ -115,10 +157,13 @@ class Edge (Navegador):
         options = EdgeOptions()
         options.add_argument("--start-maximized")
         options.add_argument("--ignore-certificate-errors")
-        options.add_experimental_option('excludeSwitches', ['enable-logging']) # desativar prints
+        options.add_experimental_option("excludeSwitches", ["enable-logging"]) # desativar prints
+
+        self.diretorio_dowload = windows.caminho_absoluto(download)
+        assert windows.afirmar_diretorio(self.diretorio_dowload)
         options.add_experimental_option("prefs", {
             "download.prompt_for_download": False,
-            "download.default_directory": windows.caminho_absoluto(download),
+            "download.default_directory": self.diretorio_dowload,
         })
 
         self.driver = WebDriverEdge(options)
@@ -140,10 +185,13 @@ class Chrome (Navegador):
         options = ChromeOptions()
         options.add_argument("--start-maximized")
         options.add_argument("--ignore-certificate-errors")
-        options.add_experimental_option('excludeSwitches', ['enable-logging']) # desativar prints
+        options.add_experimental_option("excludeSwitches", ["enable-logging"]) # desativar prints
+
+        self.diretorio_dowload = windows.caminho_absoluto(download)
+        assert windows.afirmar_diretorio(self.diretorio_dowload)
         options.add_experimental_option("prefs", {
             "download.prompt_for_download": False,
-            "download.default_directory": windows.caminho_absoluto(download),
+            "download.default_directory": self.diretorio_dowload,
         })
 
         self.driver = WebDriverChrome(options)
@@ -177,6 +225,8 @@ class Explorer (Navegador):
 
 __all__ = [
     "Edge",
+    "Teclas",
     "Chrome",
-    "Explorer"
+    "Explorer",
+    "ElementoNaoEncontrado"
 ]
