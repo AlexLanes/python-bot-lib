@@ -23,6 +23,14 @@ def copiar_arquivo (de: tipagem.caminho, para: tipagem.caminho) -> tipagem.camin
     - Retorna o caminho absoluto para o qual foi copiado"""
     return caminho_absoluto(shutil.copyfile(de, para))
 
+def renomear_arquivo (arquivo: tipagem.caminho, nome: str) -> tipagem.caminho:
+    """Renomear o `arquivo` para o novo `nome` + `.formato`
+    - Retorna o caminho para o novo nome"""
+    assert afirmar_arquivo(arquivo), f"Caminho informado {arquivo} não é de um arquivo"
+    nome = caminho_absoluto(os.path.join(nome_diretorio(arquivo), nome))
+    os.rename(arquivo, nome)
+    return nome
+
 def nome_base (caminho: tipagem.caminho) -> str:
     """Extrair a parte final do `nome.formato` ou `nome pasta` do `caminho`"""
     return os.path.basename(caminho)
@@ -143,6 +151,7 @@ __all__ = [
     "copiar_arquivo",
     "abrir_programa",
     "afirmar_arquivo",
+    "renomear_arquivo",
     "listar_diretorio",
     "caminho_absoluto",
     "afirmar_diretorio",
