@@ -192,14 +192,15 @@ class Diretorio:
         """Consultar arquivos do diretório com base na data de alteração
         - Default: Hoje
         - Retorna uma lista `(caminho, data)` ordenado pelos mais antigos"""
-        ordenar_antigos = lambda x: x[1]
         criar_data = lambda caminho: Datetime.fromtimestamp(ultima_alteracao(caminho))
-
-        arquivos = [(caminho, data) for caminho in self.arquivos
-                    if inicio <= (data := criar_data(caminho)) <= fim]
-        arquivos.sort(key=ordenar_antigos)
-
-        return arquivos
+        return sorted(
+            (
+                (caminho, data)
+                for caminho in self.arquivos
+                if inicio <= (data := criar_data(caminho)) <= fim
+            ),
+            key = lambda x: x[1]
+        )
 
 class InfoStack:
     """Informações do `Stack` de execução"""
