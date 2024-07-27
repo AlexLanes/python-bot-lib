@@ -13,9 +13,14 @@ from selenium.webdriver import ActionChains
 from selenium.webdriver.common.keys import Keys as Teclas
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver import Ie as WebDriverIe, IeOptions
+from selenium.webdriver.support.ui import WebDriverWait as Wait
 from selenium.webdriver import Edge as WebDriverEdge, EdgeOptions
 from selenium.webdriver import Chrome as WebDriverChrome, ChromeOptions
-from selenium.common.exceptions import NoSuchElementException as ElementoNaoEncontrado
+from selenium.webdriver.support.expected_conditions import staleness_of
+from selenium.common.exceptions import (
+    TimeoutException,
+    NoSuchElementException as ElementoNaoEncontrado
+)
 
 class Navegador (ABC):
     """Classe do navegador abstrata que deve ser herdada"""
@@ -94,6 +99,20 @@ class Navegador (ABC):
 
         return self
 
+    def encontrar_elemento (self, estrategia: tipagem.ESTRATEGIAS_WEBELEMENT, localizador: str | Enum) -> WebElement:
+        """Encontrar elemento na aba atual com base em um `localizador` para a `estrategia` selecionada
+        - Exceção `ElementoNaoEncontrado` caso não seja encontrado"""
+        localizador: str = localizador if isinstance(localizador, str) else str(localizador.value)
+        logger.debug(f"Procurando elemento no navegador ('{estrategia}', '{localizador}')")
+        return self.driver.find_element(estrategia, localizador)
+
+    def encontrar_elementos (self, estrategia: tipagem.ESTRATEGIAS_WEBELEMENT, localizador: str | Enum) -> list[WebElement]:
+        """Encontrar elemento(s) na aba atual com base em um `localizador` para a `estrategia` selecionada"""
+        localizador = localizador if isinstance(localizador, str) else str(localizador.value)
+        logger.debug(f"Procurando elementos no navegador ('{estrategia}', '{localizador}')")
+        elementos = self.driver.find_elements(estrategia, localizador)
+        return elementos
+
     def alterar_frame (self, frame: str | WebElement | None = None) -> Self:
         """Alterar o frame atual do DOM da página para o `frame` contendo `@name, @id ou WebElement`
         - Necessário para encontrar e interagir com `WebElements` dentro de `<iframes>`
@@ -109,39 +128,37 @@ class Navegador (ABC):
         ActionChains(self.driver).move_to_element(elemento).perform()
         return self
 
-    def encontrar_elemento (self, estrategia: tipagem.ESTRATEGIAS_WEBELEMENT, localizador: str | Enum) -> WebElement:
-        """Encontrar elemento na aba atual com base em um `localizador` para a `estrategia` selecionada
-        - Exceção `ElementoNaoEncontrado` caso não seja encontrado"""
-        localizador: str = localizador if isinstance(localizador, str) else str(localizador.value)
-        logger.debug(f"Procurando elemento no navegador ('{estrategia}', '{localizador}')")
-        return self.driver.find_element(estrategia, localizador)
-
-    def encontrar_elementos (self, estrategia: tipagem.ESTRATEGIAS_WEBELEMENT, localizador: str | Enum) -> list[WebElement]:
-        """Encontrar elemento(s) na aba atual com base em um `localizador` para a `estrategia` selecionada"""
-        localizador = localizador if isinstance(localizador, str) else str(localizador.value)
-        logger.debug(f"Procurando elementos no navegador ('{estrategia}', '{localizador}')")
-        elementos = self.driver.find_elements(estrategia, localizador)
-        return elementos
-
-    def aguardar_download (self, timeout=60) -> tipagem.caminho:
-        """Aguardar um novo arquivo no diretório de download por `timeout` segundos
-        - Retorna o caminho para o arquivo
-        - Ignora os arquivos com o formato `.crdownload`
+    def aguardar_staleness (self, elemento: WebElement, timeout=60) -> Self:
+        """Aguardar a condição staleness_of do `elemento` por `timeout` segundos
         - Exceção `TimeoutError` caso não finalize no tempo estipulado"""
+        try:
+            Wait(self.driver, timeout).until(staleness_of(elemento))
+            return self
+        except TimeoutException:
+            raise TimeoutError(f"A espera pelo staleness do Elemento não aconteceu após {timeout} segundos")
+
+    def aguardar_download (self, termos: list[str] = [".csv", "arquivo.xlsx"],
+                                 timeout = 60) -> tipagem.caminho:
+        """Aguardar um novo arquivo, que termine com algum dos `termos`, no diretório de download por `timeout` segundos
+        - Retorna o caminho para o arquivo
+        - Exceção `TimeoutError` caso não finalize no tempo estipulado"""
+        assert termos, "Pelo menos 1 termo é necessário para a busca do arquivo"
         caminho_arquivo: tipagem.caminho | None = None
         inicio = Datetime.now() - TimeDelta(seconds=1)
 
         def download_finalizado () -> bool:
             nonlocal inicio, caminho_arquivo
-            arquivos = windows.listar_diretorio(self.diretorio_dowload) \
-                              .query_data_alteracao_arquivos(inicio, Datetime.now())
-            if not arquivos or any(caminho.endswith(".crdownload") for caminho, _ in arquivos):
-                return False
-            caminho_arquivo = arquivos[-1][0]
-            return True
+            for caminho, _ in windows.listar_diretorio(self.diretorio_dowload) \
+                                     .query_data_alteracao_arquivos(inicio, Datetime.now()):
+                if not any(caminho.endswith(termo) for termo in termos): continue
+                caminho_arquivo = caminho
+                return True
+            return False
 
-        if not util.aguardar_condicao(download_finalizado, timeout, 1):
-            raise TimeoutError(f"Espera por download não encontrou nenhum arquivo novo após {timeout} segundos")
+        if not util.aguardar_condicao(download_finalizado, timeout, 0.5):
+            erro = TimeoutError(f"Espera por download não encontrou nenhum arquivo novo após {timeout} segundos")
+            erro.add_note(f"Termos esperados: {termos}")
+            raise erro
         return caminho_arquivo
 
 class Edge (Navegador):
