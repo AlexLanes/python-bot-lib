@@ -7,7 +7,7 @@ from datetime import (
     timedelta as TimeDelta
 )
 # interno
-from .. import util, tipagem, logger, windows
+from .. import util, tipagem, logger, windows, teclado
 # externo
 from selenium.webdriver import ActionChains
 from selenium.webdriver.common.keys import Keys as Teclas
@@ -34,7 +34,8 @@ class Navegador (ABC):
 
     def __del__ (self) -> None:
         """Encerrar o driver quando a variável do navegador sair do escopo"""
-        self.driver.quit()
+        try: self.driver.quit()
+        except: pass
         logger.informar("Navegador fechado")
 
     @property
@@ -79,7 +80,24 @@ class Navegador (ABC):
         titulo = self.driver.title
         self.driver.close()
         self.driver.switch_to.window(self.abas[-1])
-        logger.informar(f"Fechado a aba '{titulo}'")
+        logger.informar(f"Fechado a aba '{titulo}' e focado na aba '{self.titulo}'")
+        return self
+
+    def limpar_abas (self) -> Self:
+        """Fechar as abas abertas, abrir uma nova e focar"""
+        logger.informar("Limpando as abas abertas do navegador")
+        self.driver.switch_to.new_window("tab")
+        nova_aba = self.driver.current_window_handle
+
+        for aba in self.abas:
+            if aba == nova_aba: continue
+            self.driver.switch_to.window(aba)
+            if self.driver.title.strip().lower() == "downloads":
+                teclado.apertar_tecla("esc", delay=0.5)
+                continue
+            self.driver.close()
+
+        self.driver.switch_to.window(nova_aba)
         return self
 
     def focar_aba (self, titulo: str | None = None) -> Self:
@@ -177,7 +195,6 @@ class Edge (Navegador):
         options.add_experimental_option("excludeSwitches", ["enable-logging"]) # desativar prints
 
         self.diretorio_dowload = windows.caminho_absoluto(download)
-        assert windows.afirmar_diretorio(self.diretorio_dowload)
         options.add_experimental_option("prefs", {
             "download.prompt_for_download": False,
             "download.default_directory": self.diretorio_dowload,
@@ -190,7 +207,7 @@ class Edge (Navegador):
         logger.informar("Navegador Edge iniciado")
 
 class Chrome (Navegador):
-    """Navegador Edge"""
+    """Navegador Chrome"""
 
     driver: WebDriverChrome
     """Driver Chrome"""
@@ -205,7 +222,6 @@ class Chrome (Navegador):
         options.add_experimental_option("excludeSwitches", ["enable-logging"]) # desativar prints
 
         self.diretorio_dowload = windows.caminho_absoluto(download)
-        assert windows.afirmar_diretorio(self.diretorio_dowload)
         options.add_experimental_option("prefs", {
             "download.prompt_for_download": False,
             "download.default_directory": self.diretorio_dowload,
