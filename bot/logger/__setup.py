@@ -6,7 +6,7 @@ from datetime import (
     timedelta as Timedelta
 )
 # interno
-from .. import configfile, windows, estruturas
+from .. import configfile, windows, estruturas, tipagem
 
 TIMEZONE = Timezone(Timedelta(hours=-3))
 INICIALIZADO_EM = Datetime.now(TIMEZONE)
@@ -52,6 +52,14 @@ def inicializar () -> None:
 
     global INICIALIZADO
     INICIALIZADO = True
+
+def caminho_log_atual () -> tipagem.caminho:
+    """Caminho para o arquivo log que é criado na raiz do projeto e que pode ser limpo pelo `limpar_log()`"""
+    return CAMINHO_LOG_ATUAL
+
+def caminho_log_persistencia () -> tipagem.caminho:
+    """Caminho para o arquivo log que é criado na inicialização do bot, se requisitado, para persistência na pasta `/logs`"""
+    return CAMINHO_LOG_PERSISTENCIA
 
 def criar_mensagem_padrao (mensagem: str) -> str:
     """Extrair informações do stack para adicionar na mensagem de log"""
@@ -109,6 +117,6 @@ __all__ = [
     "alertar",
     "informar",
     "limpar_log",
-    "CAMINHO_LOG_ATUAL",
-    "CAMINHO_LOG_PERSISTENCIA"
+    "caminho_log_atual",
+    "caminho_log_persistencia"
 ]
