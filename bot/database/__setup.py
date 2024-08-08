@@ -168,7 +168,8 @@ class Sqlite:
         - `database` caminho para o arquivo .db ou .sqlite, 
         - Default carregar apenas na memória"""
         logger.informar(f"Iniciando conexão Sqlite com o database '{database}'")
-        self.__conexao = sqlite3.connect(database, 5)
+        self.__conexao = sqlite3.connect(database, autocommit=False)
+        self.__conexao.execute("PRAGMA foreign_keys = ON")
 
     def __del__ (self) -> None:
         """Fechar a conexão quando sair do escopo"""
