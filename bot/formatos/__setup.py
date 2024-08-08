@@ -33,7 +33,7 @@ def yaml_parse (string: str) -> Any:
     return yaml.load(string, yaml.FullLoader)
 
 class Json [T]:
-    """Manipulação e validação de JSON
+    """Classe para validação e leitura de objetos JSON
 
     ```
     item = { "nome": "Alex", "dados": [{ "marco": "polo" }] }
@@ -91,8 +91,9 @@ class Json [T]:
 
         # caminho inválido
         except (KeyError, IndexError): pass
-        self.__item, self.__valido = None, False
-        return self
+        json = Json(None)
+        json.__valido = False
+        return json
 
     def __eq__ (self, value: object) -> bool:
         """Comparador `==` do valor"""
@@ -104,7 +105,7 @@ class Json [T]:
 
     def __contains__ (self, value: object) -> bool:
         """Comparador `in` do valor"""
-        return value in self.valor() if self.tipo() in (list, tuple, dict) else False
+        return value in self.valor() if self.tipo() in (list, tuple, dict, str) else False
 
     def tipo (self) -> type[T]:
         """Tipo atual do `json`"""
