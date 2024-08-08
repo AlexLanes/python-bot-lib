@@ -33,9 +33,9 @@ def enviar_email (destinatarios: list[tipagem.email], assunto="", conteudo="", a
 
     mensagem = MIMEMultipart()
     # headers do e-mail
-    mensagem['From'] = _from
-    mensagem['To'] = ', '.join(destinatarios)
-    mensagem['Subject'] = assunto
+    mensagem["From"] = _from
+    mensagem["To"] = ", ".join(destinatarios)
+    mensagem["Subject"] = assunto
     # body do e-mail
     if conteudo and conteudo[0] == " ": # remover espaços vazios no começo
         conteudo = conteudo.lstrip()
@@ -47,8 +47,10 @@ def enviar_email (destinatarios: list[tipagem.email], assunto="", conteudo="", a
         if not windows.caminho_existe(caminho) or not windows.afirmar_arquivo(caminho): 
             logger.alertar(f"Erro ao anexar '{caminho}' no e-mail")
             continue
-        with open(caminho, 'rb') as arquivo:
-            anexo = MIMEApplication(arquivo.read())
+        with open(caminho, "rb") as arquivo:
+            decodificar = any(formato in caminho for formato in (".csv", ".txt", ".log"))
+            conteudo = arquivo.read().decode(errors="ignore") if decodificar else arquivo.read()
+            anexo = MIMEApplication(conteudo)
             nome = util.remover_acentuacao(windows.nome_base(caminho))
             anexo.add_header("Content-Disposition", f'attachment; filename="{nome}"')
             mensagem.attach(anexo)
