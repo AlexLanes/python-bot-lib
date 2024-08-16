@@ -2,31 +2,33 @@
 from __future__ import annotations
 from inspect import stack
 from dataclasses import dataclass
+from functools import cached_property
 from typing import Generator, Callable
 from datetime import datetime as Datetime
 from itertools import tee as duplicar_iterable
 from os.path import getmtime as ultima_alteracao
 # interno
-from .. import tipagem, logger, windows
+from .. import tipagem, windows
 # externo
 from polars import DataFrame
 
 @dataclass
 class Coordenada:
     """Coordenada de uma região na tela"""
+
     x: int
     y: int
     largura: int
     altura: int
 
-    def __iter__ (self):
+    def __iter__ (self) -> Generator[int, None, None]:
         """Utilizado com o `tuple(coordenada)` e `x, y, largura, altura = coordenada`"""
         yield self.x
         yield self.y
         yield self.largura
         yield self.altura
 
-    def __len__ (self):
+    def __len__ (self) -> int:
         return 4
 
     def __contains__ (self, other: Coordenada | tuple[int, int]) -> bool:
@@ -65,7 +67,30 @@ class Coordenada:
 
 @dataclass
 class ResultadoSQL:
-    """Classe utilizada no retorno da execução do banco de dados"""
+    """Classe utilizada no retorno de comando em banco de dados
+
+    ```
+    # representação "vazio", "com linhas afetadas" ou "com colunas e linhas"
+    repr(resultado)
+    resultado.linhas_afetadas != None # para comandos de manipulação
+    resultado.colunas # para comandos de consulta
+
+    # teste de sucesso, indica se teve linhas_afetadas ou linhas/colunas retornadas
+    bool(resultado) | if resultado: ...
+
+    # quantidade de linhas retornadas
+    len(resultado)
+
+    # iteração sobre as linhas `Generator`
+    # as linhas são consumidas quando iteradas sobre
+    linha: tuple[tipagem.tipoSQL, ...] = next(resultado.linhas)
+    for linha in resultado.linhas:
+    for linha in resultado:
+
+    # fácil acesso a primeira linha
+    resultado["nome_coluna"]
+    ```"""
+
     linhas_afetadas: int | None
     """Quantidade de linhas afetadas pelo comando sql
     - `None` indica que não se aplica para o comando sql"""
@@ -80,17 +105,19 @@ class ResultadoSQL:
         for linha in self.linhas:
             yield linha
 
+    @cached_property
+    def __p (self) -> tuple[tipagem.tipoSQL, ...] | None:
+        """Cache da primeira linha no resultado
+        - `None` caso não possua"""
+        self.linhas, linhas = duplicar_iterable(self.linhas)
+        try: return next(linhas)
+        except StopIteration: return None
+
     def __repr__ (self) -> str:
         "Representação da classe"
-        possui_linhas = False
-        self.linhas, linhas = duplicar_iterable(self.linhas)
-        try: possui_linhas = bool(next(linhas))
-        except: pass
-
         tipo = f"com {self.linhas_afetadas} linha(s) afetada(s)" if self.linhas_afetadas \
-          else f"com {len(self.colunas)} coluna(s) e {len(self)} linha(s)" if possui_linhas \
-          else f"vazio"
-
+            else f"com {len(self.colunas)} coluna(s) e {len(self)} linha(s)" if self.__p \
+            else f"vazio"
         return f"<ResultadoSQL {tipo}>"
 
     def __bool__ (self) -> bool:
@@ -103,10 +130,8 @@ class ResultadoSQL:
         return sum(1 for _ in linhas)
 
     def __getitem__ (self, campo: str) -> tipagem.tipoSQL:
-        """Obter um campo da primeira linha"""
-        self.linhas, linhas = duplicar_iterable(self.linhas)
-        linha = next(linhas)
-        return linha[self.colunas.index(campo)]
+        """Obter o `campo` da primeira linha"""
+        return self.__p[self.colunas.index(campo)]
 
     @property
     def __dict__ (self) -> dict[str, int | None | list[dict]]:
@@ -138,19 +163,34 @@ class ResultadoSQL:
         )
 
 class Resultado [T]:
-    """Classe `genérica` de utilização para retornar resultado ou erro de alguma chamada"""
+    """Classe `genérica` de utilização para retornar resultado de alguma chamada
+    - `try-catch` utilizado para evitar erro
+
+    ```
+    # informar a função, os argumentos posicionais e os argumentos nomeados
+    # a função será automaticamente chamada após
+    resultado = Resultado(funcao, "nome", "idade", key=value)
+
+    # representação "sucesso" ou "erro"
+    repr(resultado)
+
+    # checar sucesso na chamada
+    bool(resultado) | if resultado: ...
+
+    # obtendo valores
+    valor, erro = resultado._()
+    valor = resultado.valor() # erro caso a função tenha apresentado erro
+    valor = resultado.valor_ou(default) # valor ou default caso a função tenha apresentado erro
+    ```"""
+
     __valor: T | None
     __erro: Exception | None
 
-    def __init__ (self, funcao: Callable[[], T], *args, **kwargs) -> None:
+    def __init__ (self, funcao: Callable[..., T], *args, **kwargs) -> None:
         """Realizar a chamada na `função` com os argumentos `args` e `kwargs`"""
-        try:
-            self.__valor = funcao(*args, **kwargs)
-            self.__erro = None
-        except Exception as erro:
-            logger.alertar(f"Função '{funcao.__name__}' executada pelo <Resultado[T]> apresentou erro")
-            self.__valor = None
-            self.__erro = erro
+        self.__valor = self.__erro = None
+        try: self.__valor = funcao(*args, **kwargs)
+        except Exception as erro: self.__erro = erro
 
     def __bool__ (self) -> bool:
         """Indicação de sucesso"""
@@ -158,7 +198,11 @@ class Resultado [T]:
 
     def __repr__ (self) -> str:
         """Representação da classe"""
-        return f"<Resultado[T] {"com" if self else "sem"} valor>"
+        return f"<Resultado[T] {"sucesso" if self else "erro"}>"
+
+    def _ (self) -> tuple[T | None, Exception | None]:
+        """Realizar unwrap do `valor, erro = resultado._()`"""
+        return self.__valor, self.__erro
 
     def valor (self) -> T:
         """Obter o valor do resultado
@@ -170,12 +214,12 @@ class Resultado [T]:
 
     def valor_ou (self, default: T) -> T:
         """Obter o valor do resultado ou `default` caso tenha apresentado erro"""
-        if not self: return default
-        return self.__valor
+        return self.__valor if self else default
 
 @dataclass
 class Diretorio:
     """Armazena os caminhos de pastas e arquivos presentes no diretório"""
+
     caminho: tipagem.caminho
     """Caminho absoluto do diretorio"""
     pastas: list[tipagem.caminho]
@@ -204,6 +248,7 @@ class Diretorio:
 
 class InfoStack:
     """Informações do `Stack` de execução"""
+
     nome: str
     """Nome do arquivo"""
     funcao: str
@@ -235,6 +280,7 @@ class InfoStack:
 @dataclass
 class Email:
     """Classe para armazenar informações extraídas de Email"""
+
     uid: int
     """id do e-mail"""
     remetente: tipagem.email

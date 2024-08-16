@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="bot",
-    version="1.5.0",
+    version="1.5.1",
     packages=find_packages(),
     author="Alex Lanes Angelo",
     author_email="alex_lanes@hotmail.com",
