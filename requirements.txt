@@ -20,6 +20,7 @@ pyperclip
 
 # bot.navegador
 selenium
+undetected_chromedriver
 
 # bot.rest
 httpx
