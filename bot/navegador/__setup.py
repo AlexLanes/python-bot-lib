@@ -1,31 +1,28 @@
 # std
-from abc import ABC
-from enum import Enum
-from typing import Self
+import abc, enum, typing, atexit, collections
 from datetime import (
     datetime as Datetime,
     timedelta as TimeDelta
 )
 # interno
-from .. import util, tipagem, logger, windows, teclado
+from .__mensagem import Mensagem
+from .. import util, tipagem, logger, windows, teclado, formatos
 # externo
-from selenium.webdriver import ActionChains
+import selenium.webdriver as wd
+import undetected_chromedriver as uc
 from selenium.webdriver.common.keys import Keys as Teclas
 from selenium.webdriver.remote.webelement import WebElement
-from selenium.webdriver import Ie as WebDriverIe, IeOptions
 from selenium.webdriver.support.ui import WebDriverWait as Wait
-from selenium.webdriver import Edge as WebDriverEdge, EdgeOptions
-from selenium.webdriver import Chrome as WebDriverChrome, ChromeOptions
 from selenium.webdriver.support.expected_conditions import staleness_of
 from selenium.common.exceptions import (
     TimeoutException,
     NoSuchElementException as ElementoNaoEncontrado
 )
 
-class Navegador (ABC):
+class Navegador (abc.ABC):
     """Classe do navegador abstrata que deve ser herdada"""
 
-    driver: WebDriverEdge | WebDriverChrome | WebDriverIe
+    driver: wd.Edge
     """Driver do `Selenium`"""
     diretorio_dowload: tipagem.caminho
     """Caminho da pasta de download
@@ -34,9 +31,10 @@ class Navegador (ABC):
 
     def __del__ (self) -> None:
         """Encerrar o driver quando a variável do navegador sair do escopo"""
-        try: self.driver.quit()
+        try:
+            self.driver.quit()
+            logger.informar("Navegador fechado")
         except: pass
-        logger.informar("Navegador fechado")
 
     @property
     def titulo (self) -> str:
@@ -63,19 +61,19 @@ class Navegador (ABC):
         self.driver.switch_to.window(original)
         return titulos
 
-    def pesquisar (self, url: str) -> Self:
+    def pesquisar (self, url: str) -> typing.Self:
         """Pesquisar o url na aba focada"""
         logger.informar(f"Pesquisado o url '{url}'")
         self.driver.get(url)
         return self
 
-    def nova_aba (self) -> Self:
+    def nova_aba (self) -> typing.Self:
         """Abrir uma nova aba e alterar o foco para ela"""
         self.driver.switch_to.new_window("tab")
         logger.informar("Aberto uma nova aba")
         return self
 
-    def fechar_aba (self) -> Self:
+    def fechar_aba (self) -> typing.Self:
         """Fechar a aba focada e alterar o foco para a anterior"""
         titulo = self.driver.title
         self.driver.close()
@@ -83,7 +81,7 @@ class Navegador (ABC):
         logger.informar(f"Fechado a aba '{titulo}' e focado na aba '{self.titulo}'")
         return self
 
-    def limpar_abas (self) -> Self:
+    def limpar_abas (self) -> typing.Self:
         """Fechar as abas abertas, abrir uma nova e focar"""
         logger.informar("Limpando as abas abertas do navegador")
         self.driver.switch_to.new_window("tab")
@@ -100,7 +98,7 @@ class Navegador (ABC):
         self.driver.switch_to.window(nova_aba)
         return self
 
-    def focar_aba (self, titulo: str | None = None) -> Self:
+    def focar_aba (self, titulo: str | None = None) -> typing.Self:
         """Focar na aba que contem o `titulo`
         - `None` para focar na última aba"""
         titulo = util.normalizar(titulo) if titulo else None
@@ -117,21 +115,21 @@ class Navegador (ABC):
 
         return self
 
-    def encontrar_elemento (self, estrategia: tipagem.ESTRATEGIAS_WEBELEMENT, localizador: str | Enum) -> WebElement:
+    def encontrar_elemento (self, estrategia: tipagem.ESTRATEGIAS_WEBELEMENT, localizador: str | enum.Enum) -> WebElement:
         """Encontrar elemento na aba atual com base em um `localizador` para a `estrategia` selecionada
         - Exceção `ElementoNaoEncontrado` caso não seja encontrado"""
         localizador: str = localizador if isinstance(localizador, str) else str(localizador.value)
         logger.debug(f"Procurando elemento no navegador ('{estrategia}', '{localizador}')")
         return self.driver.find_element(estrategia, localizador)
 
-    def encontrar_elementos (self, estrategia: tipagem.ESTRATEGIAS_WEBELEMENT, localizador: str | Enum) -> list[WebElement]:
+    def encontrar_elementos (self, estrategia: tipagem.ESTRATEGIAS_WEBELEMENT, localizador: str | enum.Enum) -> list[WebElement]:
         """Encontrar elemento(s) na aba atual com base em um `localizador` para a `estrategia` selecionada"""
         localizador = localizador if isinstance(localizador, str) else str(localizador.value)
         logger.debug(f"Procurando elementos no navegador ('{estrategia}', '{localizador}')")
         elementos = self.driver.find_elements(estrategia, localizador)
         return elementos
 
-    def alterar_frame (self, frame: str | WebElement | None = None) -> Self:
+    def alterar_frame (self, frame: str | WebElement | None = None) -> typing.Self:
         """Alterar o frame atual do DOM da página para o `frame` contendo `@name, @id ou WebElement`
         - Necessário para encontrar e interagir com `WebElements` dentro de `<iframes>`
         - `None` para retornar ao default_content (raiz)"""
@@ -140,13 +138,13 @@ class Navegador (ABC):
         s.frame(frame) if frame else s.default_content()
         return self
 
-    def hover_elemento (self, elemento: WebElement) -> Self:
+    def hover_elemento (self, elemento: WebElement) -> typing.Self:
         """Realizar a ação de hover no `elemento`"""
         logger.debug(f"Realizando ação de hover no elemento '{elemento}'")
-        ActionChains(self.driver).move_to_element(elemento).perform()
+        wd.ActionChains(self.driver).move_to_element(elemento).perform()
         return self
 
-    def aguardar_staleness (self, elemento: WebElement, timeout=60) -> Self:
+    def aguardar_staleness (self, elemento: WebElement, timeout=60) -> typing.Self:
         """Aguardar a condição staleness_of do `elemento` por `timeout` segundos
         - Exceção `TimeoutError` caso não finalize no tempo estipulado"""
         try:
@@ -180,16 +178,17 @@ class Navegador (ABC):
         return caminho_arquivo
 
 class Edge (Navegador):
-    """Navegador Edge"""
+    """Navegador Edge com funcionalidades padrões para automação
+    - O Edge é o mais provável de estar disponível para utilização"""
 
-    driver: WebDriverEdge
+    driver: wd.Edge
     """Driver Edge"""
 
     def __init__ (self, timeout=30.0, download=rf"./downloads") -> None:
         """Inicializar o navegador Edge
         - `timeout` utilizado na espera do `implicitly_wait`
         - `download` utilizado para informar a pasta de download de arquivos"""
-        options = EdgeOptions()
+        options = wd.EdgeOptions()
         options.add_argument("--start-maximized")
         options.add_argument("--ignore-certificate-errors")
         options.add_experimental_option("excludeSwitches", ["enable-logging"]) # desativar prints
@@ -200,26 +199,29 @@ class Edge (Navegador):
             "download.default_directory": self.diretorio_dowload,
         })
 
-        self.driver = WebDriverEdge(options)
+        self.driver = wd.Edge(options)
         self.driver.implicitly_wait(timeout)
         self.driver.maximize_window()
 
         logger.informar("Navegador Edge iniciado")
 
 class Chrome (Navegador):
-    """Navegador Chrome"""
+    """Navegador Chrome
+    - Utilizada a biblioteca `undetected_chromedriver` para evitar detecção do `selenium`
+    - Possível de capturar as mensagens de rede pelo método `mensagens_rede`"""
 
-    driver: WebDriverChrome
+    driver: uc.Chrome
     """Driver Chrome"""
 
     def __init__ (self, timeout=30.0, download=rf"./downloads") -> None:
         """Inicializar o navegador Chrome
         - `timeout` utilizado na espera do `implicitly_wait`
         - `download` utilizado para informar a pasta de download de arquivos"""
-        options = ChromeOptions()
-        options.add_argument("--start-maximized")
-        options.add_argument("--ignore-certificate-errors")
-        options.add_experimental_option("excludeSwitches", ["enable-logging"]) # desativar prints
+        options = uc.ChromeOptions()
+        argumentos = ("--start-maximized", "--disable-infobars", "--disable-notifications", "--ignore-certificate-errors")
+        for argumento in argumentos: options.add_argument(argumento)
+        options.set_capability("goog:loggingPrefs", { "performance": "ALL" }) # logs performance
+        # options.add_argument(r"user-data-dir=C:\Users\Alex\AppData\Local\Google\Chrome\User Data")
 
         self.diretorio_dowload = windows.caminho_absoluto(download)
         options.add_experimental_option("prefs", {
@@ -227,11 +229,51 @@ class Chrome (Navegador):
             "download.default_directory": self.diretorio_dowload,
         })
 
-        self.driver = WebDriverChrome(options)
+        self.driver = uc.Chrome(options)
         self.driver.implicitly_wait(timeout)
         self.driver.maximize_window()
 
         logger.informar("Navegador Chrome iniciado")
+
+        # `undetected_chromedriver` está com problema intermitente ao fechar
+        # a task que é aberta ao criar o driver está ficando ativa após o `quit()`
+        atexit.register(lambda: windows.executar("TASKKILL", "/F", "/IM", "chrome.exe", timeout=5))
+
+    @typing.override
+    def __del__ (self) -> None:
+        logger.informar("Navegador fechado")
+        try: self.driver.quit()
+        except OSError: pass # usado TASKKILL ao fim da execução
+
+    def mensagens_rede (self, filtro: typing.Callable[[Mensagem], bool] | None = None) -> list[Mensagem]:
+        """Consultar as mensagens de rede produzidas pelas abas
+        - `filtro` função opcional para filtrar as mensagens"""
+        id_mensagem = collections.defaultdict(Mensagem)
+        for log in self.driver.get_log("performance"):
+            if not isinstance(log, dict): continue
+            json = formatos.Json.parse(log.get("message", {}))
+            if not json or not json.message.params.requestId: continue
+
+            message = json.message
+            params = message.params
+            request_id = params.requestId.valor()
+            mensagem = id_mensagem[request_id]
+
+            if "Network.request" in message.method:
+                mensagem.parse_request(params)
+            elif "Network.response" in message.method:
+                mensagem.parse_response(params)
+                try:
+                    body = mensagem.response.body or self.driver.execute_cdp_cmd("Network.getResponseBody", { "requestId": request_id })
+                    mensagem.response.body = body
+                except Exception: pass
+
+        filtro = filtro or (lambda m: True)
+        return list(
+            mensagem
+            for mensagem in id_mensagem.values()
+            if filtro(mensagem)
+        )
 
 class Explorer (Navegador):
     r"""Navegador Internet Explorer
@@ -240,21 +282,25 @@ class Explorer (Navegador):
     - Caso não apareça a opção, alterar pelo registro do windows `Software\Microsoft\Windows\CurrentVersion\Internet Settings\Zones` em todas as zonas(0..4) setando o `REG_DWORD` nome `2500` valor `3`
     - https://www.lifewire.com/how-to-disable-protected-mode-in-internet-explorer-2624507"""
 
-    driver: WebDriverIe
+    driver: wd.Ie
     """Driver Internet Explorer"""
 
     def __init__ (self, timeout=30.0) -> None:
         """Inicializar o navegador Edge no modo Internet Explorer
         - `timeout` utilizado na espera do `implicitly_wait`"""
-        options = IeOptions()
+        options = wd.IeOptions()
         options.attach_to_edge_chrome = True
         options.add_argument("--ignore-certificate-errors")
 
-        self.driver = WebDriverIe(options)
+        self.driver = wd.Ie(options)
         self.driver.maximize_window()
         self.driver.implicitly_wait(timeout)
 
         logger.informar("Navegador Edge, modo Internet Explorer, iniciado")
+
+    @typing.override
+    def aguardar_download (self, termos: list[str] = [".csv", "arquivo.xlsx"], timeout=60) -> str:
+        raise NotImplementedError("Método aguardar_download não disponível para o InternetExplorer")
 
 __all__ = [
     "Edge",
