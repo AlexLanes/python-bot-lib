@@ -81,10 +81,13 @@ def alertar (mensagem: str) -> None:
     """Log nível 'WARNING'"""
     BOT_LOGGER.warning(criar_mensagem_padrao(mensagem))
 
-def erro (mensagem: str) -> None:
+def erro (mensagem: str, excecao: Exception | None = None) -> None:
     """Log nível 'ERROR'
-    - Erro é informado automaticamente no log"""
-    BOT_LOGGER.error(criar_mensagem_padrao(mensagem), exc_info=sys.exc_info())
+    - `excecao` Informação para o Traceback. Capturado automaticamente no `try except`"""
+    BOT_LOGGER.error(
+        criar_mensagem_padrao(mensagem),
+        exc_info = excecao or sys.exc_info()
+    )
 
 def limpar_log () -> None:
     """Limpar o `CAMINHO_LOG_ATUAL`
