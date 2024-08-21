@@ -1,6 +1,7 @@
 # bot.database
 pyodbc
-polars[xlsx2csv, xlsxwriter, fastexcel]
+polars[xlsx2csv, xlsxwriter]
+fastexcel # read_excel .xls para o polars
 
 # bot.estruturas
 pyyaml
