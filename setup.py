@@ -11,7 +11,7 @@ setup(
     python_requires=">=3.12",
     include_package_data=True,
     install_requires=[
-        linha.strip()
+        linha.split("#")[0].strip()
         for linha in open("./requirements.txt", "r", encoding="utf-8").readlines()
         if not linha.isspace() and not linha.startswith("#")
     ],
