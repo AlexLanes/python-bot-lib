@@ -88,7 +88,7 @@ def executar (*argumentos: str,
         resultado = subprocess.run(argumentos, capture_output=True, timeout=timeout)
         stdout = resultado.stdout.decode(errors="ignore").strip()
         stderr = resultado.stderr.decode(errors="ignore").strip()
-        sucesso = not stderr
+        sucesso = stdout != ""
         return (sucesso, stdout if sucesso else stderr)
     except subprocess.TimeoutExpired as erro:
         raise TimeoutError() from erro
