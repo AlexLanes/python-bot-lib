@@ -77,20 +77,23 @@ def diretorio_execucao () -> estruturas.Diretorio:
     return listar_diretorio(os.getcwd())
 
 def executar (*argumentos: str,
-              shell = False,
+              powershell = False,
               timeout: float | None = None) -> tuple[bool, str]:
-    """Executar um comando com os `argumentos` no `prompt` ou `shell` e aguarda finalizar
-    - Retorno (sucesso, mensagem)
+    """Executar um comando com os `argumentos` no `prompt` e aguarda finalizar
+    - `powershell` para executar o comando no powershell ao invés do prompt
     - `timeout` define o tempo limite em segundos para `TimeoutError`
-    - Levar em consideração o diretório de execução atual
-    - Lança exceção se o comando for inválido"""
+    - Retorno `(sucesso, mensagem)`"""
+    argumentos = ("powershell", "-Command") + argumentos if powershell else argumentos
     try:
-        resultado = subprocess.run(argumentos, capture_output=True, shell=shell, timeout=timeout)
-        sucesso = resultado.returncode == 0
-        pipe = resultado.stdout if sucesso else resultado.stderr
-        return (sucesso, pipe.decode("utf-8", "ignore").strip())
+        resultado = subprocess.run(argumentos, capture_output=True, timeout=timeout)
+        stdout = resultado.stdout.decode(errors="ignore").strip()
+        stderr = resultado.stderr.decode(errors="ignore").strip()
+        sucesso = not stderr
+        return (sucesso, stdout if sucesso else stderr)
     except subprocess.TimeoutExpired as erro:
         raise TimeoutError() from erro
+    except Exception as erro:
+        return (False, str(erro))
 
 def abrir_programa (*argumentos: str) -> None:
     """Abrir um programa em um novo processo descolado da `main thread`
