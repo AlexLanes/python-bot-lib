@@ -13,7 +13,7 @@ import undetected_chromedriver as uc
 from selenium.webdriver.common.keys import Keys as Teclas
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support.ui import WebDriverWait as Wait
-from selenium.webdriver.support.expected_conditions import staleness_of
+from selenium.webdriver.support import expected_conditions as ec
 from selenium.common.exceptions import (
     TimeoutException,
     NoSuchElementException as ElementoNaoEncontrado
@@ -148,10 +148,19 @@ class Navegador (abc.ABC):
         """Aguardar a condição staleness_of do `elemento` por `timeout` segundos
         - Exceção `TimeoutError` caso não finalize no tempo estipulado"""
         try:
-            Wait(self.driver, timeout).until(staleness_of(elemento))
+            Wait(self.driver, timeout).until(ec.staleness_of(elemento))
             return self
         except TimeoutException:
             raise TimeoutError(f"A espera pelo staleness do Elemento não aconteceu após {timeout} segundos")
+
+    def aguardar_visibilidade (self, elemento: WebElement, timeout=60) -> typing.Self:
+        """Aguardar a condição visibility_of do `elemento` por `timeout` segundos
+        - Exceção `TimeoutError` caso não finalize no tempo estipulado"""
+        try:
+            Wait(self.driver, timeout).until(ec.visibility_of(elemento))
+            return self
+        except TimeoutException:
+            raise TimeoutError(f"A espera pela visibilidade do Elemento não aconteceu após {timeout} segundos")
 
     def aguardar_download (self, termos: list[str] = [".csv", "arquivo.xlsx"],
                                  timeout = 60) -> tipagem.caminho:
@@ -217,6 +226,13 @@ class Chrome (Navegador):
         """Inicializar o navegador Chrome
         - `timeout` utilizado na espera do `implicitly_wait`
         - `download` utilizado para informar a pasta de download de arquivos"""
+        # obter a versão do google chrome para o `undetected_chromedriver`, pois ele utiliza sempre a mais recente
+        comando_versao_chrome = r'(Get-Item -Path "$env:PROGRAMFILES\Google\Chrome\Application\chrome.exe").VersionInfo.FileVersion'
+        sucesso, mensagem = windows.executar(comando_versao_chrome, powershell=True)
+        versao = mensagem.split(".")[0]
+        if not sucesso or not versao.isdigit():
+            raise Exception("Versão do Google Chrome não foi localizada")
+
         options = uc.ChromeOptions()
         argumentos = ("--start-maximized", "--disable-infobars", "--disable-notifications", "--ignore-certificate-errors")
         for argumento in argumentos: options.add_argument(argumento)
@@ -229,7 +245,7 @@ class Chrome (Navegador):
             "download.default_directory": self.diretorio_dowload,
         })
 
-        self.driver = uc.Chrome(options)
+        self.driver = uc.Chrome(options, version_main=int(versao))
         self.driver.implicitly_wait(timeout)
         self.driver.maximize_window()
 
