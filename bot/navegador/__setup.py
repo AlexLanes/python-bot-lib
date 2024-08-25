@@ -1,5 +1,5 @@
 # std
-import abc, enum, typing, atexit, collections
+import enum, typing, atexit, collections
 from datetime import (
     datetime as Datetime,
     timedelta as TimeDelta
@@ -19,15 +19,16 @@ from selenium.common.exceptions import (
     NoSuchElementException as ElementoNaoEncontrado
 )
 
-class Navegador (abc.ABC):
-    """Classe do navegador abstrata que deve ser herdada"""
+class Navegador:
+    """Classe do navegador que deve ser herdada"""
 
     driver: wd.Edge
     """Driver do `Selenium`"""
+    timeout_inicial: float
+    """Timeout informado na inicialização do navegador"""
     diretorio_dowload: tipagem.caminho
     """Caminho da pasta de download
-    - `Edge` | `Chrome`
-    - Não é possível alterar"""
+    - `Edge | Chrome`"""
 
     def __del__ (self) -> None:
         """Encerrar o driver quando a variável do navegador sair do escopo"""
@@ -35,6 +36,11 @@ class Navegador (abc.ABC):
             self.driver.quit()
             logger.informar("Navegador fechado")
         except: pass
+
+    def __setattr__ (self, nome: str, valor: typing.Any) -> None:
+        if getattr(self, nome, None) != None:
+            raise AttributeError("Não é possível alterar atributos/métodos")
+        object.__setattr__(self, nome, valor)
 
     @property
     def titulo (self) -> str:
@@ -138,6 +144,13 @@ class Navegador (abc.ABC):
         s.frame(frame) if frame else s.default_content()
         return self
 
+    def alterar_timeout (self, timeout: float | None = None) -> typing.Self:
+        """Alterar o tempo de `timeout` para ações realizadas pelo navegador
+        - `None` para retornar ao timeout de inicialização"""
+        timeout = timeout if timeout != None else self.timeout_inicial
+        self.driver.implicitly_wait(timeout)
+        return self
+
     def hover_elemento (self, elemento: WebElement) -> typing.Self:
         """Realizar a ação de hover no `elemento`"""
         logger.debug(f"Realizando ação de hover no elemento '{elemento}'")
@@ -209,10 +222,14 @@ class Edge (Navegador):
         })
 
         self.driver = wd.Edge(options)
-        self.driver.implicitly_wait(timeout)
         self.driver.maximize_window()
+        self.timeout_inicial = timeout
+        self.driver.implicitly_wait(timeout)
 
         logger.informar("Navegador Edge iniciado")
+
+    def __repr__ (self) -> str:
+        return f"<Edge aba focada '{self.titulo}'>"
 
 class Chrome (Navegador):
     """Navegador Chrome
@@ -246,14 +263,18 @@ class Chrome (Navegador):
         })
 
         self.driver = uc.Chrome(options, version_main=int(versao))
-        self.driver.implicitly_wait(timeout)
         self.driver.maximize_window()
+        self.timeout_inicial = timeout
+        self.driver.implicitly_wait(timeout)
 
         logger.informar("Navegador Chrome iniciado")
 
         # `undetected_chromedriver` está com problema intermitente ao fechar
         # a task que é aberta ao criar o driver está ficando ativa após o `quit()`
         atexit.register(lambda: windows.executar("TASKKILL", "/F", "/IM", "chrome.exe", timeout=5))
+
+    def __repr__ (self) -> str:
+        return f"<Chrome aba focada '{self.titulo}'>"
 
     @typing.override
     def __del__ (self) -> None:
@@ -310,9 +331,13 @@ class Explorer (Navegador):
 
         self.driver = wd.Ie(options)
         self.driver.maximize_window()
+        self.timeout_inicial = timeout
         self.driver.implicitly_wait(timeout)
 
         logger.informar("Navegador Edge, modo Internet Explorer, iniciado")
+
+    def __repr__ (self) -> str:
+        return f"<Explorer aba focada '{self.titulo}'>"
 
     @typing.override
     def aguardar_download (self, termos: list[str] = [".csv", "arquivo.xlsx"], timeout=60) -> str:
