@@ -7,7 +7,7 @@ from ..estruturas import Coordenada
 from pyscreeze import pixel
 from pynput.mouse import Controller, Button
 from win32api import (
-    GetCursorPos as get_cursor_position, 
+    GetCursorPos as get_cursor_position,
     SetCursorPos as set_cursor_position
 )
 
@@ -26,7 +26,7 @@ def obter_x_y (coordenada: tuple[int, int] | Coordenada | None) -> tuple[int, in
     return posicao_mouse()
 
 def mover_mouse (coordenada: tuple[int, int] | Coordenada) -> None:
-    """Mover o mouse até a `coordenada`"""
+    """Mover o mouse, de forma instantanea, até a `coordenada`"""
     coordenada = obter_x_y(coordenada)
     # mover
     set_cursor_position(coordenada)
@@ -35,6 +35,22 @@ def mover_mouse (coordenada: tuple[int, int] | Coordenada) -> None:
     sleep(0.01)
     c = coordenada
     util.aguardar_condicao(lambda: c == MOUSE.position and c == get_cursor_position(), 0.1, 0.002)
+
+def mover_mouse_deslizando (coordenada: tuple[int, int] | Coordenada) -> None:
+    """Mover o mouse, deslizando pixel por pixel, até a `coordenada`"""
+    coordenada = obter_x_y(coordenada)
+    cronometro, tempo_limite = util.cronometro(), 5.0
+    direcao_movimento = lambda n: 1 if n > 0 else -1 if n < 0 else 0
+    movimento_relativo = lambda: tuple(desejado - atual for desejado, atual in zip(coordenada, posicao_mouse()))
+    # mover enquanto diferente da coordenada desejada e dentro do tempo estipulado
+    # se houver gargalo na máquina, a movimentação do mouse pode falhar
+    while posicao_mouse() != coordenada and cronometro() < tempo_limite:
+        x_relativo, y_relativo = movimento_relativo()
+        while x_relativo or y_relativo:
+            x_relativo -= (x := direcao_movimento(x_relativo))
+            y_relativo -= (y := direcao_movimento(y_relativo))
+            MOUSE.move(x, y)
+            sleep(0.001)
 
 def clicar_mouse (botao: tipagem.BOTOES_MOUSE = "left",
                   quantidade=1,
@@ -67,5 +83,6 @@ __all__ = [
     "mover_mouse",
     "clicar_mouse",
     "posicao_mouse",
-    "scroll_vertical"
+    "scroll_vertical",
+    "mover_mouse_deslizando"
 ]
