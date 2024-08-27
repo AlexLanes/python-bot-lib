@@ -26,7 +26,7 @@ def obter_x_y (coordenada: tuple[int, int] | Coordenada | None) -> tuple[int, in
     return posicao_mouse()
 
 def mover_mouse (coordenada: tuple[int, int] | Coordenada) -> None:
-    """Mover o mouse, de forma instantanea, até a `coordenada`"""
+    """Mover o mouse, de forma instantânea, até a `coordenada`"""
     coordenada = obter_x_y(coordenada)
     # mover
     set_cursor_position(coordenada)
