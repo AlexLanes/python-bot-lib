@@ -3,16 +3,17 @@
 # std
 from typing import Any
 # interno
-from ..http import Json, Headers, Url
+from ..http import Json, Url
+from ..estruturas import LowerDict
 
 class Response:
 
     status: int
-    headers: Headers
+    headers: LowerDict
     body: Any
 
     def __init__ (self) -> None:
-        self.headers = Headers()
+        self.headers = LowerDict()
 
     def __getattr__ (self, nome: str) -> None:
         return None
@@ -27,11 +28,11 @@ class Request:
 
     url: Url
     metodo: str
-    headers: Headers
+    headers: LowerDict
     body: Any
 
     def __init__ (self) -> None:
-        self.url, self.headers = Url(""), Headers()
+        self.url, self.headers = Url(""), LowerDict()
 
     def __getattr__ (self, nome: str) -> None:
         return None
@@ -65,7 +66,7 @@ class Mensagem:
         if not self.request.body and params.request.postData:
             self.request.body = params.request.postData.valor()
         if headers := (params.headers or params.request.headers).valor():
-            self.request.headers = self.request.headers or Headers()
+            self.request.headers = self.request.headers or LowerDict()
             for header in headers:
                 self.request.headers[header] = headers[header]
 
@@ -74,7 +75,7 @@ class Mensagem:
         if not self.response.status and params.response.status:
             self.response.status = params.response.status.valor()
         if headers := (params.headers or params.response.headers).valor():
-            self.response.headers = self.response.headers or Headers()
+            self.response.headers = self.response.headers or LowerDict()
             for header in headers:
                 self.response.headers[header] = headers[header]
 

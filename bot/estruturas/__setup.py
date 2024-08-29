@@ -299,8 +299,62 @@ class Email:
     """Anexos do e-mail
     - `for nome, tipo, conteudo in email.anexos:`"""
 
+class LowerDict [T]:
+    """Classe usada para obter/criar/adicionar chaves de um `dict` como `lower-case`
+    - Obter: `LowerDict["nome"]` KeyError caso não exista
+    - Checar existência: `"nome" in LowerDict`
+    - Adicionar/Atualizar: `LowerDict["nome"] = "valor"`
+    - Tamanho: `len(LowerDict)` quantidade de chaves
+    - Iteração: `for chave in LowerDict: ...`
+    - Comparador bool: `bool(LowerDict)` ou `if LowerDict: ...` True se não for vazio
+    - Comparador igualdade: `LowerDict1 == LowerDict2` True se as chaves, valores e tamanho forem iguais"""
+
+    __d: dict[str, T]
+
+    def __init__ (self, d: dict[str, T] | None = None) -> None:
+        self.__d = {
+            chave.lower().strip(): valor
+            for chave, valor in (d or {}).items()
+        }
+
+    def __repr__ (self) -> str:
+        return f"<LowerDict com '{len(self)}' chaves>"
+
+    def __getitem__ (self, nome: str) -> T:
+        return self.__d[nome.strip().lower()]
+
+    def __setitem__ (self, nome: str, valor: T) -> None:
+        self.__d[nome.lower().strip()] = valor
+
+    def __contains__ (self, chave: str) -> bool:
+        return chave.lower().strip() in self.__d
+
+    def __len__ (self) -> int:
+        return len(self.__d)
+
+    def __bool__ (self) -> bool:
+        return bool(self.__d)
+
+    def __iter__ (self) -> Generator[str, None, None]:
+        for chave in self.__d:
+            yield chave
+
+    def __eq__ (self, other: object) -> bool:
+        return False if not isinstance(other, LowerDict) else (
+            len(self) == len(other)
+            and all(
+                chave in other and self[chave] == other[chave]
+                for chave in self
+            )
+        )
+
+    @property
+    def __dict__ (self) -> dict[str, T]:
+        return self.__d
+
 __all__ = [
     "Email",
+    "LowerDict",
     "InfoStack",
     "Diretorio",
     "Resultado",
