@@ -6,7 +6,7 @@ from datetime import (
 )
 # interno
 from .__mensagem import Mensagem
-from .. import util, tipagem, logger, windows, teclado, formatos
+from .. import util, tipagem, logger, windows, teclado, formatos, estruturas
 # externo
 import selenium.webdriver as wd
 import undetected_chromedriver as uc
@@ -29,6 +29,14 @@ class Navegador:
     diretorio_dowload: tipagem.caminho
     """Caminho da pasta de download
     - `Edge | Chrome`"""
+
+    def __new__ (cls, *args, **kwargs) -> typing.Self:
+        objeto = super().__new__(cls)
+        def encerrar_driver_ao_fim ():
+            try: objeto.driver.quit()
+            except: pass
+        atexit.register(encerrar_driver_ao_fim)
+        return objeto
 
     def __del__ (self) -> None:
         """Encerrar o driver quando a variável do navegador sair do escopo"""
@@ -198,6 +206,26 @@ class Navegador:
             erro.add_note(f"Termos esperados: {termos}")
             raise erro
         return caminho_arquivo
+
+    def coordenada_elemento (self, elemento: WebElement) -> estruturas.Coordenada:
+        """Obter a coordenada do `elemento` referente a tela
+        - Scroll do `elemento` para o centro da tela
+        - Não funciona para elementos dentro de iframe"""
+        coordenada = self.driver.execute_script(
+            """
+            arguments[0].scrollIntoView({ block: "center" });
+            const y_offset = window.outerHeight - window.innerHeight,
+                  rect = arguments[0].getBoundingClientRect();
+            return {
+                x: Math.ceil(rect.x),
+                y: Math.ceil(rect.y + y_offset),
+                largura: Math.floor(rect.width),
+                altura: Math.floor(rect.height)
+            };
+            """,
+            elemento
+        )
+        return estruturas.Coordenada(**coordenada)
 
 class Edge (Navegador):
     """Navegador Edge com funcionalidades padrões para automação
