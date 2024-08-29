@@ -1,18 +1,13 @@
 # std
 from __future__ import annotations
-from inspect import stack
-from dataclasses import dataclass
-from functools import cached_property
-from typing import Generator, Callable
 from datetime import datetime as Datetime
-from itertools import tee as duplicar_iterable
-from os.path import getmtime as ultima_alteracao
+import os, typing, pathlib, shutil, inspect, itertools, functools, dataclasses
 # interno
-from .. import tipagem, windows
+from .. import tipagem
 # externo
 from polars import DataFrame
 
-@dataclass
+@dataclasses.dataclass
 class Coordenada:
     """Coordenada de uma região na tela"""
 
@@ -21,7 +16,7 @@ class Coordenada:
     largura: int
     altura: int
 
-    def __iter__ (self) -> Generator[int, None, None]:
+    def __iter__ (self) -> typing.Generator[int, None, None]:
         """Utilizado com o `tuple(coordenada)` e `x, y, largura, altura = coordenada`"""
         yield self.x
         yield self.y
@@ -65,7 +60,7 @@ class Coordenada:
         largura, altura = int(box[1] - x), int(box[3] - y)
         return cls(x, y, largura, altura)
 
-@dataclass
+@dataclasses.dataclass
 class ResultadoSQL:
     """Classe utilizada no retorno de comando em banco de dados
 
@@ -96,20 +91,20 @@ class ResultadoSQL:
     - `None` indica que não se aplica para o comando sql"""
     colunas: tuple[str, ...]
     """Colunas das linhas retornadas (se houver)"""
-    linhas: Generator[tuple[tipagem.tipoSQL, ...], None, None]
+    linhas: typing.Generator[tuple[tipagem.tipoSQL, ...], None, None]
     """Generator das linhas retornadas (se houver)
     - Consumido quando iterado sobre"""
 
-    def __iter__ (self) -> Generator[tuple[tipagem.tipoSQL, ...], None, None]:
+    def __iter__ (self) -> typing.Generator[tuple[tipagem.tipoSQL, ...], None, None]:
         """Generator do self.linhas"""
         for linha in self.linhas:
             yield linha
 
-    @cached_property
+    @functools.cached_property
     def __p (self) -> tuple[tipagem.tipoSQL, ...] | None:
         """Cache da primeira linha no resultado
         - `None` caso não possua"""
-        self.linhas, linhas = duplicar_iterable(self.linhas)
+        self.linhas, linhas = itertools.tee(self.linhas)
         try: return next(linhas)
         except StopIteration: return None
 
@@ -126,7 +121,7 @@ class ResultadoSQL:
 
     def __len__ (self) -> int:
         """Obter a quantidade de linhas no retornadas"""
-        self.linhas, linhas = duplicar_iterable(self.linhas)
+        self.linhas, linhas = itertools.tee(self.linhas)
         return sum(1 for _ in linhas)
 
     def __getitem__ (self, campo: str) -> tipagem.tipoSQL:
@@ -136,7 +131,7 @@ class ResultadoSQL:
     @property
     def __dict__ (self) -> dict[str, int | None | list[dict]]:
         """Representação formato dicionário"""
-        self.linhas, linhas = duplicar_iterable(self.linhas)
+        self.linhas, linhas = itertools.tee(self.linhas)
         return {
             "linhas_afetadas": self.linhas_afetadas,
             "resultados": [
@@ -151,7 +146,7 @@ class ResultadoSQL:
     def to_dataframe (self, transformar_string=False) -> DataFrame:
         """Salvar o resultado em um `polars.DataFrame`
         - `transformar_string` flag se os dados serão convertidos em `str`"""
-        self.linhas, linhas = duplicar_iterable(self.linhas)
+        self.linhas, linhas = itertools.tee(self.linhas)
         to_string = lambda linha: tuple(
             str(valor) if valor != None else None
             for valor in linha
@@ -186,7 +181,7 @@ class Resultado [T]:
     __valor: T | None
     __erro: Exception | None
 
-    def __init__ (self, funcao: Callable[..., T], *args, **kwargs) -> None:
+    def __init__ (self, funcao: typing.Callable[..., T], *args, **kwargs) -> None:
         """Realizar a chamada na `função` com os argumentos `args` e `kwargs`"""
         self.__valor = self.__erro = None
         try: self.__valor = funcao(*args, **kwargs)
@@ -216,68 +211,178 @@ class Resultado [T]:
         """Obter o valor do resultado ou `default` caso tenha apresentado erro"""
         return self.__valor if self else default
 
-@dataclass
-class Diretorio:
-    """Armazena os caminhos de pastas e arquivos presentes no diretório"""
+class Caminho:
+    """Classe para representação de caminhos, em sua versão absoluta, 
+    do sistema operacional e manipulação de arquivos/pastas
 
-    caminho: tipagem.caminho
-    """Caminho absoluto do diretorio"""
-    pastas: list[tipagem.caminho]
-    """Lista contendo o caminho de cada pasta do diretório"""
-    arquivos: list[tipagem.caminho]
-    """Lista contendo o caminho de cada arquivo do diretório"""
+    - Criação: `Caminho("caminho_completo")`, `Caminho(".", "pasta", "arquivo.txt")` ou `Caminho.diretorio_execucao()`
+    - Acesso: `Caminho().caminho` ou `str(Caminho())`
+    - Concatenação: `Caminho() + "pasta" + "arquivo"` ou `Caminho() / "pasta" / "arquivo"`
+    - Comparador bool: `"pasta" in Caminho()` ou `Caminho(".") in Caminho("./arquivo")`
+    - Iteração sobre diretório: `for caminho in Caminho(): ...`
+    - Demais métodos/atributos estão comentados"""
+
+    __p: pathlib.Path
+
+    def __init__ (self, *fragmento: str) -> None:
+        self.__p = pathlib.Path(*fragmento).absolute()
+
+    @classmethod
+    def diretorio_execucao (cls) -> Caminho:
+        """Obter o caminho para o diretório de execução atual"""
+        caminho = object.__new__(cls)
+        caminho.__p = pathlib.Path.cwd()
+        return caminho
 
     def __repr__ (self) -> str:
-        return f"<Diretorio '{self.caminho}' com {len(self.pastas)} pasta(s) e {len(self.arquivos)} arquivos(s)>"
+        return f"<Caminho '{self.__p}'>"
 
-    def query_data_alteracao_arquivos (self,
-                                       inicio=Datetime.now().replace(hour=0, minute=0, second=0, microsecond=0),
-                                       fim=Datetime.now()) -> list[tuple[tipagem.caminho, Datetime]]:
-        """Consultar arquivos do diretório com base na data de alteração
-        - Default: Hoje
-        - Retorna uma lista `(caminho, data)` ordenado pelos mais antigos"""
-        criar_data = lambda caminho: Datetime.fromtimestamp(ultima_alteracao(caminho))
-        return sorted(
-            (
-                (caminho, data)
-                for caminho in self.arquivos
-                if inicio <= (data := criar_data(caminho)) <= fim
-            ),
-            key = lambda x: x[1]
+    def __str__ (self) -> str:
+        return str(self.__p)
+
+    def __contains__ (self, caminho: str | Caminho) -> bool:
+        return False if not isinstance(caminho, (str, Caminho)) else (
+            str(caminho) in self.caminho
         )
+
+    def __add__ (self, fragmento: str) -> Caminho:
+        return Caminho(self.caminho, os.path.basename(str(fragmento)))
+
+    def __truediv__ (self, fragmento: str) -> Caminho:
+        return self + fragmento
+
+    def __iter__ (self) -> typing.Generator[Caminho, None, None]:
+        if not self.diretorio():
+            return
+        for p in self.__p.iterdir():
+            yield Caminho(str(p))
+
+    @property
+    def caminho (self) -> str:
+        """Obter o caminho como string
+        - Versão alternativa: str(caminho)"""
+        return str(self)
+
+    @property
+    def parente (self) -> Caminho:
+        """Obter o caminho para o parente do caminho atual"""
+        return Caminho(str(self.__p.parent))
+
+    @property
+    def nome (self) -> str:
+        """Nome final do caminho"""
+        return self.__p.name
+
+    @property
+    def fragmentos (self) -> list[str]:
+        """Fragmentos ordenados do caminho"""
+        return list(self.__p.parts)
+
+    @property
+    def data_criacao (self) -> Datetime:
+        """Data de criação do arquivo ou diretório
+        - `ValueError` caso o caminho não exista"""
+        if not self.existe():
+            raise ValueError(f"Caminho '{self}' inexistente")
+        return Datetime.fromtimestamp(os.path.getctime(self.__p))
+
+    @property
+    def data_modificao (self) -> Datetime:
+        """Data da última modificação do arquivo ou diretório
+        - `ValueError` caso o caminho não exista"""
+        if not self.existe():
+            raise ValueError(f"Caminho '{self}' inexistente")
+        return Datetime.fromtimestamp(os.path.getmtime(self.__p))
+
+    @property
+    def tamanho (self) -> int:
+        """Tamanho em bytes do arquivo ou diretório
+        - `ValueError` caso o caminho não exista"""
+        if not self.existe():
+            raise ValueError(f"Caminho '{self}' inexistente")
+        return os.path.getsize(self.__p) if not self.diretorio() else sum(
+            os.path.getsize(caminho.__p) if not self.diretorio() else caminho.tamanho
+            for caminho in self
+        )
+
+    def existe (self) -> bool:
+        """Checar se o caminho existe"""
+        return self.__p.exists()
+
+    def arquivo (self) -> bool:
+        """Checar se o caminho existente é de um arquivo"""
+        return self.__p.is_file()
+
+    def diretorio (self) -> bool:
+        """Checar se o caminho existente é de um diretório"""
+        return self.__p.is_dir()
+
+    def renomear (self, novo_nome: str) -> Caminho:
+        """Renomear o nome final do caminho atual para `novo_nome` e retornar o caminho
+        - Não tem efeito caso caminho não exista"""
+        novo_nome = os.path.basename(novo_nome)
+        caminho = str(self.__p.with_name(novo_nome).absolute())
+        if self.existe(): self.__p.rename(caminho)
+        return Caminho(caminho)
+
+    def copiar (self, diretorio: Caminho) -> Caminho:
+        """Copiar o arquivo ou diretório do caminho atual para o `diretorio` existente
+        - Não tem efeito caso algum caminho não exista"""
+        destino = diretorio / self.nome
+        if self.arquivo() and diretorio.diretorio():
+            shutil.copyfile(self.__p, destino.__p)
+        elif self.diretorio() and diretorio.diretorio():
+            shutil.copytree(self.__p, destino.__p, dirs_exist_ok=True)
+        return destino
+
+    def mover (self, diretorio: Caminho) -> Caminho:
+        """Mover o arquivo ou diretório do caminho atual para o `diretorio` existente
+        - Não tem efeito caso algum caminho não exista"""
+        if self.existe() and diretorio.diretorio():
+            shutil.move(self.__p, diretorio.__p)
+        return diretorio / self.nome
+
+    def criar_diretorios (self) -> typing.Self:
+        """Criar todos os diretórios no caminho atual que não existem
+        - Não altera diretórios existentes"""
+        if not self.existe(): self.__p.mkdir(parents=True)
+        return self
+
+    def apagar_arquivo (self) -> Caminho:
+        """Apagar o arquivo do caminho atual e retornar ao parente
+        - Não tem efeito caso não exista ou não seja arquivo"""
+        if self.arquivo(): self.__p.unlink()
+        return self.parente
 
 class InfoStack:
     """Informações do `Stack` de execução"""
 
-    nome: str
-    """Nome do arquivo"""
+    caminho: Caminho
+    """Caminho do arquivo"""
     funcao: str
     """Nome da função"""
     linha: int
     """Linha do item executado"""
-    caminho: tipagem.caminho
-    """Caminho do arquivo"""
 
     def __init__ (self, index=1) -> None:
         """Obter informações presente no stack dos callers
         - `Default` arquivo que chamou o `InfoStack()`"""
-        frame = stack()[index]
+        frame = inspect.stack()[index]
+        self.caminho = Caminho(frame.filename)
         self.linha, self.funcao = frame.lineno, frame.function
-        self.nome = windows.nome_base(frame.filename)
-        self.caminho = windows.nome_diretorio(frame.filename)
 
     @staticmethod
-    def caminhos () -> list[tipagem.caminho]:
+    def caminhos () -> list[Caminho]:
         """Listar os caminhos dos callers no stack de execução
         - `[0] topo stack`
         - `[-1] começo stack`"""
         return [
-            windows.caminho_absoluto(frame.filename)
-            for frame in stack()
-            if windows.afirmar_arquivo(frame.filename)
+            caminho
+            for frame in inspect.stack()
+            if (caminho := Caminho(frame.filename)).arquivo()
         ]
 
-@dataclass
+@dataclasses.dataclass
 class Email:
     """Classe para armazenar informações extraídas de Email"""
 
@@ -335,7 +440,7 @@ class LowerDict [T]:
     def __bool__ (self) -> bool:
         return bool(self.__d)
 
-    def __iter__ (self) -> Generator[str, None, None]:
+    def __iter__ (self) -> typing.Generator[str, None, None]:
         for chave in self.__d:
             yield chave
 
@@ -354,9 +459,9 @@ class LowerDict [T]:
 
 __all__ = [
     "Email",
+    "Caminho",
     "LowerDict",
     "InfoStack",
-    "Diretorio",
     "Resultado",
     "Coordenada",
     "ResultadoSQL",
