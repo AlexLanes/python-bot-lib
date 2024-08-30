@@ -1,7 +1,5 @@
 # std
-import sqlite3
-import re as regex
-from typing import Iterable
+import re, sqlite3, typing
 # interno
 from .. import tipagem, database, logger, estruturas
 # externo
@@ -50,8 +48,7 @@ def formatar_dataframe (df: polars.DataFrame,
 def criar_excel (caminho: estruturas.Caminho, planilhas: dict[str, polars.DataFrame]) -> estruturas.Caminho:
     """Criar um arquivo excel com os dados informados
     - `planilhas` Dicionário sendo a `key` o nome da planilha e `value` um `polars.Dataframe` com os dados
-    - `caminho` deve terminar em `.xlsx`
-    - Retorna o `caminho` na forma absoluta"""
+    - `caminho` deve terminar em `.xlsx`"""
     assert caminho.nome.endswith(".xlsx"), "Caminho deve terminar em '.xlsx'"
 
     with Workbook(caminho.string) as excel:
@@ -176,10 +173,11 @@ class Sqlite:
     __conexao: sqlite3.Connection
     """Conexão com o sqlite3"""
 
-    def __init__ (self, database=":memory:") -> None:
+    def __init__ (self, database: str | estruturas.Caminho = ":memory:") -> None:
         """Inicialização do banco de dados
         - `database` caminho para o arquivo .db ou .sqlite, 
         - Default carregar apenas na memória"""
+        database = str(database)
         logger.informar(f"Iniciando conexão Sqlite com o database '{database}'")
         self.__conexao = sqlite3.connect(database, autocommit=False)
         self.__conexao.execute("PRAGMA foreign_keys = ON")
@@ -206,13 +204,15 @@ class Sqlite:
             for _, coluna, tipo, *_, in self.execute(f"PRAGMA table_info({tabela})")
         ]
 
-    def commit (self) -> None:
+    def commit (self) -> typing.Self:
         """Commitar alterações feitas na conexão"""
         self.__conexao.commit()
+        return self
 
-    def rollback (self) -> None:
+    def rollback (self) -> typing.Self:
         """Reverter as alterações, pós commit, feitas na conexão"""
         self.__conexao.rollback()
+        return self
 
     def execute (self, sql: str, parametros: tipagem.nomeado | tipagem.posicional = None) -> estruturas.ResultadoSQL:
         """Executar uma única instrução SQL
@@ -234,13 +234,13 @@ class Sqlite:
         gerador = (linha for linha in cursor)
         return estruturas.ResultadoSQL(linhas_afetadas, colunas, gerador)
 
-    def to_excel (self, caminho="resultado.xlsx") -> None:
-        """Salvar as linhas de todas as tabelas da conexão em um arquivo excel"""
-        planilhas = {
+    def to_excel (self, caminho: estruturas.Caminho) -> estruturas.Caminho:
+        """Salvar as linhas de todas as tabelas da conexão no `caminho` formato excel
+        - `caminho` deve terminar com `.xlsx`"""
+        return criar_excel(caminho, {
             tabela: self.execute(f"SELECT * FROM {tabela}").to_dataframe()
             for tabela in self.tabelas()
-        }
-        criar_excel(caminho, planilhas)
+        })
 
 __all__ = [
     "polars",
