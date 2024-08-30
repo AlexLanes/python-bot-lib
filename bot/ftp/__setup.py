@@ -3,10 +3,11 @@ import ftplib
 from typing import IO
 from io import BytesIO
 # interno
-from .. import configfile, logger, tipagem, estruturas
+from .. import configfile, logger
 
 class FTP:
     """Classe de abstração do `ftplib`"""
+
     __ftp: ftplib.FTP
 
     def __init__ (self) -> None:
@@ -40,32 +41,31 @@ class FTP:
         return f"<FTP conexão com o host '{self.__ftp.host}'>"
 
     @property
-    def diretorio (self) -> tipagem.caminho:
+    def diretorio (self) -> str:
         """Diretório atual do FTP"""
         return self.__ftp.pwd()
 
-    def alterar_diretorio (self, caminho: tipagem.caminho) -> None:
+    def alterar_diretorio (self, caminho: str) -> None:
         """Alterar o diretório atual
         - Passível de exceção"""
         logger.informar(f"Alterando diretório do FTP para '{caminho}'")
         try: self.__ftp.cwd(caminho)
         except Exception as erro:
             erro.add_note(f"Caminho informado: '{caminho}'")
-            erro.add_note(f"Caminhos existentes: {self.listar_diretorio().pastas}")
+            erro.add_note(f"Caminhos existentes: {self.listar_diretorio()[1]}")
             raise
 
-    def listar_diretorio (self) -> estruturas.Diretorio:
-        """Listar arquivos e pastas do diretório atual"""
+    def listar_diretorio (self) -> tuple[list[str], list[str]]:
+        """Listar `arquivos, diretorios` existentes no diretório atual"""
         cwd = self.diretorio
-        diretorio = estruturas.Diretorio(cwd, [], [])
-        del diretorio.query_data_alteracao_arquivos # não suportado
+        arquivos, diretorios = [], []
 
         for nome, infos in self.__ftp.mlsd():
             tipo, caminho = infos.get("type"), f"{cwd if cwd != "/" else ""}/{nome}"
-            if tipo == "dir": diretorio.pastas.append(caminho)
-            elif tipo == "file": diretorio.arquivos.append(caminho)
+            if tipo == "dir": diretorios.append(caminho)
+            elif tipo == "file": arquivos.append(caminho)
 
-        return diretorio
+        return arquivos, diretorios
 
     def obter_arquivo (self, nome_arquivo: str) -> bytes:
         """Obter conteúdo do arquivo `nome` no diretório atual

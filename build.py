@@ -47,17 +47,17 @@ def obter_releases () -> dict[str, int]:
         if release["tag_name"]
     }
 
-def upload_asset (id_release: int, caminho_build: str) -> None:
+def upload_asset (id_release: int, caminho_build: bot.estruturas.Caminho) -> None:
     host = HOST.replace("api", "uploads")
     response = bot.http.request(
         "POST",
         f"{host}/repos/AlexLanes/python-bot-lib/releases/{id_release}/assets",
-        params = { "name": bot.windows.nome_base(caminho_build) },
+        params = { "name": caminho_build.nome },
         headers = {
             "Authorization": f"Bearer {TOKEN}",
             "Content-Type": "application/octet-stream"
         },
-        content = open(caminho_build, "rb").read()
+        content = open(caminho_build.string, "rb").read()
     )
     assert response.status_code == 201
 
@@ -66,12 +66,15 @@ def main () -> None:
     - Gerar build na versão especificada no `setup.py`
     - Fazer o upload para o GitHub do release com a tag da versão
     """
-    sucesso, _ = bot.windows.executar("python", "setup.py", "bdist_wheel")
+    sucesso, _ = bot.sistema.executar("python", "setup.py", "bdist_wheel")
     assert sucesso
 
-    caminho_build = bot.windows.listar_diretorio("./dist").arquivos[-1]
-    nome_build = bot.windows.nome_base(caminho_build)
-    release_atual = "v" + nome_build.removeprefix("bot-").removesuffix("-py3-none-any.whl")
+    caminho_build, *_ = sorted(
+        (c for c in bot.estruturas.Caminho(".", "dist") if c.arquivo()),
+        key = lambda c: c.nome,
+        reverse = True
+    )
+    release_atual = "v" + caminho_build.nome.removeprefix("bot-").removesuffix("-py3-none-any.whl")
 
     releases = obter_releases()
     assert release_atual not in releases, "Versão do release já existente, atualizar versão no setup.py"

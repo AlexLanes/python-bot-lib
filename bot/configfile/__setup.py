@@ -1,19 +1,18 @@
 # std
-import os, typing
-from configparser import ConfigParser, ExtendedInterpolation
+import typing, configparser
 # interno
-from .. import util, windows, tipagem
+from .. import util, estruturas, tipagem
 
 INICIALIZADO = False
-DIRETORIO_EXECUCAO = os.getcwd()
-CONFIG = ConfigParser(interpolation=ExtendedInterpolation())
+DIRETORIO_EXECUCAO = estruturas.Caminho.diretorio_execucao()
+CONFIG = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
 
 def inicializar () -> None:
     """Inicializar o configfile"""
-    assert windows.afirmar_diretorio(DIRETORIO_EXECUCAO)
-    for arquivo in windows.listar_diretorio(DIRETORIO_EXECUCAO).arquivos:
-        if not arquivo.endswith(".ini"): continue
-        CONFIG.read(arquivo, encoding="utf-8")
+    assert DIRETORIO_EXECUCAO.diretorio()
+    for caminho in DIRETORIO_EXECUCAO:
+        if not caminho.arquivo() or not caminho.nome.endswith(".ini"): continue
+        CONFIG.read(caminho.string, encoding="utf-8")
 
     global INICIALIZADO
     INICIALIZADO = True

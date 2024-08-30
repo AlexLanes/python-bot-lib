@@ -3,7 +3,7 @@ import sqlite3
 import re as regex
 from typing import Iterable
 # interno
-from .. import tipagem, database, logger, estruturas, windows
+from .. import tipagem, database, logger, estruturas
 # externo
 import polars, pyodbc
 from xlsxwriter import Workbook
@@ -47,15 +47,14 @@ def formatar_dataframe (df: polars.DataFrame,
     with database.polars.Config(**kwargs):
         return str(df)
 
-def criar_excel (caminho: tipagem.caminho, planilhas: dict[str, polars.DataFrame]) -> tipagem.caminho:
+def criar_excel (caminho: estruturas.Caminho, planilhas: dict[str, polars.DataFrame]) -> estruturas.Caminho:
     """Criar um arquivo excel com os dados informados
     - `planilhas` Dicionário sendo a `key` o nome da planilha e `value` um `polars.Dataframe` com os dados
     - `caminho` deve terminar em `.xlsx`
     - Retorna o `caminho` na forma absoluta"""
-    caminho = windows.caminho_absoluto(caminho)
-    assert caminho.endswith(".xlsx"), "Caminho deve terminar em '.xlsx'"
+    assert caminho.nome.endswith(".xlsx"), "Caminho deve terminar em '.xlsx'"
 
-    with Workbook(caminho) as excel:
+    with Workbook(caminho.string) as excel:
         for nome_planilha, df in planilhas.items():
             df.write_excel(excel, nome_planilha, autofit=True)
 

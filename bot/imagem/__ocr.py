@@ -4,7 +4,7 @@ from functools import cache
 # interno
 from ..estruturas import Coordenada
 from .. import util, logger, tipagem
-from .__setup import capturar_tela, transformar_pillow
+from .__setup import capturar_tela, parse_pillow
 # externo
 import numpy as np
 from PIL import Image
@@ -21,9 +21,9 @@ class LeitorOCR:
         self.__reader = Reader(["en"])
         self.__confianca = max(0.0, min(1.0, float(confianca)))
 
-    def ler_tela (self, regiao: Coordenada = None) -> list[tuple[str, Coordenada]]:
-        """Extrair texto e coordenadas da tela na posição `coordenada` 
-        - `regiao` vazia para ler a tela inteira
+    def ler_tela (self, regiao: Coordenada | None = None) -> list[tuple[str, Coordenada]]:
+        """Extrair texto e coordenadas da tela
+        - `regiao` para limitar a área de extração
         - `for texto, coordenada in leitor.ler_tela()`"""
         cronometro = util.cronometro()
         extracoes = self.__ler(capturar_tela(regiao, True))
@@ -39,10 +39,10 @@ class LeitorOCR:
         return extracoes
 
     def ler_imagem (self, imagem: tipagem.imagem) -> list[tuple[str, Coordenada]]:
-        """Extrair texto e coordenadas de uma imagem
+        """Extrair texto e coordenadas da `imagem`
         - `for texto, coordenada in leitor.ler_imagem()`"""
         cronometro = util.cronometro()
-        extracoes = self.__ler(transformar_pillow(imagem))
+        extracoes = self.__ler(parse_pillow(imagem))
         tempo = util.expandir_tempo(cronometro())
         logger.debug(f"Leitura da imagem realizada em {tempo}")
         return extracoes
@@ -56,9 +56,9 @@ class LeitorOCR:
             if confianca >= self.__confianca
         ]
 
-    def detectar_tela (self, regiao: Coordenada = None) -> list[Coordenada]:
-        """Extrair coordenadas da tela
-        - `regiao` vazia para ler a tela inteira
+    def detectar_tela (self, regiao: Coordenada | None = None) -> list[Coordenada]:
+        """Extrair coordenadas de textos da tela
+        - `regiao` para limitar a área de extração
         - `confiança` não se aplica na detecção"""
         cronometro = util.cronometro()
         coordenadas = self.__detectar(capturar_tela(regiao, True))
@@ -74,10 +74,10 @@ class LeitorOCR:
         return coordenadas
 
     def detectar_imagem (self, imagem: tipagem.imagem) -> list[Coordenada]:
-        """Extrair coordenadas de uma imagem
+        """Extrair coordenadas da `imagem`
         - `confiança` não se aplica na detecção"""
         cronometro = util.cronometro()
-        coordenadas = self.__detectar(transformar_pillow(imagem))
+        coordenadas = self.__detectar(parse_pillow(imagem))
         tempo = util.expandir_tempo(cronometro())
         logger.debug(f"Imagem detectada em {tempo}")
         return coordenadas

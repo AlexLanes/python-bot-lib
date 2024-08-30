@@ -16,10 +16,10 @@ from datetime import (
     timedelta as TimeDelta
 )
 # interno
-from .. import tipagem, logger, configfile, util, windows, formatos, estruturas
+from .. import tipagem, logger, configfile, util, formatos, estruturas
 
-def enviar_email (destinatarios: list[tipagem.email], assunto="", conteudo="", anexos: list[tipagem.caminho] = []) -> None:
-    """Enviar email para uma lista de `destinatarios` com `assunto`, `conteudo` e, lista de `anexos`
+def enviar_email (destinatarios: list[tipagem.email], assunto="", conteudo="", anexos: list[estruturas.Caminho] = []) -> None:
+    """Enviar email para uma lista de `destinatarios` com `assunto`, `conteudo` e lista de `anexos`
     - Abstração `smtplib`
     - `conteudo` pode ser uma string html se começar com "<"
     - Variáveis .ini `[email.enviar] -> user, password, host`"""
@@ -44,14 +44,14 @@ def enviar_email (destinatarios: list[tipagem.email], assunto="", conteudo="", a
 
     # anexos
     for caminho in anexos:
-        if not windows.caminho_existe(caminho) or not windows.afirmar_arquivo(caminho): 
-            logger.alertar(f"Erro ao anexar '{caminho}' no e-mail")
+        if not caminho.arquivo():
+            logger.alertar(f"Anexo para o e-mail não encontrado: {caminho}")
             continue
-        with open(caminho, "rb") as arquivo:
-            decodificar = any(formato in caminho for formato in (".csv", ".txt", ".log"))
+        with open(caminho.string, "rb") as arquivo:
+            decodificar = any(formato in caminho.nome for formato in (".csv", ".txt", ".log"))
             conteudo = arquivo.read().decode(errors="ignore") if decodificar else arquivo.read()
             anexo = MIMEApplication(conteudo)
-            nome = util.remover_acentuacao(windows.nome_base(caminho))
+            nome = util.remover_acentuacao(caminho.nome)
             anexo.add_header("Content-Disposition", f'attachment; filename="{nome}"')
             mensagem.attach(anexo)
 

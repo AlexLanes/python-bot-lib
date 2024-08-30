@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="bot",
-    version="1.7.0",
+    version="2.0.0",
     packages=find_packages(),
     author="Alex Lanes Angelo",
     author_email="alex_lanes@hotmail.com",
@@ -16,7 +16,7 @@ setup(
         if not linha.isspace() and not linha.startswith("#")
     ],
     package_data={
-        "bot": ["windows/QRes.exe"],
+        "bot": ["sistema/QRes.exe"],
     },
     extras_require={
         "ocr": ["easyocr"],

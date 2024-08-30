@@ -6,7 +6,7 @@ from cProfile import Profile
 from multiprocessing.pool import ThreadPool
 from multiprocessing.context import TimeoutError as Timeout
 # interno
-from ... import util, logger, windows, database
+from ... import util, logger, database, estruturas
 
 def setar_timeout (segundos: float):
     """Executar a função por `segundos` até retornar ou `TimeoutError` caso ultrapasse o tempo
@@ -56,15 +56,15 @@ def perfil_execucao (func: Callable):
     - Função"""
     def perfil_execucao (*args, **kwargs):
         # Diretorio de execução atual para limpar o nome no dataframe
-        cwd = windows.diretorio_execucao().caminho
+        cwd = estruturas.Caminho.diretorio_execucao().string
         cwd = f"{cwd[0].lower()}{cwd[1:]}"
-        
+
         # Executar função com o profile ativo e gerar o report
         with Profile() as profile: resultado = func(*args, **kwargs)
         stats = Stats(profile).sort_stats(2).get_stats_profile()
         tempo = stats.total_tt
         stats = stats.func_profiles
-        
+
         # Loggar o Dataframe com algumas opções de formatação
         df = database.formatar_dataframe(
             database.polars.DataFrame({

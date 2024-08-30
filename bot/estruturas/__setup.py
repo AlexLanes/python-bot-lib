@@ -225,7 +225,7 @@ class Caminho:
     __p: pathlib.Path
 
     def __init__ (self, *fragmento: str) -> None:
-        self.__p = pathlib.Path(*fragmento).absolute()
+        self.__p = pathlib.Path(*fragmento).resolve()
 
     @classmethod
     def diretorio_execucao (cls) -> Caminho:
@@ -242,11 +242,11 @@ class Caminho:
 
     def __contains__ (self, caminho: str | Caminho) -> bool:
         return False if not isinstance(caminho, (str, Caminho)) else (
-            str(caminho) in self.caminho
+            str(caminho) in self.string
         )
 
     def __add__ (self, fragmento: str) -> Caminho:
-        return Caminho(self.caminho, os.path.basename(str(fragmento)))
+        return Caminho(self.string, os.path.basename(str(fragmento)))
 
     def __truediv__ (self, fragmento: str) -> Caminho:
         return self + fragmento
@@ -258,7 +258,7 @@ class Caminho:
             yield Caminho(str(p))
 
     @property
-    def caminho (self) -> str:
+    def string (self) -> str:
         """Obter o caminho como string
         - Versão alternativa: str(caminho)"""
         return str(self)
@@ -353,6 +353,26 @@ class Caminho:
         - Não tem efeito caso não exista ou não seja arquivo"""
         if self.arquivo(): self.__p.unlink()
         return self.parente
+
+    def apagar_diretorio (self) -> Caminho:
+        """Apagar o diretório e conteúdo do caminho atual e retornar ao parente
+        - Não tem efeito caso não exista ou não seja diretório"""
+        for caminho in self:
+            if caminho.arquivo(): caminho.apagar_arquivo()
+            elif caminho.diretorio(): caminho.apagar_diretorio()
+        if self.diretorio(): self.__p.rmdir()
+        return self.parente
+
+    def procurar (self, filtro: typing.Callable[[Caminho], bool], recursivo=False) -> list[Caminho]:
+        """Procurar caminhos de acordo com o `filtro`
+        - `recursivo` indicador para percorrer os diretórios filhos
+        - Não tem efeito caso não exista ou não seja diretório"""
+        paths = self.__p.rglob("*") if recursivo else self.__p.glob("*")
+        return [
+            caminho
+            for path in paths
+            if filtro(caminho := Caminho(path))
+        ]
 
 class InfoStack:
     """Informações do `Stack` de execução"""

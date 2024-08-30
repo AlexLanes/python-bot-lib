@@ -1,13 +1,11 @@
 # std
-import re
-from unicodedata import normalize
-from difflib import SequenceMatcher
-from time import sleep, perf_counter
-from typing import Callable, Iterable
+import re, time, typing, difflib, unicodedata
 # interno
 from .. import tipagem
 
-def aguardar_condicao (condicao: Callable[[], bool], timeout: int, delay=0.1) -> bool:
+def aguardar_condicao (condicao: typing.Callable[[], bool],
+                       timeout: int,
+                       delay=0.1) -> bool:
     """Repetir a função `condição` por `timeout` segundos até que resulte em `True`
     - Retorna um `bool` indicando se a `condição` foi atendida
     - Exceções são ignoradas"""
@@ -17,13 +15,13 @@ def aguardar_condicao (condicao: Callable[[], bool], timeout: int, delay=0.1) ->
         try:
             if condicao(): return True
         except: pass
-        sleep(delay)
+        time.sleep(delay)
 
     return False
 
 def remover_acentuacao (string: str) -> str:
-    """Remover a acentuação de uma string"""
-    nfkd = normalize("NFKD", str(string))
+    """Remover acentuações da `string`"""
+    nfkd = unicodedata.normalize("NFKD", str(string))
     ascii = nfkd.encode("ASCII", "ignore")
     return ascii.decode("utf-8", "ignore")
 
@@ -34,8 +32,8 @@ def normalizar (string: str) -> str:
     return re.sub(r"\W", "", string)
 
 def encontrar_texto[T] (texto: str,
-                        opcoes: Iterable[T],
-                        key: Callable[[T], str] = None) -> T | None:
+                        opcoes: typing.Iterable[T],
+                        key: typing.Callable[[T], str] = None) -> T | None:
     """Encontrar a melhor opção em `opções` onde igual ou parecido ao `texto`
     - `None` caso nenhuma opção gerou um resultado satisfatório
     - `key` pode ser informado uma função para apontar para a `str` caso `opções` não seja uma `list[str]`"""
@@ -59,7 +57,7 @@ def encontrar_texto[T] (texto: str,
         # punir uma quantidade se tiver diferença no tamanho
         # ou punir bastante se for a mesma quantidade de caracteres
         punicao_tamanho = abs((len(a) - len(b)) * 0.05) or 0.15
-        return SequenceMatcher(None, a, b).ratio() - punicao_tamanho
+        return difflib.SequenceMatcher(None, a, b).ratio() - punicao_tamanho
     similaridades = [calcular_similaridade(texto, t) for t in textos]
 
     maior = max(similaridades) if similaridades else 0
@@ -88,11 +86,11 @@ def transformar_tipo[T: tipagem.primitivo] (valor: str, tipo: type[T]) -> T:
         case "<class 'bool'>": return valor.lower().strip() == "true"
         case _: return None
 
-def cronometro () -> Callable[[], float]:
+def cronometro () -> typing.Callable[[], float]:
     """Inicializa um cronômetro que retorna o tempo passado a cada chamada na função
     - Arredondado para 3 casas decimais"""
-    inicio = perf_counter()
-    return lambda: round(perf_counter() - inicio, 3)
+    inicio = time.perf_counter()
+    return lambda: round(time.perf_counter() - inicio, 3)
 
 __all__ = [
     "normalizar",

@@ -12,15 +12,15 @@ from . import imagem
 from . import logger
 from . import mouse
 from . import navegador
+from . import sistema
 from . import teclado
 from . import tipagem
 from . import util
-from . import windows
 
-def configurar_diretorio (caminho: tipagem.caminho) -> None:
+def configurar_diretorio (caminho: str | estruturas.Caminho) -> None:
     """Configurar o diretório de execução do bot manualmente
-    - Informar o `caminho` para o diretório ou apenas o `__file__` do main.py
     - `configfile` e `logger` utilizam para localizarem o diretório de execução"""
-    diretorio = caminho if windows.afirmar_diretorio(caminho) else windows.nome_diretorio(caminho)
-    configfile.__setup.DIRETORIO_EXECUCAO = diretorio
-    logger.__setup.DIRETORIO_EXECUCAO = diretorio
+    caminho = estruturas.Caminho(str(caminho))
+    caminho = caminho if caminho.diretorio() else caminho.parente
+    configfile.__setup.DIRETORIO_EXECUCAO = caminho
+    logger.__setup.DIRETORIO_EXECUCAO = caminho

@@ -3,7 +3,7 @@ import base64
 from io import BytesIO
 # interno
 from .. import tipagem, util
-from ..estruturas import Coordenada
+from ..estruturas import Coordenada, Caminho
 # externo
 import numpy as np
 import pyscreeze, cv2
@@ -11,15 +11,15 @@ from PIL import Image
 
 pyscreeze.USE_IMAGE_NOT_FOUND_EXCEPTION = False
 
-def transformar_pillow (imagem: tipagem.imagem) -> Image.Image:
-    """Receber o formato esperado e transformar para uma imagem do `pillow`"""
-    if isinstance(imagem, str): return Image.open(imagem)
+def parse_pillow (imagem: tipagem.imagem) -> Image.Image:
+    """Transformar a `imagem` para `pillow.Image`"""
+    if isinstance(imagem, Caminho): return Image.open(imagem.string)
     if isinstance(imagem, bytes): return Image.open(BytesIO(imagem))
     return imagem
 
-def transformar_base64 (imagem: tipagem.imagem) -> str:
+def encode_base64 (imagem: tipagem.imagem) -> str:
     """Transformar a imagem para o formato `data:image/png;base64`"""
-    buffer, imagem = BytesIO(), transformar_pillow(imagem)
+    buffer, imagem = BytesIO(), parse_pillow(imagem)
     imagem.save(buffer, "PNG")
     buffer = buffer.getvalue()
     return ",".join((
@@ -28,7 +28,7 @@ def transformar_base64 (imagem: tipagem.imagem) -> str:
     ))
 
 @util.decoradores.retry(2, 10)
-def capturar_tela (regiao: Coordenada = None, cinza=False) -> Image.Image:
+def capturar_tela (regiao: Coordenada | None = None, cinza=False) -> Image.Image:
     """Realizar uma captura de tela
     - `regiao` especifica uma parte da tela
     - `cinza` transforma a imagem para o formato grayscale"""
@@ -36,9 +36,9 @@ def capturar_tela (regiao: Coordenada = None, cinza=False) -> Image.Image:
     return imagem.convert("L") if cinza else imagem
 
 def binarizar (imagem: tipagem.imagem) -> Image.Image:
-    """Aplicar binarização da imagem
+    """Aplicar binarização na imagem
     - Pixels serão transformados em preto ou branco"""
-    imagem = transformar_pillow(imagem)
+    imagem = parse_pillow(imagem)
     imagem = cv2.cvtColor(np.array(imagem), cv2.COLOR_BGR2GRAY)
     imagem = cv2.threshold(imagem, 0, 255, cv2.THRESH_OTSU)[1]
     return Image.fromarray(imagem)
@@ -52,7 +52,7 @@ def procurar_imagem (imagem: tipagem.imagem,
     - `regiao` especifica uma parte da tela
     - `segundos` tempo de procura pela imagem
     - `cinza` compara ambas imagem como grayscale"""
-    imagem = transformar_pillow(imagem)
+    imagem = parse_pillow(imagem)
     box = pyscreeze.locateOnScreen(
         image=imagem, 
         minSearchTime=segundos,
@@ -69,7 +69,7 @@ def procurar_imagens (imagem: tipagem.imagem,
     """Procurar todas as vezes que a `imagem` aparece na tela, com `confianca`% de confiança na procura e na `regiao` da tela informada
     - `regiao` especifica uma parte da tela
     - `cinza` compara ambas imagem como grayscale"""
-    imagem = transformar_pillow(imagem)
+    imagem = parse_pillow(imagem)
     regiao = tuple(regiao) if regiao else None
     boxes = [*pyscreeze.locateAllOnScreen(imagem, grayscale=cinza, confidence=confianca, region=regiao)]
     if not boxes: return None # não encontrou
@@ -87,7 +87,7 @@ def cores_imagem (imagem: tipagem.imagem, limite: int | slice = 10) -> list[tupl
     - `limite` quantidade que será retornada das mais frequentes
     - `for frequencia, cor in cores_imagem()`"""
     # extrair cores
-    imagem = transformar_pillow(imagem)
+    imagem = parse_pillow(imagem)
     itens: list[tuple[int, tipagem.rgb]] = [
         (frequencia, (r, g, b)) 
         for frequencia, (r, g, b, *_) in imagem.getcolors(10000)
@@ -111,8 +111,9 @@ __all__ = [
     "Coordenada",
     "cor_similar",
     "cores_imagem",
+    "parse_pillow",
+    "encode_base64",
     "capturar_tela",
     "procurar_imagem",
     "procurar_imagens",
-    "transformar_base64"
 ]

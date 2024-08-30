@@ -6,7 +6,7 @@ from datetime import (
 )
 # interno
 from .__mensagem import Mensagem
-from .. import util, tipagem, logger, windows, teclado, formatos, estruturas
+from .. import util, tipagem, logger, sistema, teclado, formatos, estruturas
 # externo
 import selenium.webdriver as wd
 import undetected_chromedriver as uc
@@ -26,23 +26,16 @@ class Navegador:
     """Driver do `Selenium`"""
     timeout_inicial: float
     """Timeout informado na inicialização do navegador"""
-    diretorio_dowload: tipagem.caminho
+    diretorio_dowload: estruturas.Caminho
     """Caminho da pasta de download
     - `Edge | Chrome`"""
-
-    def __new__ (cls, *args, **kwargs) -> typing.Self:
-        objeto = super().__new__(cls)
-        def encerrar_driver_ao_fim ():
-            try: objeto.driver.quit()
-            except: pass
-        atexit.register(encerrar_driver_ao_fim)
-        return objeto
 
     def __del__ (self) -> None:
         """Encerrar o driver quando a variável do navegador sair do escopo"""
         try:
             self.driver.quit()
             logger.informar("Navegador fechado")
+            del self.driver
         except: pass
 
     def __setattr__ (self, nome: str, valor: typing.Any) -> None:
@@ -183,20 +176,20 @@ class Navegador:
         except TimeoutException:
             raise TimeoutError(f"A espera pela visibilidade do Elemento não aconteceu após {timeout} segundos")
 
-    def aguardar_download (self, termos: list[str] = [".csv", "arquivo.xlsx"],
-                                 timeout = 60) -> tipagem.caminho:
+    def aguardar_download (self, termos: typing.Iterable[str] = [".csv", "arquivo.xlsx"],
+                                 timeout = 60) -> estruturas.Caminho:
         """Aguardar um novo arquivo, que termine com algum dos `termos`, no diretório de download por `timeout` segundos
         - Retorna o caminho para o arquivo
         - Exceção `TimeoutError` caso não finalize no tempo estipulado"""
         assert termos, "Pelo menos 1 termo é necessário para a busca do arquivo"
-        caminho_arquivo: tipagem.caminho | None = None
+        caminho_arquivo: estruturas.Caminho | None = None
         inicio = Datetime.now() - TimeDelta(seconds=1)
 
         def download_finalizado () -> bool:
             nonlocal inicio, caminho_arquivo
-            for caminho, _ in windows.listar_diretorio(self.diretorio_dowload) \
-                                     .query_data_alteracao_arquivos(inicio, Datetime.now()):
-                if not any(caminho.endswith(termo) for termo in termos): continue
+            for caminho in self.diretorio_dowload:
+                if not caminho.arquivo() or caminho.data_criacao < inicio: continue
+                if not any(caminho.nome.endswith(termo) for termo in termos): continue
                 caminho_arquivo = caminho
                 return True
             return False
@@ -243,10 +236,10 @@ class Edge (Navegador):
         options.add_argument("--ignore-certificate-errors")
         options.add_experimental_option("excludeSwitches", ["enable-logging"]) # desativar prints
 
-        self.diretorio_dowload = windows.caminho_absoluto(download)
+        self.diretorio_dowload = estruturas.Caminho(download)
         options.add_experimental_option("prefs", {
             "download.prompt_for_download": False,
-            "download.default_directory": self.diretorio_dowload,
+            "download.default_directory": self.diretorio_dowload.string,
         })
 
         self.driver = wd.Edge(options)
@@ -273,7 +266,7 @@ class Chrome (Navegador):
         - `download` utilizado para informar a pasta de download de arquivos"""
         # obter a versão do google chrome para o `undetected_chromedriver`, pois ele utiliza sempre a mais recente
         comando_versao_chrome = r'(Get-Item -Path "$env:PROGRAMFILES\Google\Chrome\Application\chrome.exe").VersionInfo.FileVersion'
-        sucesso, mensagem = windows.executar(comando_versao_chrome, powershell=True)
+        sucesso, mensagem = sistema.executar(comando_versao_chrome, powershell=True)
         versao = mensagem.split(".")[0]
         if not sucesso or not versao.isdigit():
             raise Exception("Versão do Google Chrome não foi localizada")
@@ -284,10 +277,10 @@ class Chrome (Navegador):
         options.set_capability("goog:loggingPrefs", { "performance": "ALL" }) # logs performance
         # options.add_argument(r"user-data-dir=C:\Users\Alex\AppData\Local\Google\Chrome\User Data")
 
-        self.diretorio_dowload = windows.caminho_absoluto(download)
+        self.diretorio_dowload = estruturas.Caminho(download)
         options.add_experimental_option("prefs", {
             "download.prompt_for_download": False,
-            "download.default_directory": self.diretorio_dowload,
+            "download.default_directory": self.diretorio_dowload.string,
         })
 
         self.driver = uc.Chrome(options, version_main=int(versao))
@@ -299,7 +292,7 @@ class Chrome (Navegador):
 
         # `undetected_chromedriver` está com problema intermitente ao fechar
         # a task que é aberta ao criar o driver está ficando ativa após o `quit()`
-        atexit.register(lambda: windows.executar("TASKKILL", "/F", "/IM", "chrome.exe", timeout=5))
+        atexit.register(lambda: sistema.executar("TASKKILL", "/F", "/IM", "chrome.exe", timeout=5))
 
     def __repr__ (self) -> str:
         return f"<Chrome aba focada '{self.titulo}'>"

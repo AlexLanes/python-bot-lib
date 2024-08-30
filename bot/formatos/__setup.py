@@ -15,7 +15,7 @@ from xml.etree.ElementTree import (
     fromstring as xml_from_string,
 )
 # interno
-from .. import logger, tipagem
+from .. import logger, tipagem, estruturas
 # externo
 import yaml
 from jsonschema import (
@@ -153,6 +153,21 @@ class ElementoXML:
         nome = f"{{{namespace}}}{nome}" if namespace else nome
         self.__elemento = Element(nome, atributos or {})
         self.__elemento.text = texto
+
+    @classmethod
+    def parse (cls, xml: str | estruturas.Caminho) -> ElementoXML:
+        """Parse do `xml` para um `ElementoXML`
+        - `xml` pode ser uma string xml ou o caminho até o arquivo .xml"""
+        xml = str(xml).lstrip() # remover espaços vazios no começo
+        element = xml_from_string(xml) if xml.startswith("<") else xml_from_file(xml).getroot()
+        return ElementoXML.__from_element(element)
+
+    @classmethod
+    def __from_element (cls, element: Element) -> ElementoXML:
+        """Criação do `ElementoXML` diretamente com um `Element`"""
+        elemento = cls.__new__(cls)
+        elemento.__elemento = element
+        return elemento
 
     def __str__ (self) -> str:
         """Versão `text/xml` do ElementoXML"""
@@ -305,21 +320,6 @@ class ElementoXML:
         - Retorna o `namespace`"""
         ElementoXML.__prefixos[prefixo] = namespace
         return register_namespace(prefixo, namespace) or namespace
-
-    @classmethod
-    def __from_element (cls, element: Element) -> ElementoXML:
-        """Criação do `ElementoXML` diretamente com um `Element`"""
-        elemento = cls.__new__(cls)
-        elemento.__elemento = element
-        return elemento
-
-    @classmethod
-    def parse (cls, xml: str) -> ElementoXML:
-        """Parse do `xml` para um `ElementoXML`
-        - `xml` pode ser uma string xml ou o caminho até o arquivo .xml"""
-        xml = xml.lstrip() # remover espaços vazios no começo
-        element = xml_from_string(xml) if xml.startswith("<") else xml_from_file(xml).getroot()
-        return ElementoXML.__from_element(element)
 
 __all__ = [
     "Json",
