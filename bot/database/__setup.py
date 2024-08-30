@@ -16,7 +16,7 @@ def sql_nomeado_para_posicional (sql: str, parametros: tipagem.nomeado) -> tuple
     sql_transformado = sql
     ordem_nomes = [
         nome
-        for nome in regex.findall(r"(?<=:)\w+", sql)
+        for nome in re.findall(r"(?<=:)\w+", sql)
         if nome in parametros
     ]
 
@@ -145,7 +145,7 @@ class DatabaseODBC:
         gerador = (tuple(linha) for linha in cursor)
         return estruturas.ResultadoSQL(linhas_afetadas, colunas, gerador)
 
-    def execute_many (self, sql: str, parametros: Iterable[tipagem.nomeado] | Iterable[tipagem.posicional]) -> estruturas.ResultadoSQL:
+    def execute_many (self, sql: str, parametros: typing.Iterable[tipagem.nomeado] | typing.Iterable[tipagem.posicional]) -> estruturas.ResultadoSQL:
         """Executar uma ou mais instruções SQL
         - Utilizar apenas comandos SQL que resultem em `linhas_afetadas`
         - `sql` Comando que será executado. Recomendado ser parametrizado com argumentos posicionais `?` ou nomeados `:nome`
@@ -224,7 +224,7 @@ class Sqlite:
         gerador = (linha for linha in cursor)
         return estruturas.ResultadoSQL(linhas_afetadas, colunas, gerador)
 
-    def execute_many (self, sql: str, parametros: Iterable[tipagem.nomeado] | Iterable[tipagem.posicional]) -> estruturas.ResultadoSQL:
+    def execute_many (self, sql: str, parametros: typing.Iterable[tipagem.nomeado] | typing.Iterable[tipagem.posicional]) -> estruturas.ResultadoSQL:
         """Executar uma ou mais instruções SQL
         - `sql` Comando que será executado. Recomendado ser parametrizado com argumentos nomeados `:nome` ou posicionais `?`
         - `parametros` Lista dos parâmetros presentes no `sql`"""
