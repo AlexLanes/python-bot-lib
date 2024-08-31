@@ -227,13 +227,17 @@ class Edge (Navegador):
     driver: wd.Edge
     """Driver Edge"""
 
-    def __init__ (self, timeout=30.0, download=rf"./downloads") -> None:
+    def __init__ (self, timeout=30.0,
+                        download=rf"./downloads",
+                        anonimo=False) -> None:
         """Inicializar o navegador Edge
         - `timeout` utilizado na espera do `implicitly_wait`
-        - `download` utilizado para informar a pasta de download de arquivos"""
+        - `download` utilizado para informar a pasta de download de arquivos
+        - `anonimo` para abrir o navegador como inprivate"""
         options = wd.EdgeOptions()
-        options.add_argument("--start-maximized")
-        options.add_argument("--ignore-certificate-errors")
+        argumentos = ["--start-maximized", "--disable-infobars", "--disable-notifications", "--ignore-certificate-errors"]
+        if anonimo: argumentos += ["--inprivate"]
+        for argumento in argumentos: options.add_argument(argumento)
         options.add_experimental_option("excludeSwitches", ["enable-logging"]) # desativar prints
 
         self.diretorio_dowload = estruturas.Caminho(download)
@@ -260,19 +264,23 @@ class Chrome (Navegador):
     driver: uc.Chrome
     """Driver Chrome"""
 
-    def __init__ (self, timeout=30.0, download=rf"./downloads") -> None:
+    def __init__ (self, timeout=30.0,
+                        download=rf"./downloads",
+                        anonimo=False) -> None:
         """Inicializar o navegador Chrome
         - `timeout` utilizado na espera do `implicitly_wait`
-        - `download` utilizado para informar a pasta de download de arquivos"""
+        - `download` utilizado para informar a pasta de download de arquivos
+        - `anonimo` para abrir o navegador como incognito"""
         # obter a versão do google chrome para o `undetected_chromedriver`, pois ele utiliza sempre a mais recente
         comando_versao_chrome = r'(Get-Item -Path "$env:PROGRAMFILES\Google\Chrome\Application\chrome.exe").VersionInfo.FileVersion'
         sucesso, mensagem = sistema.executar(comando_versao_chrome, powershell=True)
-        versao = mensagem.split(".")[0]
+        versao = (mensagem.split(".") or " ")[0]
         if not sucesso or not versao.isdigit():
             raise Exception("Versão do Google Chrome não foi localizada")
 
         options = uc.ChromeOptions()
-        argumentos = ("--start-maximized", "--disable-infobars", "--disable-notifications", "--ignore-certificate-errors")
+        argumentos = ["--start-maximized", "--disable-infobars", "--disable-notifications", "--ignore-certificate-errors"]
+        if anonimo: argumentos += ["--incognito"]
         for argumento in argumentos: options.add_argument(argumento)
         options.set_capability("goog:loggingPrefs", { "performance": "ALL" }) # logs performance
         # options.add_argument(r"user-data-dir=C:\Users\Alex\AppData\Local\Google\Chrome\User Data")
