@@ -8,7 +8,7 @@ from multiprocessing.context import TimeoutError as Timeout
 # interno
 from ... import util, logger, database, estruturas
 
-def setar_timeout (segundos: float):
+def timeout (segundos: float):
     """Executar a função por `segundos` até retornar ou `TimeoutError` caso ultrapasse o tempo
     - Função"""
     def setar_timeout (func: Callable):
@@ -20,21 +20,26 @@ def setar_timeout (segundos: float):
         return setar_timeout
     return setar_timeout
 
-def retry (tentativas=3, segundos=10):
-    """Realizar `tentativas` de se chamar uma função, aguardar `segundos` e tentar novamente em caso de erro
-    - Lança a exceção na última tentativa com falha
+def retry (tentativas = 3,
+           segundos = 5,
+           *erro: Exception):
+    """Realizar `tentativas` de se chamar uma função e, em caso de erro, aguardar `segundos` e tentar novamente
+    - `erro` especificar quais são as `Exception` permitidas para retry
+    - `raise` na última tentativa com falha
     - Função"""
-    assert tentativas >= 1 and segundos >= 1, "Tentativas e Segundos para o retry deve ser >= 1"
+    erro = erro or (Exception,)
+    assert tentativas >= 1 and segundos >= 1, "Tentativas e Segundos para o retry devem ser >= 1"
     def retry (func: Callable):
         def retry (*args, **kwargs):
 
             for tentativa in range(1, tentativas + 1):
                 try: return func(*args, **kwargs)
-                except Exception as erro:
-                    logger.erro(f"Tentativa {tentativa}/{tentativas} de execução da função({func.__name__}) resultou em erro")
+                except *erro as e:
+                    excecao, *_ = map(repr, e.exceptions)
+                    logger.alertar(f"""Tentativa {tentativa}/{tentativas} de execução da função({func.__name__}) resultou em erro\n\t{excecao}""")
                     if tentativa < tentativas: sleep(segundos) # sleep() não necessário na última tentativa
                     else: # lançar a exceção na última tentativa
-                        erro.add_note(f"Foram realizadas {tentativas} tentativa(s) de execução na função({func.__name__})")
+                        e.add_note(f"Foram realizadas {tentativas} tentativa(s) de execução da função({func.__name__})")
                         raise
 
         return retry
@@ -52,7 +57,7 @@ def tempo_execucao (func: Callable):
 
 def perfil_execucao (func: Callable):
     """Loggar o perfil de execução da função
-    - tempos acumulados menores de 0.1 segundos são excluídos
+    - Tempos acumulados menores de 0.01 segundos são excluídos
     - Função"""
     def perfil_execucao (*args, **kwargs):
         # Diretorio de execução atual para limpar o nome no dataframe
@@ -68,18 +73,18 @@ def perfil_execucao (func: Callable):
         # Loggar o Dataframe com algumas opções de formatação
         df = database.formatar_dataframe(
             database.polars.DataFrame({
-                "nome": [
+                "nome": (
                     funcao if stats[funcao].file_name == "~" 
                     else stats[funcao].file_name.removeprefix(cwd).lstrip("\\") + f":{stats[funcao].line_number}({funcao})"
                     for funcao in stats
-                ],
-                "tempo_acumulado": [stats[funcao].cumtime for funcao in stats],
-                "tempo_execucao": [stats[funcao].tottime for funcao in stats],
-                "chamadas": [stats[funcao].ncalls for funcao in stats]
+                ),
+                "tempo_acumulado": (stats[funcao].cumtime for funcao in stats),
+                "tempo_execucao": (stats[funcao].tottime for funcao in stats),
+                "chamadas": (stats[funcao].ncalls for funcao in stats)
             })
-            .filter(database.polars.col("tempo_acumulado") >= 0.1)
+            .filter(database.polars.col("tempo_acumulado") >= 0.01)
         )
-        logger.debug("\n" * 2 + 
+        logger.informar("\n" * 2 + 
             f"1 - Nome da função: {func.__name__}\n" +
             f"2 - Tempo de execução: {tempo:.3f} segundos\n" +
             df + 
@@ -91,7 +96,7 @@ def perfil_execucao (func: Callable):
 
 __all__ = [
     "retry",
-    "setar_timeout",
+    "timeout",
     "tempo_execucao",
     "perfil_execucao",
 ]
