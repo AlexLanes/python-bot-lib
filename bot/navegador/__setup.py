@@ -1,9 +1,5 @@
 # std
 import time, enum, typing, atexit, collections
-from datetime import (
-    datetime as Datetime,
-    timedelta as TimeDelta
-)
 # interno
 from .__mensagem import Mensagem
 from .. import util, tipagem, logger, sistema, teclado, formatos, estruturas
@@ -178,30 +174,32 @@ class Navegador:
 
     def aguardar_download (self, *termos: str, timeout=60) -> estruturas.Caminho:
         """Aguardar um novo arquivo, com nome contendo algum dos `termos`, no diretório de download por `timeout` segundos
-        - Retorna o caminho para o arquivo
+        - Retorna o `Caminho` para o arquivo
         - Exceção `TimeoutError` caso não finalize no tempo estipulado"""
+        inicio = set(self.diretorio_dowload)
+        arquivo: estruturas.Caminho | None = None
         termos = [str(termo).lower() for termo in termos]
         assert termos, "Pelo menos 1 termo é necessário para a busca"
-        caminho_download: estruturas.Caminho | None = None
-        inicio = Datetime.now() - TimeDelta(seconds=1)
 
-        def download_finalizado () -> bool:
-            nonlocal caminho_download
-            caminho_download, *_ = self.diretorio_dowload.procurar(
-                lambda caminho: (
-                    caminho.data_criacao >= inicio
-                    and any(termo in caminho.nome.lower() for termo in termos)
+        def download_finalizar () -> bool:
+            nonlocal arquivo
+            arquivo, _ = [
+                caminho
+                for caminho in self.diretorio_dowload
+                if caminho not in inicio and any(
+                    termo in caminho.nome.lower()
+                    for termo in termos
                 )
-            ) or [None]
-            return caminho_download != None
+            ] or [None]
+            return arquivo != None
 
-        if not util.aguardar_condicao(download_finalizado, timeout, 0.5):
+        if not util.aguardar_condicao(download_finalizar, timeout):
             erro = TimeoutError(f"Espera por download não encontrou nenhum arquivo novo após {timeout} segundos")
             erro.add_note(f"Termos esperados: {termos}")
             raise erro
 
         time.sleep(1)
-        return caminho_download
+        return arquivo
 
     def coordenada_elemento (self, elemento: WebElement) -> estruturas.Coordenada:
         """Obter a coordenada do `elemento` referente a tela
