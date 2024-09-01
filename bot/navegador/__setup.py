@@ -183,7 +183,7 @@ class Navegador:
 
         def download_finalizar () -> bool:
             nonlocal arquivo
-            arquivo, _ = [
+            arquivo, *_ = [
                 caminho
                 for caminho in self.diretorio_dowload
                 if caminho not in inicio and any(
@@ -225,7 +225,7 @@ class Navegador:
         """Imprimir a página/frame atual do navegador para `.pdf`
         - Retorna o `Caminho` para o arquivo"""
         self.driver.execute_script("window.print();")
-        return self.aguardar_download(".pdf", timeout=10)
+        return self.aguardar_download(".pdf", timeout=20)
 
 class Edge (Navegador):
     """Navegador Edge com funcionalidades padrões para automação
