@@ -320,7 +320,7 @@ class Caminho:
         if self.existe():
             if apagar_existente and caminho.existe():
                 caminho.apagar_diretorio() if caminho.diretorio() else caminho.apagar_arquivo()
-            self.__p.rename(novo_nome)
+            self.__p.rename(caminho.string)
         return caminho
 
     def copiar (self, diretorio: Caminho) -> Caminho:
