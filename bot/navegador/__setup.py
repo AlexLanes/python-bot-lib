@@ -12,6 +12,7 @@ from selenium.webdriver.support.ui import WebDriverWait as Wait
 from selenium.webdriver.support import expected_conditions as ec
 from selenium.common.exceptions import (
     TimeoutException,
+    WebDriverException as ErroNavegador,
     NoSuchElementException as ElementoNaoEncontrado
 )
 
@@ -396,5 +397,6 @@ __all__ = [
     "Teclas",
     "Chrome",
     "Explorer",
+    "ErroNavegador",
     "ElementoNaoEncontrado"
 ]
