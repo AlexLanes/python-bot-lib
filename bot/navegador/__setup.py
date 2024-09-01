@@ -1,5 +1,5 @@
 # std
-import enum, typing, atexit, collections
+import time, enum, typing, atexit, collections
 from datetime import (
     datetime as Datetime,
     timedelta as TimeDelta
@@ -176,29 +176,32 @@ class Navegador:
         except TimeoutException:
             raise TimeoutError(f"A espera pela visibilidade do Elemento não aconteceu após {timeout} segundos")
 
-    def aguardar_download (self, termos: typing.Iterable[str] = [".csv", "arquivo.xlsx"],
-                                 timeout = 60) -> estruturas.Caminho:
-        """Aguardar um novo arquivo, que termine com algum dos `termos`, no diretório de download por `timeout` segundos
+    def aguardar_download (self, *termos: str, timeout=60) -> estruturas.Caminho:
+        """Aguardar um novo arquivo, com nome contendo algum dos `termos`, no diretório de download por `timeout` segundos
         - Retorna o caminho para o arquivo
         - Exceção `TimeoutError` caso não finalize no tempo estipulado"""
-        assert termos, "Pelo menos 1 termo é necessário para a busca do arquivo"
-        caminho_arquivo: estruturas.Caminho | None = None
+        termos = [str(termo).lower() for termo in termos]
+        assert termos, "Pelo menos 1 termo é necessário para a busca"
+        caminho_download: estruturas.Caminho | None = None
         inicio = Datetime.now() - TimeDelta(seconds=1)
 
         def download_finalizado () -> bool:
-            nonlocal inicio, caminho_arquivo
-            for caminho in self.diretorio_dowload:
-                if not caminho.arquivo() or caminho.data_criacao < inicio: continue
-                if not any(caminho.nome.endswith(termo) for termo in termos): continue
-                caminho_arquivo = caminho
-                return True
-            return False
+            nonlocal caminho_download
+            caminho_download, *_ = self.diretorio_dowload.procurar(
+                lambda caminho: (
+                    caminho.data_criacao >= inicio
+                    and any(termo in caminho.nome.lower() for termo in termos)
+                )
+            ) or [None]
+            return caminho_download != None
 
         if not util.aguardar_condicao(download_finalizado, timeout, 0.5):
             erro = TimeoutError(f"Espera por download não encontrou nenhum arquivo novo após {timeout} segundos")
             erro.add_note(f"Termos esperados: {termos}")
             raise erro
-        return caminho_arquivo
+
+        time.sleep(1)
+        return caminho_download
 
     def coordenada_elemento (self, elemento: WebElement) -> estruturas.Coordenada:
         """Obter a coordenada do `elemento` referente a tela
@@ -220,6 +223,12 @@ class Navegador:
         )
         return estruturas.Coordenada(**coordenada)
 
+    def imprimir_pdf (self) -> estruturas.Caminho:
+        """Imprimir a página/frame atual do navegador para `.pdf`
+        - Retorna o `Caminho` para o arquivo"""
+        self.driver.execute_script("window.print();")
+        return self.aguardar_download(".pdf", timeout=10)
+
 class Edge (Navegador):
     """Navegador Edge com funcionalidades padrões para automação
     - O Edge é o mais provável de estar disponível para utilização"""
@@ -228,22 +237,28 @@ class Edge (Navegador):
     """Driver Edge"""
 
     def __init__ (self, timeout=30.0,
-                        download=rf"./downloads",
+                        download: str | estruturas.Caminho = "./downloads",
                         anonimo=False) -> None:
         """Inicializar o navegador Edge
         - `timeout` utilizado na espera do `implicitly_wait`
-        - `download` utilizado para informar a pasta de download de arquivos
+        - `download` diretório para download/impressão de arquivos
         - `anonimo` para abrir o navegador como inprivate"""
         options = wd.EdgeOptions()
-        argumentos = ["--start-maximized", "--disable-infobars", "--disable-notifications", "--ignore-certificate-errors"]
+        argumentos = ["--start-maximized", "--disable-infobars", "--disable-notifications", "--ignore-certificate-errors", "--kiosk-printing"]
         if anonimo: argumentos += ["--inprivate"]
         for argumento in argumentos: options.add_argument(argumento)
         options.add_experimental_option("excludeSwitches", ["enable-logging"]) # desativar prints
 
-        self.diretorio_dowload = estruturas.Caminho(download)
+        self.diretorio_dowload = estruturas.Caminho(download) if isinstance(download, str) else download
         options.add_experimental_option("prefs", {
+            "download.directory_upgrade": True,
             "download.prompt_for_download": False,
+            "savefile.default_directory": self.diretorio_dowload.string,
             "download.default_directory": self.diretorio_dowload.string,
+            "printing.print_preview_sticky_settings.appState": formatos.Json({
+                "recentDestinations": [{ "id": "Save as PDF", "origin": "local", "account": "" }],
+                "selectedDestinationId": "Save as PDF", "version": 2
+            }).stringify(False)
         })
 
         self.driver = wd.Edge(options)
@@ -265,11 +280,11 @@ class Chrome (Navegador):
     """Driver Chrome"""
 
     def __init__ (self, timeout=30.0,
-                        download=rf"./downloads",
+                        download: str | estruturas.Caminho = "./downloads",
                         anonimo=False) -> None:
         """Inicializar o navegador Chrome
         - `timeout` utilizado na espera do `implicitly_wait`
-        - `download` utilizado para informar a pasta de download de arquivos
+        - `download` diretório para download/impressão de arquivos
         - `anonimo` para abrir o navegador como incognito"""
         # obter a versão do google chrome para o `undetected_chromedriver`, pois ele utiliza sempre a mais recente
         comando_versao_chrome = r'(Get-Item -Path "$env:PROGRAMFILES\Google\Chrome\Application\chrome.exe").VersionInfo.FileVersion'
@@ -279,16 +294,22 @@ class Chrome (Navegador):
             raise Exception("Versão do Google Chrome não foi localizada")
 
         options = uc.ChromeOptions()
-        argumentos = ["--start-maximized", "--disable-infobars", "--disable-notifications", "--ignore-certificate-errors"]
+        argumentos = ["--start-maximized", "--disable-infobars", "--disable-notifications", "--ignore-certificate-errors", "--kiosk-printing"]
         if anonimo: argumentos += ["--incognito"]
         for argumento in argumentos: options.add_argument(argumento)
         options.set_capability("goog:loggingPrefs", { "performance": "ALL" }) # logs performance
         # options.add_argument(r"user-data-dir=C:\Users\Alex\AppData\Local\Google\Chrome\User Data")
 
-        self.diretorio_dowload = estruturas.Caminho(download)
+        self.diretorio_dowload = estruturas.Caminho(download) if isinstance(download, str) else download
         options.add_experimental_option("prefs", {
+            "download.directory_upgrade": True,
             "download.prompt_for_download": False,
+            "savefile.default_directory": self.diretorio_dowload.string,
             "download.default_directory": self.diretorio_dowload.string,
+            "printing.print_preview_sticky_settings.appState": formatos.Json({
+                "recentDestinations": [{ "id": "Save as PDF", "origin": "local", "account": "" }],
+                "selectedDestinationId": "Save as PDF", "version": 2
+            }).stringify(False)
         })
 
         self.driver = uc.Chrome(options, version_main=int(versao))
