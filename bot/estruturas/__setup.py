@@ -216,9 +216,8 @@ class Caminho:
     do sistema operacional e manipulação de arquivos/pastas
 
     - Criação: `Caminho("caminho_completo")`, `Caminho(".", "pasta", "arquivo.txt")` ou `Caminho.diretorio_execucao()`
-    - Acesso: `Caminho().caminho` ou `str(Caminho())`
+    - Acesso: `Caminho().string` ou `str(Caminho())`
     - Concatenação: `Caminho() + "pasta" + "arquivo"` ou `Caminho() / "pasta" / "arquivo"`
-    - Comparador bool: `"pasta" in Caminho()` ou `Caminho(".") in Caminho("./arquivo")`
     - Iteração sobre diretório: `for caminho in Caminho(): ...`
     - Demais métodos/atributos estão comentados"""
 
@@ -240,11 +239,6 @@ class Caminho:
     def __str__ (self) -> str:
         return str(self.__p)
 
-    def __contains__ (self, caminho: str | Caminho) -> bool:
-        return False if not isinstance(caminho, (str, Caminho)) else (
-            str(caminho) in self.string
-        )
-
     def __add__ (self, fragmento: str) -> Caminho:
         return Caminho(self.string, os.path.basename(str(fragmento)))
 
@@ -255,7 +249,7 @@ class Caminho:
         if not self.diretorio():
             return
         for p in self.__p.iterdir():
-            yield Caminho(str(p))
+            yield Caminho(p)
 
     @property
     def string (self) -> str:
@@ -266,7 +260,7 @@ class Caminho:
     @property
     def parente (self) -> Caminho:
         """Obter o caminho para o parente do caminho atual"""
-        return Caminho(str(self.__p.parent))
+        return Caminho(self.__p.parent)
 
     @property
     def nome (self) -> str:
@@ -283,7 +277,7 @@ class Caminho:
         """Data de criação do arquivo ou diretório
         - `ValueError` caso o caminho não exista"""
         if not self.existe():
-            raise ValueError(f"Caminho '{self}' inexistente")
+            raise ValueError(f"{self} inexistente")
         return Datetime.fromtimestamp(os.path.getctime(self.__p))
 
     @property
@@ -291,7 +285,7 @@ class Caminho:
         """Data da última modificação do arquivo ou diretório
         - `ValueError` caso o caminho não exista"""
         if not self.existe():
-            raise ValueError(f"Caminho '{self}' inexistente")
+            raise ValueError(f"{self} inexistente")
         return Datetime.fromtimestamp(os.path.getmtime(self.__p))
 
     @property
@@ -299,7 +293,7 @@ class Caminho:
         """Tamanho em bytes do arquivo ou diretório
         - `ValueError` caso o caminho não exista"""
         if not self.existe():
-            raise ValueError(f"Caminho '{self}' inexistente")
+            raise ValueError(f"{self} inexistente")
         return os.path.getsize(self.__p) if not self.diretorio() else sum(
             os.path.getsize(caminho.__p) if not self.diretorio() else caminho.tamanho
             for caminho in self
@@ -317,13 +311,17 @@ class Caminho:
         """Checar se o caminho existente é de um diretório"""
         return self.__p.is_dir()
 
-    def renomear (self, novo_nome: str) -> Caminho:
+    def renomear (self, novo_nome: str, apagar_existente=False) -> Caminho:
         """Renomear o nome final do caminho atual para `novo_nome` e retornar o caminho
+        - `apagar_existente` indicador para apagar arquivo ou diretório de `novo_nome`, caso exista, se não `Exception`
         - Não tem efeito caso caminho não exista"""
         novo_nome = os.path.basename(novo_nome)
-        caminho = str(self.__p.with_name(novo_nome).absolute())
-        if self.existe(): self.__p.rename(caminho)
-        return Caminho(caminho)
+        caminho = self.parente / novo_nome
+        if self.existe():
+            if apagar_existente and caminho.existe():
+                caminho.apagar_diretorio() if caminho.diretorio() else caminho.apagar_arquivo()
+            self.__p.rename(novo_nome)
+        return caminho
 
     def copiar (self, diretorio: Caminho) -> Caminho:
         """Copiar o arquivo ou diretório do caminho atual para o `diretorio` existente
@@ -367,10 +365,10 @@ class Caminho:
         """Procurar caminhos de acordo com o `filtro`
         - `recursivo` indicador para percorrer os diretórios filhos
         - Não tem efeito caso não exista ou não seja diretório"""
-        paths = self.__p.rglob("*") if recursivo else self.__p.glob("*")
+        glob = self.__p.rglob if recursivo else self.__p.glob
         return [
             caminho
-            for path in paths
+            for path in glob("*")
             if filtro(caminho := Caminho(path))
         ]
 
