@@ -157,14 +157,16 @@ class ResultadoSQL:
             nan_to_null=True
         )
 
+P = typing.ParamSpec("P")
 class Resultado [T]:
-    """Classe `genérica` de utilização para retornar resultado de alguma chamada
-    - `try-catch` utilizado para evitar erro
+    """Classe para capturar o resultado ou `Exception` de alguma chamada
 
     ```
     # informar a função, os argumentos posicionais e os argumentos nomeados
     # a função será automaticamente chamada após
     resultado = Resultado(funcao, "nome", "idade", key=value)
+    # pode se utilizar como decorador em uma função e obter Resultado como retorno
+    @Resultado.decorador
 
     # representação "sucesso" ou "erro"
     repr(resultado)
@@ -172,8 +174,8 @@ class Resultado [T]:
     # checar sucesso na chamada
     bool(resultado) | if resultado: ...
 
-    # obtendo valores
-    valor, erro = resultado._()
+    # acessando
+    valor, erro = resultado.unwrap()
     valor = resultado.valor() # erro caso a função tenha apresentado erro
     valor = resultado.valor_ou(default) # valor ou default caso a função tenha apresentado erro
     ```"""
@@ -181,11 +183,20 @@ class Resultado [T]:
     __valor: T | None
     __erro: Exception | None
 
-    def __init__ (self, funcao: typing.Callable[..., T], *args, **kwargs) -> None:
-        """Realizar a chamada na `função` com os argumentos `args` e `kwargs`"""
+    def __init__ (self, funcao: typing.Callable[..., T],
+                        *args: typing.Any,
+                        **kwargs: typing.Any) -> None:
         self.__valor = self.__erro = None
         try: self.__valor = funcao(*args, **kwargs)
         except Exception as erro: self.__erro = erro
+
+    @staticmethod
+    def decorador[T] (func: typing.Callable[P, T]):
+        """Permite que a classe seja utilizada como um decorador
+        - Função"""
+        def decorador (*args: P.args, **kwargs: P.kwargs) -> Resultado[T]:
+            return Resultado(func, *args, **kwargs)
+        return decorador
 
     def __bool__ (self) -> bool:
         """Indicação de sucesso"""
@@ -195,8 +206,8 @@ class Resultado [T]:
         """Representação da classe"""
         return f"<Resultado[T] {"sucesso" if self else "erro"}>"
 
-    def _ (self) -> tuple[T | None, Exception | None]:
-        """Realizar unwrap do `valor, erro = resultado._()`"""
+    def unwrap (self) -> tuple[T | None, Exception | None]:
+        """Realizar unwrap do `valor, erro = resultado.unwrap()`"""
         return self.__valor, self.__erro
 
     def valor (self) -> T:
