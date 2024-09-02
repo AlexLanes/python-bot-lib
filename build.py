@@ -1,11 +1,23 @@
 import bot
 
+USUARIO, REPOSITORIO = "AlexLanes", "python-bot-lib"
 HOST, TOKEN = bot.configfile.obter_opcoes("github", ["host", "token"])
+
+def apagar_release (id_release: int) -> None:
+    response = bot.http.request(
+        "DELETE",
+        f"{HOST}/repos/{USUARIO}/{REPOSITORIO}/releases/{id_release}",
+        headers = {
+            "Accept": "application/json",
+            "Authorization": f"Bearer {TOKEN}"
+        }
+    )
+    assert response.status_code == 204
 
 def criar_release (release: str) -> int:
     response = bot.http.request(
         "POST",
-        f"{HOST}/repos/AlexLanes/python-bot-lib/releases",
+        f"{HOST}/repos/{USUARIO}/{REPOSITORIO}/releases",
         headers = {
             "Accept": "application/json",
             "Authorization": f"Bearer {TOKEN}"
@@ -22,7 +34,7 @@ def obter_releases () -> dict[str, int]:
     """`{ Versão release: id release }`"""
     response = bot.http.request(
         "GET",
-        f"{HOST}/repos/AlexLanes/python-bot-lib/releases",
+        f"{HOST}/repos/{USUARIO}/{REPOSITORIO}/releases",
         headers={
             "Accept": "application/json",
             "Authorization": f"Bearer {TOKEN}"
@@ -47,11 +59,12 @@ def obter_releases () -> dict[str, int]:
         if release["tag_name"]
     }
 
-def upload_asset (id_release: int, caminho_build: bot.estruturas.Caminho) -> None:
+def upload_asset (id_release: int, caminho_build: bot.estruturas.Caminho) -> str:
+    """retorna o url para a build"""
     host = HOST.replace("api", "uploads")
     response = bot.http.request(
         "POST",
-        f"{host}/repos/AlexLanes/python-bot-lib/releases/{id_release}/assets",
+        f"{host}/repos/{USUARIO}/{REPOSITORIO}/releases/{id_release}/assets",
         params = { "name": caminho_build.nome },
         headers = {
             "Authorization": f"Bearer {TOKEN}",
@@ -60,6 +73,17 @@ def upload_asset (id_release: int, caminho_build: bot.estruturas.Caminho) -> Non
         content = open(caminho_build.string, "rb").read()
     )
     assert response.status_code == 201
+    return response.json()["browser_download_url"]
+
+def versao_build (caminho: bot.estruturas.Caminho) -> str:
+    return "v" + caminho.nome.removeprefix("bot-").removesuffix("-py3-none-any.whl")
+
+def obter_ultima_build () -> bot.estruturas.Caminho:
+    return sorted(
+        (c for c in bot.estruturas.Caminho(".", "dist") if c.arquivo()),
+        key = lambda c: c.nome,
+        reverse = True
+    )[0]
 
 def main () -> None:
     """
@@ -68,20 +92,24 @@ def main () -> None:
     """
     sucesso, _ = bot.sistema.executar("python", "setup.py", "bdist_wheel")
     assert sucesso
+    caminho = obter_ultima_build()
+    print(f"\n### Build gerada com sucesso: {caminho} ###")
 
-    caminho_build, *_ = sorted(
-        (c for c in bot.estruturas.Caminho(".", "dist") if c.arquivo()),
-        key = lambda c: c.nome,
-        reverse = True
-    )
-    release_atual = "v" + caminho_build.nome.removeprefix("bot-").removesuffix("-py3-none-any.whl")
+    release = versao_build(caminho)
+    print(f"### Release: {release} ###")
 
     releases = obter_releases()
-    assert release_atual not in releases, "Versão do release já existente, atualizar versão no setup.py"
-    id_release = criar_release(release_atual)
-    upload_asset(id_release, caminho_build)
+    if release in releases:
+        id_release = releases[release]
+        apagar_release(id_release)
+        print(f"### Release existente, id {id_release}, foi apagado ###")
 
-    print(f"\n### Build da versão {release_atual} criado e realizado upload com sucesso para o GitHub ###\n")
+    id_release = criar_release(release)
+    print(f"### Criado release id: {id_release} ###")
+
+    url_download = upload_asset(id_release, caminho)
+    print(f"### Build da versão {release} criada e realizado upload com sucesso para o GitHub ###")
+    print(f"### Url para a build: {url_download} ###\n")
 
 if __name__ == "__main__":
     main()
