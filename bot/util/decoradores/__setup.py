@@ -11,14 +11,14 @@ from ... import util, logger, database, estruturas
 def timeout (segundos: float):
     """Executar a função por `segundos` até retornar ou `TimeoutError` caso ultrapasse o tempo
     - Função"""
-    def setar_timeout (func: Callable):
-        def setar_timeout (*args, **kwargs):
+    def timeout (func: Callable):
+        def timeout (*args, **kwargs):
             mensagem = f"Função({func.__name__}) não finalizou sua execução no tempo configurado de {segundos} segundos e resultou em Timeout"
             try: return ThreadPool(1).apply_async(func, args, kwargs).get(segundos)
             except Timeout: logger.alertar(mensagem)
             raise TimeoutError(mensagem)
-        return setar_timeout
-    return setar_timeout
+        return timeout
+    return timeout
 
 def retry (tentativas = 3,
            segundos = 5,
