@@ -1,5 +1,5 @@
 # std
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse, parse_qs, quote
 # interno
 from ..estruturas import LowerDict
 # externo
@@ -29,6 +29,11 @@ class Url:
 
     def __eq__ (self, other) -> bool:
         return False if not isinstance(other, Url) else self.url == other.url
+
+    @staticmethod
+    def encode (path: str) -> str:
+        """Codificar o `path` para a versão url encoded"""
+        return quote(path)
 
 __all__ = [
     "Url",
