@@ -241,7 +241,14 @@ class Caminho:
     def diretorio_execucao (cls) -> Caminho:
         """Obter o caminho para o diretório de execução atual"""
         caminho = object.__new__(cls)
-        caminho.__p = pathlib.Path.cwd()
+        caminho.__p = pathlib.Path.cwd().resolve()
+        return caminho
+
+    @classmethod
+    def diretorio_usuario (cls) -> Caminho:
+        """Obter o caminho para o diretório do usuário atual"""
+        caminho = object.__new__(cls)
+        caminho.__p = pathlib.Path.home().resolve()
         return caminho
 
     def __repr__ (self) -> str:
