@@ -5,4 +5,4 @@
 
 Exemplo: `python main.py posicional0 posicional1 --nome "Alex Lanes"`"""
 
-from .__setup import *
+from bot.argumentos.setup import *

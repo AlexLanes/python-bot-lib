@@ -1,3 +1,3 @@
 """Módulo para armazenar tipagens utilizadas pelos demais módulos"""
 
-from .__setup import *
+from bot.tipagem.setup import *

@@ -7,10 +7,9 @@ INICIALIZADO = False
 DIRETORIO_EXECUCAO = estruturas.Caminho.diretorio_execucao()
 CONFIG = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
 
-def inicializar () -> None:
+def inicializar_configfile (diretorio = DIRETORIO_EXECUCAO) -> None:
     """Inicializar o configfile"""
-    assert DIRETORIO_EXECUCAO.diretorio()
-    for caminho in DIRETORIO_EXECUCAO:
+    for caminho in diretorio.criar_diretorios():
         if not caminho.arquivo() or not caminho.nome.endswith(".ini"): continue
         CONFIG.read(caminho.string, encoding="utf-8")
 
@@ -19,22 +18,22 @@ def inicializar () -> None:
 
 def obter_secoes () -> list[str]:
     """Obter as seções do configfile"""
-    if not INICIALIZADO: inicializar()
+    if not INICIALIZADO: inicializar_configfile()
     return CONFIG.sections()
 
 def opcoes_secao (secao: str) -> list[str]:
     """Obter as opções de uma `seção` do configfile"""
-    if not INICIALIZADO: inicializar()
+    if not INICIALIZADO: inicializar_configfile()
     return CONFIG.options(secao)
 
 def possui_secao (secao: str) -> bool:
     """Indicador se uma `seção` está presente no configfile"""
-    if not INICIALIZADO: inicializar()
+    if not INICIALIZADO: inicializar_configfile()
     return CONFIG.has_section(secao)
 
 def possui_opcao (secao: str, opcao: str) -> bool:
     """Indicador se uma `seção` possui a `opção` no configfile"""
-    if not INICIALIZADO: inicializar()
+    if not INICIALIZADO: inicializar_configfile()
     return CONFIG.has_option(secao, opcao)
 
 def possui_opcoes (secao: str, opcoes: typing.Iterable[str]) -> bool:

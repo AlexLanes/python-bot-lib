@@ -20,4 +20,4 @@ timeout: 5
 port: 21
 ```"""
 
-from .__setup import *
+from bot.configfile.setup import *

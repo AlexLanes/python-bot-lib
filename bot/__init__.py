@@ -21,6 +21,8 @@ def configurar_diretorio (caminho: str | estruturas.Caminho) -> None:
     """Configurar o diretório de execução do bot manualmente
     - `configfile` e `logger` utilizam para localizarem o diretório de execução"""
     caminho = estruturas.Caminho(str(caminho))
-    caminho = caminho if caminho.diretorio() else caminho.parente
-    configfile.__setup.DIRETORIO_EXECUCAO = caminho
-    logger.__setup.DIRETORIO_EXECUCAO = caminho
+    diretorio = caminho.parente if caminho.arquivo() else caminho
+    from bot.configfile.setup import inicializar_configfile
+    inicializar_configfile()
+    from bot.logger.setup import inicializar_logger
+    inicializar_logger(diretorio)

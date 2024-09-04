@@ -1,3 +1,3 @@
 """Módulo agregador de decoradores utilitários"""
 
-from .__setup import *
+from bot.util.decoradores.setup import *

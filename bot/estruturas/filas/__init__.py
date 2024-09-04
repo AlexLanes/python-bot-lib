@@ -1,3 +1,3 @@
 """Estruturas de dados baseadas em Filas"""
 
-from .__setup import *
+from bot.estruturas.filas.setup import *

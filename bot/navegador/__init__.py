@@ -10,4 +10,4 @@ Edge, Chrome e Explorer
 - ElementoNaoEncontrado: Exceção quando um elemento não é encontrado pelo método `encontrar_elemento`
 ```"""
 
-from .__setup import *
+from bot.navegador.setup import *

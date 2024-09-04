@@ -1,5 +1,5 @@
 """Módulo agregador de estruturas de dados"""
 
-from .__setup import *
-from .__janela import *
+from bot.estruturas.setup import *
+from bot.estruturas.janela import *
 from . import filas

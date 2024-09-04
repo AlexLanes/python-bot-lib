@@ -1,10 +1,9 @@
 # std
-from typing import Iterable
-from functools import cache
+import typing, functools
 # interno
 from ..estruturas import Coordenada
 from .. import util, logger, tipagem
-from .__setup import capturar_tela, parse_pillow
+from .setup import capturar_tela, parse_pillow
 # externo
 import numpy as np
 from PIL import Image
@@ -93,7 +92,7 @@ class LeitorOCR:
         ]
 
     @staticmethod
-    def encontrar_textos (textos: Iterable[str], extracao: list[tuple[str, Coordenada]]) -> list[Coordenada | None]:
+    def encontrar_textos (textos: typing.Iterable[str], extracao: list[tuple[str, Coordenada]]) -> list[Coordenada | None]:
         """Encontrar as coordenadas dos `textos` na `extraçao` retornada pela a leitura da tela
         - Resultado de retorno é na mesma ordem que `textos`
         - `None` caso não tenha sido encontrado o `texto`
@@ -118,7 +117,7 @@ class LeitorOCR:
         # Textos muito juntos podem ser concatenados pelo OCR #
         # --------------------------------------------------- #
 
-        @cache
+        @functools.cache
         def gerar_combinacoes (texto: str, coordenada: Coordenada, quantidade=1) -> list[tuple[str, Coordenada]]:
             """Gerar combinações do `(texto, coordenada)` de acordo com a `quantidade` de palavras desejadas"""
             palavras, quantidade = texto.split(), max(1, quantidade)

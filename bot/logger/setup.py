@@ -24,11 +24,11 @@ CAMINHO_LOG_PERSISTENCIA = CAMINHO_DIRETORIO_PERSISTENCIA / INICIALIZADO_EM.strf
 INICIALIZADO = False
 ROOT_LOGGER, BOT_LOGGER = logging.getLogger(), logging.getLogger("BOT")
 
-def inicializar () -> None:
+def inicializar_logger (diretorio = DIRETORIO_EXECUCAO) -> None:
     """Inicializar o logger
     - Utiliza o `configfile`"""
-    assert DIRETORIO_EXECUCAO.diretorio()
-    global CAMINHO_LOG_ATUAL, CAMINHO_DIRETORIO_PERSISTENCIA, CAMINHO_LOG_PERSISTENCIA
+    global DIRETORIO_EXECUCAO, CAMINHO_LOG_ATUAL, CAMINHO_DIRETORIO_PERSISTENCIA, CAMINHO_LOG_PERSISTENCIA
+    DIRETORIO_EXECUCAO = diretorio.criar_diretorios()
     CAMINHO_LOG_ATUAL = DIRETORIO_EXECUCAO / ".log"
     CAMINHO_DIRETORIO_PERSISTENCIA = DIRETORIO_EXECUCAO / "logs"
     CAMINHO_LOG_PERSISTENCIA = CAMINHO_DIRETORIO_PERSISTENCIA / INICIALIZADO_EM.strftime(FORMATO_NOME_LOG_PERSISTENCIA)
@@ -62,7 +62,7 @@ def caminho_log_persistencia () -> estruturas.Caminho:
 
 def criar_mensagem_padrao (mensagem: str) -> str:
     """Extrair informações do stack para adicionar na mensagem de log"""
-    if not INICIALIZADO: inicializar()
+    if not INICIALIZADO: inicializar_logger()
     stack = estruturas.InfoStack(3)
     prefixo_caminho = DIRETORIO_EXECUCAO.string if str(stack.caminho).startswith(DIRETORIO_EXECUCAO.string) else CAMINHO_PACOTE.removesuffix(r"\bot")
     arquivo_relativo = str(stack.caminho).removeprefix(prefixo_caminho).lstrip("\\")

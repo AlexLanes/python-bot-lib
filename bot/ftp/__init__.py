@@ -1,3 +1,3 @@
 """Módulo referente ao protocolo FTP"""
 
-from .__setup import *
+from bot.ftp.setup import *

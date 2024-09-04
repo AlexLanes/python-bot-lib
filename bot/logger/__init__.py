@@ -7,4 +7,4 @@
     - `flag_persistencia` default: True
     - `flag_debug` default: False"""
 
-from .__setup import *
+from bot.logger.setup import *

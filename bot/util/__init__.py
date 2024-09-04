@@ -1,4 +1,4 @@
 """Módulo agregador de funções utilitárias"""
 
-from .__setup import *
+from bot.util.setup import *
 from . import decoradores

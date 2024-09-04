@@ -1,6 +1,5 @@
 # std
-import base64
-from io import BytesIO
+import io, base64
 # interno
 from .. import tipagem, util
 from ..estruturas import Coordenada, Caminho
@@ -14,12 +13,12 @@ pyscreeze.USE_IMAGE_NOT_FOUND_EXCEPTION = False
 def parse_pillow (imagem: tipagem.imagem) -> Image.Image:
     """Transformar a `imagem` para `pillow.Image`"""
     if isinstance(imagem, Caminho): return Image.open(imagem.string)
-    if isinstance(imagem, bytes): return Image.open(BytesIO(imagem))
+    if isinstance(imagem, bytes): return Image.open(io.BytesIO(imagem))
     return imagem
 
 def encode_base64 (imagem: tipagem.imagem) -> str:
     """Transformar a imagem para o formato `data:image/png;base64`"""
-    buffer, imagem = BytesIO(), parse_pillow(imagem)
+    buffer, imagem = io.BytesIO(), parse_pillow(imagem)
     imagem.save(buffer, "PNG")
     buffer = buffer.getvalue()
     return ",".join((

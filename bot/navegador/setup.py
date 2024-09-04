@@ -1,7 +1,7 @@
 # std
 import time, enum, typing, atexit, collections
 # interno
-from .__mensagem import Mensagem
+from .mensagem import Mensagem
 from .. import util, tipagem, logger, sistema, teclado, formatos, estruturas
 # externo
 import selenium.webdriver as wd
