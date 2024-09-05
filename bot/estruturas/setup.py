@@ -269,6 +269,12 @@ class Caminho:
         for p in self.__p.iterdir():
             yield Caminho(p)
 
+    def __eq__ (self, caminho: Caminho) -> bool:
+        return str(caminho) == str(self)
+
+    def __hash__ (self) -> int:
+        return hash(self.string)
+
     @property
     def string (self) -> str:
         """Obter o caminho como string
@@ -459,7 +465,7 @@ class LowerDict [T]:
         }
 
     def __repr__ (self) -> str:
-        return f"<LowerDict com '{len(self)}' chaves>"
+        return f"<LowerDict[T] com '{len(self)}' chave(s)>"
 
     def __getitem__ (self, nome: str) -> T:
         return self.__d[nome.strip().lower()]
