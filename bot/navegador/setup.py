@@ -1,8 +1,12 @@
 # std
 import time, enum, typing, atexit, collections
+from datetime import (
+    datetime as Datetime,
+    timedelta as Timedelta
+)
 # interno
 from .mensagem import Mensagem
-from .. import util, tipagem, logger, sistema, teclado, formatos, estruturas
+from .. import util, tipagem, logger, sistema, formatos, estruturas
 # externo
 import selenium.webdriver as wd
 import undetected_chromedriver as uc
@@ -51,13 +55,18 @@ class Navegador:
         return self.driver.current_url
 
     @property
+    def aba (self) -> str:
+        """ID da aba do navegador focada"""
+        return self.aba
+
+    @property
     def abas (self) -> list[str]:
-        """ID das abas/janelas abertas do driver atual do navegador"""
+        """IDs das abas abertas do navegador"""
         return self.driver.window_handles
 
     def titulos (self) -> list[str]:
         """Títulos das abas abertas"""
-        original, titulos = self.driver.current_window_handle, [
+        original, titulos = self.aba, [
             self.titulo
             for aba in self.abas
             if not self.driver.switch_to.window(aba)
@@ -73,50 +82,46 @@ class Navegador:
 
     def nova_aba (self) -> typing.Self:
         """Abrir uma nova aba e alterar o foco para ela"""
-        self.driver.switch_to.new_window("tab")
+        # driver.switch_to.new_window("tab") não funciona em modo anônimo
+        abas = set(self.abas)
+        self.driver.execute_script("window.open('')")
+        novo_handle, *_ = set(self.abas).difference(abas)
+        self.driver.switch_to.window(novo_handle)
         logger.informar("Aberto uma nova aba")
         return self
 
     def fechar_aba (self) -> typing.Self:
-        """Fechar a aba focada e alterar o foco para a anterior"""
-        titulo = self.driver.title
+        """Fechar a aba focada e alterar o foco para a primeira aba
+        - Cria uma nova aba caso só exista uma"""
+        titulo = self.titulo
+        if len(self.abas) == 1:
+            self.driver.execute_script("window.open('')")
         self.driver.close()
-        self.driver.switch_to.window(self.abas[-1])
+        self.driver.switch_to.window(self.abas[0])
         logger.informar(f"Fechado a aba '{titulo}' e focado na aba '{self.titulo}'")
         return self
 
     def limpar_abas (self) -> typing.Self:
         """Fechar as abas abertas, abrir uma nova e focar"""
         logger.informar("Limpando as abas abertas do navegador")
-        self.driver.switch_to.new_window("tab")
-        nova_aba = self.driver.current_window_handle
+        abas = set(self.abas)
+        self.driver.execute_script("window.open('')")
+        nova_aba, *_ = set(self.abas).difference(abas)
 
-        for aba in self.abas:
-            if aba == nova_aba: continue
-            self.driver.switch_to.window(aba)
-            if self.driver.title.strip().lower() == "downloads":
-                teclado.apertar_tecla("esc", delay=0.5)
-                continue
-            self.driver.close()
+        for aba in abas:
+            try:
+                self.driver.switch_to.window(aba)
+                self.driver.close()
+            except Exception: pass
 
         self.driver.switch_to.window(nova_aba)
         return self
 
-    def focar_aba (self, titulo: str | None = None) -> typing.Self:
-        """Focar na aba que contem o `titulo`
-        - `None` para focar na última aba"""
-        titulo = util.normalizar(titulo) if titulo else None
-        if not titulo:
-            self.driver.switch_to.window(self.abas[-1])
-            logger.informar(f"O navegador focou na aba '{self.driver.title}'")
-            return self
-
-        for aba in self.abas:
-            self.driver.switch_to.window(aba)
-            if titulo not in util.normalizar(self.driver.title): continue
-            logger.informar(f"O navegador focou na aba '{self.driver.title}'")
-            break
-
+    def focar_aba (self, identificador: str | None = None) -> typing.Self:
+        """Focar na aba com base no `identificador`
+        - `None` para focar na primeira aba"""
+        self.driver.switch_to.window(identificador or self.abas[0])
+        logger.informar(f"O navegador focou na aba '{self.titulo}'")
         return self
 
     def encontrar_elemento (self, estrategia: tipagem.ESTRATEGIAS_WEBELEMENT, localizador: str | enum.Enum) -> WebElement:
@@ -177,7 +182,7 @@ class Navegador:
         """Aguardar um novo arquivo, com nome contendo algum dos `termos`, no diretório de download por `timeout` segundos
         - Retorna o `Caminho` para o arquivo
         - Exceção `TimeoutError` caso não finalize no tempo estipulado"""
-        inicio = set(self.diretorio_dowload)
+        inicio = Datetime.now() - Timedelta(milliseconds=500)
         arquivo: estruturas.Caminho | None = None
         termos = [str(termo).lower() for termo in termos]
         assert termos, "Pelo menos 1 termo é necessário para a busca"
@@ -187,10 +192,11 @@ class Navegador:
             arquivo, *_ = [
                 caminho
                 for caminho in self.diretorio_dowload
-                if caminho not in inicio and any(
-                    termo in caminho.nome.lower()
-                    for termo in termos
-                )
+                if all((
+                    caminho.data_criacao > inicio,
+                    not caminho.nome.lower().endswith(".crdownload"),
+                    any(termo in caminho.nome.lower() for termo in termos)
+                ))
             ] or [None]
             return arquivo != None
 
@@ -243,12 +249,12 @@ class Edge (Navegador):
         - `download` diretório para download/impressão de arquivos
         - `anonimo` para abrir o navegador como inprivate"""
         options = wd.EdgeOptions()
+        self.diretorio_dowload = estruturas.Caminho(download) if isinstance(download, str) else download
         argumentos = ["--start-maximized", "--disable-infobars", "--disable-notifications", "--ignore-certificate-errors", "--kiosk-printing"]
-        if anonimo: argumentos += ["--inprivate"]
+        if anonimo: argumentos.append("--inprivate")
+
         for argumento in argumentos: options.add_argument(argumento)
         options.add_experimental_option("excludeSwitches", ["enable-logging"]) # desativar prints
-
-        self.diretorio_dowload = estruturas.Caminho(download) if isinstance(download, str) else download
         options.add_experimental_option("prefs", {
             "download.directory_upgrade": True,
             "download.prompt_for_download": False,
@@ -273,7 +279,8 @@ class Edge (Navegador):
 class Chrome (Navegador):
     """Navegador Chrome
     - Utilizada a biblioteca `undetected_chromedriver` para evitar detecção do `selenium`
-    - Possível de capturar as mensagens de rede pelo método `mensagens_rede`"""
+    - Possível de capturar as mensagens de rede pelo método `mensagens_rede`
+    - O Chrome anônimo sobrescreve o arquivo de download caso tenha o mesmo nome"""
 
     driver: uc.Chrome
     """Driver Chrome"""
@@ -293,18 +300,17 @@ class Chrome (Navegador):
             raise Exception("Versão do Google Chrome não foi localizada")
 
         options = uc.ChromeOptions()
+        self.diretorio_dowload = estruturas.Caminho(download) if isinstance(download, str) else download
         argumentos = ["--start-maximized", "--disable-infobars", "--disable-notifications", "--ignore-certificate-errors", "--kiosk-printing"]
-        if anonimo: argumentos += ["--incognito"]
+        if anonimo: argumentos.append("--incognito")
+
         for argumento in argumentos: options.add_argument(argumento)
         options.set_capability("goog:loggingPrefs", { "performance": "ALL" }) # logs performance
-        # options.add_argument(r"user-data-dir=C:\Users\Alex\AppData\Local\Google\Chrome\User Data")
-
-        self.diretorio_dowload = estruturas.Caminho(download) if isinstance(download, str) else download
         options.add_experimental_option("prefs", {
             "download.directory_upgrade": True,
             "download.prompt_for_download": False,
-            "savefile.default_directory": self.diretorio_dowload.string,
             "download.default_directory": self.diretorio_dowload.string,
+            "savefile.default_directory": self.diretorio_dowload.string,
             "printing.print_preview_sticky_settings.appState": formatos.Json({
                 "recentDestinations": [{ "id": "Save as PDF", "origin": "local", "account": "" }],
                 "selectedDestinationId": "Save as PDF", "version": 2
@@ -315,6 +321,12 @@ class Chrome (Navegador):
         self.driver.maximize_window()
         self.timeout_inicial = timeout
         self.driver.implicitly_wait(timeout)
+
+        # necessário para o modo anônimo não perguntar diretório de download
+        if anonimo: self.driver.execute_cdp_cmd("Page.setDownloadBehavior", {
+            "behavior": "allow",
+            "downloadPath": self.diretorio_dowload.string
+        })
 
         logger.informar("Navegador Chrome iniciado")
 
