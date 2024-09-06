@@ -20,6 +20,9 @@ from selenium.common.exceptions import (
     NoSuchElementException as ElementoNaoEncontrado
 )
 
+SCRIPT_NOVA_GUIA = "window.open('').focus()"
+COMANDO_VERSAO_CHROME = r'(Get-Item -Path "$env:PROGRAMFILES\Google\Chrome\Application\chrome.exe").VersionInfo.FileVersion'
+
 class Navegador:
     """Classe do navegador que deve ser herdada"""
 
@@ -44,6 +47,18 @@ class Navegador:
             raise AttributeError("Não é possível alterar atributos/métodos")
         object.__setattr__(self, nome, valor)
 
+    def __iter__ (self) -> typing.Generator[str, None, None]:
+        """Percorrer as abas, ignorando as especiais, e retornar à original
+        - Caso tenha sido feito `break/return` no iterator, o retorno à aba original não acontece"""
+        original = self.aba
+        especial = lambda: self.url.lower().strip().startswith(("edge", "chrome"))
+        for aba in self.abas:
+            try:
+                self.driver.switch_to.window(aba)
+                if not especial(): yield aba
+            except Exception: pass
+        self.driver.switch_to.window(original)
+
     @property
     def titulo (self) -> str:
         """Título da aba focada"""
@@ -57,7 +72,7 @@ class Navegador:
     @property
     def aba (self) -> str:
         """ID da aba do navegador focada"""
-        return self.aba
+        return self.driver.current_window_handle
 
     @property
     def abas (self) -> list[str]:
@@ -66,13 +81,7 @@ class Navegador:
 
     def titulos (self) -> list[str]:
         """Títulos das abas abertas"""
-        original, titulos = self.aba, [
-            self.titulo
-            for aba in self.abas
-            if not self.driver.switch_to.window(aba)
-        ]
-        self.driver.switch_to.window(original)
-        return titulos
+        return [self.titulo for _ in self]
 
     def pesquisar (self, url: str) -> typing.Self:
         """Pesquisar o url na aba focada"""
@@ -84,7 +93,7 @@ class Navegador:
         """Abrir uma nova aba e alterar o foco para ela"""
         # driver.switch_to.new_window("tab") não funciona em modo anônimo
         abas = set(self.abas)
-        self.driver.execute_script("window.open('')")
+        self.driver.execute_script(SCRIPT_NOVA_GUIA)
         novo_handle, *_ = set(self.abas).difference(abas)
         self.driver.switch_to.window(novo_handle)
         logger.informar("Aberto uma nova aba")
@@ -95,7 +104,7 @@ class Navegador:
         - Cria uma nova aba caso só exista uma"""
         titulo = self.titulo
         if len(self.abas) == 1:
-            self.driver.execute_script("window.open('')")
+            self.driver.execute_script(SCRIPT_NOVA_GUIA)
         self.driver.close()
         self.driver.switch_to.window(self.abas[0])
         logger.informar(f"Fechado a aba '{titulo}' e focado na aba '{self.titulo}'")
@@ -104,17 +113,11 @@ class Navegador:
     def limpar_abas (self) -> typing.Self:
         """Fechar as abas abertas, abrir uma nova e focar"""
         logger.informar("Limpando as abas abertas do navegador")
-        abas = set(self.abas)
-        self.driver.execute_script("window.open('')")
-        nova_aba, *_ = set(self.abas).difference(abas)
-
-        for aba in abas:
-            try:
-                self.driver.switch_to.window(aba)
-                self.driver.close()
+        nova_aba = self.nova_aba().aba
+        for aba in self:
+            if aba == nova_aba: continue
+            try: self.driver.close()
             except Exception: pass
-
-        self.driver.switch_to.window(nova_aba)
         return self
 
     def focar_aba (self, identificador: str | None = None) -> typing.Self:
@@ -158,6 +161,20 @@ class Navegador:
         """Realizar a ação de hover no `elemento`"""
         logger.debug(f"Realizando ação de hover no elemento '{elemento}'")
         wd.ActionChains(self.driver).move_to_element(elemento).perform()
+        return self
+
+    def aguardar_titulo (self, titulo: str, timeout=30) -> typing.Self:
+        """Aguardar alguma aba conter o `título` e alterar o foco para ela
+        - Exceção `TimeoutError` caso não finalize no tempo estipulado"""
+        normalizado = util.normalizar(titulo)
+        def alguma_aba_contem_titulo () -> bool:
+            for _ in self:
+                if normalizado in util.normalizar(self.titulo):
+                    return True
+            return False
+
+        if not util.aguardar_condicao(alguma_aba_contem_titulo, timeout, 1):
+            raise TimeoutError(f"Aba contendo o título '{titulo}' não foi encontrada após {timeout} segundos")
         return self
 
     def aguardar_staleness (self, elemento: WebElement, timeout=60) -> typing.Self:
@@ -293,15 +310,15 @@ class Chrome (Navegador):
         - `download` diretório para download/impressão de arquivos
         - `anonimo` para abrir o navegador como incognito"""
         # obter a versão do google chrome para o `undetected_chromedriver`, pois ele utiliza sempre a mais recente
-        comando_versao_chrome = r'(Get-Item -Path "$env:PROGRAMFILES\Google\Chrome\Application\chrome.exe").VersionInfo.FileVersion'
-        sucesso, mensagem = sistema.executar(comando_versao_chrome, powershell=True)
+        sucesso, mensagem = sistema.executar(COMANDO_VERSAO_CHROME, powershell=True)
         versao = (mensagem.split(".") or " ")[0]
         if not sucesso or not versao.isdigit():
             raise Exception("Versão do Google Chrome não foi localizada")
 
         options = uc.ChromeOptions()
         self.diretorio_dowload = estruturas.Caminho(download) if isinstance(download, str) else download
-        argumentos = ["--start-maximized", "--disable-infobars", "--disable-notifications", "--ignore-certificate-errors", "--kiosk-printing"]
+        argumentos = ["--start-maximized", "--disable-infobars", "--disable-notifications",
+                      "--ignore-certificate-errors", "--kiosk-printing", "--disable-popup-blocking"]
         if anonimo: argumentos.append("--incognito")
 
         for argumento in argumentos: options.add_argument(argumento)
