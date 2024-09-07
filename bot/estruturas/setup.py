@@ -206,7 +206,7 @@ class Resultado [T]:
         """Representação da classe"""
         return f"<Resultado[T] {"sucesso" if self else "erro"}>"
 
-    def unwrap (self) -> tuple[T | None, Exception | None]:
+    def unwrap (self) -> tuple[T, None] | tuple[None, Exception]:
         """Realizar unwrap do `valor, erro = resultado.unwrap()`"""
         return self.__valor, self.__erro
 
