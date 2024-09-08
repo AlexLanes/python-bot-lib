@@ -269,8 +269,8 @@ class Caminho:
         for p in self.__p.iterdir():
             yield Caminho(p)
 
-    def __eq__ (self, caminho: Caminho) -> bool:
-        return str(caminho) == str(self)
+    def __eq__ (self, caminho: Caminho | str) -> bool:
+        return  Caminho(str(caminho)).string == self.string
 
     def __hash__ (self) -> int:
         return hash(self.string)
@@ -335,34 +335,37 @@ class Caminho:
         """Checar se o caminho existente é de um diretório"""
         return self.__p.is_dir()
 
-    def renomear (self, novo_nome: str, apagar_existente=False) -> Caminho:
-        """Renomear o nome final do caminho atual para `novo_nome` e retornar o caminho
-        - `apagar_existente` indicador para apagar arquivo ou diretório de `novo_nome`, caso exista, se não `Exception`
-        - Não tem efeito caso caminho não exista"""
-        novo_nome = os.path.basename(novo_nome)
-        caminho = self.parente / novo_nome
-        if self.existe():
-            if apagar_existente and caminho.existe():
-                caminho.apagar_diretorio() if caminho.diretorio() else caminho.apagar_arquivo()
-            self.__p.rename(caminho.string)
-        return caminho
-
     def copiar (self, diretorio: Caminho) -> Caminho:
-        """Copiar o arquivo ou diretório do caminho atual para o `diretorio` existente
-        - Não tem efeito caso algum caminho não exista"""
-        destino = diretorio / self.nome
-        if self.arquivo() and diretorio.diretorio():
+        """Copiar o arquivo ou diretório do caminho atual para o `diretorio` e retornar o caminho
+        - Sobrescreve os arquivos existentes (recursivamente se for diretório)
+        - Não tem efeito caso caminho não exista"""
+        destino = diretorio.criar_diretorios() / self.nome
+        if self.arquivo():
             shutil.copyfile(self.__p, destino.__p)
-        elif self.diretorio() and diretorio.diretorio():
+        elif self.diretorio():
             shutil.copytree(self.__p, destino.__p, dirs_exist_ok=True)
         return destino
 
+    def renomear (self, novo_nome: str) -> Caminho:
+        """Renomear o nome final do caminho para `novo_nome` e retornar o caminho
+        - Sobrescreve os arquivos existentes (recursivamente se for diretório)
+        - Não tem efeito caso caminho não exista"""
+        novo_nome = os.path.basename(novo_nome)
+        if self.arquivo():
+            shutil.copyfile(self.__p, novo_nome)
+            self.apagar_arquivo()
+        elif self.diretorio():
+            shutil.copytree(self.__p, novo_nome, dirs_exist_ok=True)
+            self.apagar_diretorio()
+        return self.parente / novo_nome
+
     def mover (self, diretorio: Caminho) -> Caminho:
-        """Mover o arquivo ou diretório do caminho atual para o `diretorio` existente
-        - Não tem efeito caso algum caminho não exista"""
-        if self.existe() and diretorio.diretorio():
-            shutil.move(self.__p, diretorio.__p)
-        return diretorio / self.nome
+        """Mover o arquivo ou diretório do caminho atual para o `diretorio` e retornar o caminho
+        - Sobrescreve os arquivos existentes (recursivamente se for diretório)
+        - Não tem efeito caso caminho não exista"""
+        destino = self.copiar(diretorio)
+        self.apagar_diretorio() if self.diretorio() else self.apagar_arquivo()
+        return destino
 
     def criar_diretorios (self) -> typing.Self:
         """Criar todos os diretórios no caminho atual que não existem
@@ -380,8 +383,7 @@ class Caminho:
         """Apagar o diretório e conteúdo do caminho atual e retornar ao parente
         - Não tem efeito caso não exista ou não seja diretório"""
         for caminho in self:
-            if caminho.arquivo(): caminho.apagar_arquivo()
-            elif caminho.diretorio(): caminho.apagar_diretorio()
+            caminho.apagar_diretorio() if caminho.diretorio() else caminho.apagar_arquivo()
         if self.diretorio(): self.__p.rmdir()
         return self.parente
 
