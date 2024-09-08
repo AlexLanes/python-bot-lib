@@ -210,9 +210,10 @@ class Navegador:
                 caminho
                 for caminho in self.diretorio_dowload
                 if all((
-                    caminho.data_criacao > inicio,
+                    caminho.arquivo(),
                     not caminho.nome.lower().endswith(".crdownload"),
-                    any(termo in caminho.nome.lower() for termo in termos)
+                    any(termo in caminho.nome.lower() for termo in termos),
+                    any(data >= inicio for data in (caminho.data_criacao, caminho.data_modificao))
                 ))
             ] or [None]
             return arquivo != None
