@@ -350,14 +350,14 @@ class Caminho:
         """Renomear o nome final do caminho para `novo_nome` e retornar o caminho
         - Sobrescreve os arquivos existentes (recursivamente se for diretório)
         - Não tem efeito caso caminho não exista"""
-        novo_nome = os.path.basename(novo_nome)
+        destino = self.parente / os.path.basename(novo_nome)
         if self.arquivo():
-            shutil.copyfile(self.__p, novo_nome)
+            shutil.copyfile(self.__p, destino.__p)
             self.apagar_arquivo()
         elif self.diretorio():
-            shutil.copytree(self.__p, novo_nome, dirs_exist_ok=True)
+            shutil.copytree(self.__p, destino.__p, dirs_exist_ok=True)
             self.apagar_diretorio()
-        return self.parente / novo_nome
+        return destino
 
     def mover (self, diretorio: Caminho) -> Caminho:
         """Mover o arquivo ou diretório do caminho atual para o `diretorio` e retornar o caminho
