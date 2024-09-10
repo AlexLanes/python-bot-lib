@@ -29,7 +29,7 @@ def normalizar (string: str) -> str:
     """Strip, lower, replace espaços por underline, remoção de acentuação e remoção de caracteres != `a-zA-Z0-9_`"""
     string = re.sub(r"\s+", "_", string.strip().lower())
     string = remover_acentuacao(string)
-    return re.sub(r"\W", "", string)
+    return re.sub(r"\W", "", string).replace("__", "_")
 
 def encontrar_texto[T] (texto: str,
                         opcoes: typing.Iterable[T],
