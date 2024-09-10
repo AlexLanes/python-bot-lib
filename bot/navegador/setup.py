@@ -237,15 +237,17 @@ class Navegador:
         - Não funciona para elementos dentro de iframe"""
         coordenada = self.driver.execute_script(
             """
-            arguments[0].scrollIntoView({ block: "center" });
-            const y_offset = window.outerHeight - window.innerHeight,
-                  rect = arguments[0].getBoundingClientRect();
+            const y_offset = window.outerHeight - window.innerHeight
+            arguments[0].scrollIntoView({ block: "center" })
+            await new Promise(_ => setTimeout(_, 1000))
+
+            const rect = arguments[0].getBoundingClientRect()
             return {
                 x: Math.ceil(rect.x),
                 y: Math.ceil(rect.y + y_offset),
-                largura: Math.floor(rect.width),
-                altura: Math.floor(rect.height)
-            };
+                largura: Math.ceil(rect.width),
+                altura: Math.ceil(rect.height)
+            }
             """,
             elemento
         )
