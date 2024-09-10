@@ -279,12 +279,8 @@ class Edge (Navegador):
             "--start-maximized", "--kiosk-printing", "--disable-blink-features=AutomationControlled"
         ]
         if anonimo: argumentos.append("--inprivate")
-        if caminho_perfil := configfile.obter_opcao_ou("navegador", "caminho_perfil"):
-            caminho = estruturas.Caminho(caminho_perfil)
-            argumentos.extend((
-                f"--user-data-dir={caminho.parente}",
-                f"--profile-directory={caminho.nome}"
-            ))
+        if caminho_extensoes := configfile.obter_opcao_ou("navegador", "caminho_extensoes"):
+            argumentos.append(f"--load-extension={caminho_extensoes}")
 
         for argumento in argumentos: options.add_argument(argumento)
         options.add_experimental_option('useAutomationExtension', False)
@@ -341,18 +337,15 @@ class Chrome (Navegador):
             "--start-maximized", "--disable-infobars", "--disable-notifications",
             "--ignore-certificate-errors", "--kiosk-printing", "--disable-popup-blocking"
         ]
-        if caminho_perfil := configfile.obter_opcao_ou("navegador", "caminho_perfil"):
-            caminho = estruturas.Caminho(caminho_perfil)
-            argumentos.extend((
-                f"--user-data-dir={caminho.parente}",
-                f"--profile-directory={caminho.nome}"
-            ))
+        if caminho_extensoes := configfile.obter_opcao_ou("navegador", "caminho_extensoes"):
+            argumentos.append(f"--load-extension={caminho_extensoes}")
 
         for argumento in argumentos: options.add_argument(argumento)
         options.set_capability("goog:loggingPrefs", { "performance": "ALL" }) # logs performance
         options.add_experimental_option("prefs", {
             "download.directory_upgrade": True,
             "download.prompt_for_download": False,
+            "profile.default_content_settings.popups": 0,
             "download.default_directory": self.diretorio_dowload.string,
             "savefile.default_directory": self.diretorio_dowload.string,
             "printing.print_preview_sticky_settings.appState": formatos.Json({

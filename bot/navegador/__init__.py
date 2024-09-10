@@ -9,10 +9,8 @@ Edge, Chrome e Explorer
 - ElementoNaoEncontrado: Exceção quando um elemento não é encontrado pelo método `encontrar_elemento`
 
 # Variáveis .ini
-- `[navegador] -> caminho_perfil` 
-    - `Opcional` informar um caminho de perfil para o `Chrome` ou `Edge` (Carrega as extensões do perfil)
-    - `Default` criado um perfil vazio e apagado após fechar
-    - `chrome://version/` para ver o perfil de execução de um usuário
+- `[navegador] -> caminho_extensoes` 
+    - `Opcional` caminhos para diretório de extensões, separados por vírgula, para utilizar no `Chrome` ou `Edge`
 """
 
 from bot.navegador.setup import *
