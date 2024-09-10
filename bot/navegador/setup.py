@@ -24,7 +24,7 @@ SCRIPT_NOVA_GUIA = "window.open('').focus()"
 COMANDO_VERSAO_CHROME = r'(Get-Item -Path "$env:PROGRAMFILES\Google\Chrome\Application\chrome.exe").VersionInfo.FileVersion'
 
 class Navegador:
-    """Classe do navegador que deve ser herdada"""
+    """Classe do navegador `selenium` que deve ser herdada"""
 
     driver: wd.Edge
     """Driver do `Selenium`"""
@@ -253,7 +253,10 @@ class Navegador:
         return self.aguardar_download(".pdf", timeout=20)
 
 class Edge (Navegador):
-    """Navegador Edge com funcionalidades padrões para automação
+    """Navegador Edge baseado no `selenium`
+    - `timeout` utilizado na espera por elementos
+    - `download` diretório para download/impressão de arquivos
+    - `anonimo` para abrir o navegador como inprivate"
     - O Edge é o mais provável de estar disponível para utilização"""
 
     driver: wd.Edge
@@ -262,17 +265,17 @@ class Edge (Navegador):
     def __init__ (self, timeout=30.0,
                         download: str | estruturas.Caminho = "./downloads",
                         anonimo=False) -> None:
-        """Inicializar o navegador Edge
-        - `timeout` utilizado na espera do `implicitly_wait`
-        - `download` diretório para download/impressão de arquivos
-        - `anonimo` para abrir o navegador como inprivate"""
         options = wd.EdgeOptions()
         self.diretorio_dowload = estruturas.Caminho(download) if isinstance(download, str) else download
-        argumentos = ["--start-maximized", "--disable-infobars", "--disable-notifications", "--ignore-certificate-errors", "--kiosk-printing"]
+        argumentos = [
+            "--ignore-certificate-errors", "--disable-infobars", "--disable-notifications",
+            "--start-maximized", "--kiosk-printing", "--disable-blink-features=AutomationControlled"
+        ]
         if anonimo: argumentos.append("--inprivate")
 
         for argumento in argumentos: options.add_argument(argumento)
-        options.add_experimental_option("excludeSwitches", ["enable-logging"]) # desativar prints
+        options.add_experimental_option('useAutomationExtension', False)
+        options.add_experimental_option("excludeSwitches", ["enable-logging", "enable-automation"])
         options.add_experimental_option("prefs", {
             "download.directory_upgrade": True,
             "download.prompt_for_download": False,
@@ -288,6 +291,13 @@ class Edge (Navegador):
         self.driver.maximize_window()
         self.timeout_inicial = timeout
         self.driver.implicitly_wait(timeout)
+        self.driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
+            "source": """
+                Object.defineProperty(navigator, "webdriver", {
+                    get: () => false
+                })
+            """
+        })
 
         logger.informar("Navegador Edge iniciado")
 
@@ -295,21 +305,17 @@ class Edge (Navegador):
         return f"<Edge aba focada '{self.titulo}'>"
 
 class Chrome (Navegador):
-    """Navegador Chrome
-    - Utilizada a biblioteca `undetected_chromedriver` para evitar detecção do `selenium`
-    - Possível de capturar as mensagens de rede pelo método `mensagens_rede`
-    - O Chrome anônimo sobrescreve o arquivo de download caso tenha o mesmo nome"""
+    """Navegador Chrome baseado no `selenium`
+    - `timeout` utilizado na espera por elementos
+    - `download` diretório para download/impressão de arquivos
+    - Utilizada a biblioteca `undetected_chromedriver` para evitar detecção (Modo anônimo ocasiona a detecção)
+    - Possível de capturar as mensagens de rede pelo método `mensagens_rede`"""
 
     driver: uc.Chrome
     """Driver Chrome"""
 
     def __init__ (self, timeout=30.0,
-                        download: str | estruturas.Caminho = "./downloads",
-                        anonimo=False) -> None:
-        """Inicializar o navegador Chrome
-        - `timeout` utilizado na espera do `implicitly_wait`
-        - `download` diretório para download/impressão de arquivos
-        - `anonimo` para abrir o navegador como incognito"""
+                        download: str | estruturas.Caminho = "./downloads") -> None:
         # obter a versão do google chrome para o `undetected_chromedriver`, pois ele utiliza sempre a mais recente
         sucesso, mensagem = sistema.executar(COMANDO_VERSAO_CHROME, powershell=True)
         versao = (mensagem.split(".") or " ")[0]
@@ -318,9 +324,10 @@ class Chrome (Navegador):
 
         options = uc.ChromeOptions()
         self.diretorio_dowload = estruturas.Caminho(download) if isinstance(download, str) else download
-        argumentos = ["--start-maximized", "--disable-infobars", "--disable-notifications",
-                      "--ignore-certificate-errors", "--kiosk-printing", "--disable-popup-blocking"]
-        if anonimo: argumentos.append("--incognito")
+        argumentos = [
+            "--start-maximized", "--disable-infobars", "--disable-notifications",
+            "--ignore-certificate-errors", "--kiosk-printing", "--disable-popup-blocking"
+        ]
 
         for argumento in argumentos: options.add_argument(argumento)
         options.set_capability("goog:loggingPrefs", { "performance": "ALL" }) # logs performance
@@ -339,12 +346,6 @@ class Chrome (Navegador):
         self.driver.maximize_window()
         self.timeout_inicial = timeout
         self.driver.implicitly_wait(timeout)
-
-        # necessário para o modo anônimo não perguntar diretório de download
-        if anonimo: self.driver.execute_cdp_cmd("Page.setDownloadBehavior", {
-            "behavior": "allow",
-            "downloadPath": self.diretorio_dowload.string
-        })
 
         logger.informar("Navegador Chrome iniciado")
 
@@ -392,7 +393,8 @@ class Chrome (Navegador):
         )
 
 class Explorer (Navegador):
-    r"""Navegador Internet Explorer
+    r"""Navegador Edge no modo Internet Explorer
+    - `timeout` utilizado na espera por elementos
     - Selenium avisa sobre a necesidade do driver no %PATH%, mas consegui utilizar sem o driver
     - Necessário desativar o Protected Mode em `Internet Options -> Security` para todas as zonas
     - Caso não apareça a opção, alterar pelo registro do windows `Software\Microsoft\Windows\CurrentVersion\Internet Settings\Zones` em todas as zonas(0..4) setando o `REG_DWORD` nome `2500` valor `3`
@@ -402,8 +404,6 @@ class Explorer (Navegador):
     """Driver Internet Explorer"""
 
     def __init__ (self, timeout=30.0) -> None:
-        """Inicializar o navegador Edge no modo Internet Explorer
-        - `timeout` utilizado na espera do `implicitly_wait`"""
         options = wd.IeOptions()
         options.attach_to_edge_chrome = True
         options.add_argument("--ignore-certificate-errors")
