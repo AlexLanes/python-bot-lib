@@ -6,7 +6,7 @@ from datetime import (
 )
 # interno
 from .mensagem import Mensagem
-from .. import util, tipagem, logger, sistema, formatos, estruturas
+from .. import util, tipagem, logger, sistema, formatos, estruturas, configfile
 # externo
 import selenium.webdriver as wd
 import undetected_chromedriver as uc
@@ -180,20 +180,25 @@ class Navegador:
     def aguardar_staleness (self, elemento: WebElement, timeout=60) -> typing.Self:
         """Aguardar a condição staleness_of do `elemento` por `timeout` segundos
         - Exceção `TimeoutError` caso não finalize no tempo estipulado"""
-        try:
-            Wait(self.driver, timeout).until(ec.staleness_of(elemento))
-            return self
+        try: Wait(self.driver, timeout).until(ec.staleness_of(elemento))
         except TimeoutException:
             raise TimeoutError(f"A espera pelo staleness do Elemento não aconteceu após {timeout} segundos")
+        return self
 
-    def aguardar_visibilidade (self, elemento: WebElement, timeout=60) -> typing.Self:
-        """Aguardar a condição visibility_of do `elemento` por `timeout` segundos
+    def aguardar_visibilidade (self, elemento: typing.Callable[[], WebElement],
+                                     timeout=60) -> typing.Self:
+        """Aguardar o `elemento` existir e estar visível por `timeout` segundos
+        - `elemento` deve ser uma função que retorne o `WebElement`
         - Exceção `TimeoutError` caso não finalize no tempo estipulado"""
         try:
-            Wait(self.driver, timeout).until(ec.visibility_of(elemento))
-            return self
-        except TimeoutException:
-            raise TimeoutError(f"A espera pela visibilidade do Elemento não aconteceu após {timeout} segundos")
+            self.alterar_timeout(1)
+            condicao = lambda: elemento().is_displayed()
+            assert util.aguardar_condicao(condicao, timeout, 0.5)
+        except AssertionError:
+            mensagem_erro = f"A espera pela visibilidade do Elemento não aconteceu após {timeout} segundos"
+            raise TimeoutError(mensagem_erro)
+        finally: self.alterar_timeout()
+        return self
 
     def aguardar_download (self, *termos: str, timeout=60) -> estruturas.Caminho:
         """Aguardar um novo arquivo, com nome contendo algum dos `termos`, no diretório de download por `timeout` segundos
@@ -272,6 +277,12 @@ class Edge (Navegador):
             "--start-maximized", "--kiosk-printing", "--disable-blink-features=AutomationControlled"
         ]
         if anonimo: argumentos.append("--inprivate")
+        if caminho_perfil := configfile.obter_opcao_ou("navegador", "caminho_perfil"):
+            caminho = estruturas.Caminho(caminho_perfil)
+            argumentos.extend((
+                f"--user-data-dir={caminho.parente}",
+                f"--profile-directory={caminho.nome}"
+            ))
 
         for argumento in argumentos: options.add_argument(argumento)
         options.add_experimental_option('useAutomationExtension', False)
@@ -328,6 +339,12 @@ class Chrome (Navegador):
             "--start-maximized", "--disable-infobars", "--disable-notifications",
             "--ignore-certificate-errors", "--kiosk-printing", "--disable-popup-blocking"
         ]
+        if caminho_perfil := configfile.obter_opcao_ou("navegador", "caminho_perfil"):
+            caminho = estruturas.Caminho(caminho_perfil)
+            argumentos.extend((
+                f"--user-data-dir={caminho.parente}",
+                f"--profile-directory={caminho.nome}"
+            ))
 
         for argumento in argumentos: options.add_argument(argumento)
         options.set_capability("goog:loggingPrefs", { "performance": "ALL" }) # logs performance
