@@ -30,16 +30,17 @@ def retry (*erro: Exception, tentativas=3, segundos=5):
     def retry (func: Callable):
         def retry (*args, **kwargs):
 
+            nome_funcao = func.__name__
             for tentativa in range(1, tentativas + 1):
                 try: return func(*args, **kwargs)
-                except *erro as e:
-                    excecao = e.exceptions[0]
-                    mensagem_erro = f"{type(excecao).__name__}({str(excecao).strip()})"
-                    logger.alertar(f"Tentativa {tentativa}/{tentativas} de execução da função({func.__name__}) resultou em erro\n\t{mensagem_erro}")
+                except *erro as grupo_excecoes:
+                    ultima_excecao = grupo_excecoes.exceptions[-1]
+                    mensagem_erro = type(ultima_excecao).__name__ + f"({ str(ultima_excecao).strip() })"
+                    logger.alertar(f"Tentativa {tentativa}/{tentativas} de execução da função({ nome_funcao }) resultou em erro\n\t{mensagem_erro}")
                     if tentativa < tentativas: sleep(segundos) # sleep() não necessário na última tentativa
                     else: # lançar a exceção na última tentativa
-                        e.add_note(f"Foram realizadas {tentativas} tentativa(s) de execução da função({func.__name__})")
-                        raise
+                        ultima_excecao.add_note(f"Foram realizadas {tentativas} tentativa(s) de execução da função({ nome_funcao })")
+                        raise ultima_excecao
 
         return retry
     return retry
