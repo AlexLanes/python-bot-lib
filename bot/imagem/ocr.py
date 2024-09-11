@@ -16,7 +16,7 @@ class LeitorOCR:
         """Inicia o leitor OCR
         - `confianca` porcentagem mínima de confiança no texto extraído `(entre 0.0 e 1.0)`"""
         try: from easyocr import Reader
-        except ImportError: raise ImportError("Instale o bot com o parâmetro opcional [ocr] para utulizar o LeitorOCR")
+        except ImportError: raise ImportError("Pacote opcional [ocr] necessário. Realize `pip install bot[ocr]` para utulizar o LeitorOCR")
         self.__reader = Reader(["en"])
         self.__confianca = max(0.0, min(1.0, float(confianca)))
 
@@ -50,8 +50,9 @@ class LeitorOCR:
         """Receber a imagem e extrair os dados"""
         imagem: np.ndarray = np.asarray(imagem)
         return [
-            (texto, Coordenada.from_box((box[0][0], box[1][0], box[0][1], box[2][1])))
-            for box, texto, confianca in self.__reader.readtext(imagem, mag_ratio=2, min_size=5, slope_ths=0.25, width_ths=0.4)
+            (texto, Coordenada.from_box((box[0][0], box[0][1], box[1][0], box[2][1])))
+            for box, texto, confianca in self.__reader
+                .readtext(imagem, mag_ratio=2, min_size=5, slope_ths=0.25, width_ths=0.4)
             if confianca >= self.__confianca
         ]
 
@@ -87,8 +88,8 @@ class LeitorOCR:
         boxes, _ = self.__reader.detect(imagem, mag_ratio=2, min_size=5, slope_ths=0.25, width_ths=0.4)
         boxes: list[tuple[np.int32, ...]] = np.concatenate(boxes)
         return [
-            Coordenada.from_box(box)
-            for box in boxes
+            Coordenada.from_box((x1, y1, x2, y2))
+            for (x1, x2, y1, y2) in boxes
         ]
 
     @staticmethod

@@ -33,11 +33,15 @@ class Coordenada:
             return False
 
         x, y = other.transformar() if isinstance(other, Coordenada) else other
-        return x in range(self.x, self.x + self.largura + 1) \
-           and y in range(self.y, self.y + self.altura + 1)
+        return all((
+            x >= self.x,
+            x <= self.x + self.largura,
+            y >= self.y,
+            y <= self.y + self.altura
+        ))
 
     def __hash__ (self) -> int:
-        return hash(repr(self))
+        return hash(str(tuple(self)))
 
     def transformar (self, xOffset=0.5, yOffset=0.5) -> tuple[int, int]:
         """Transformar as cordenadas para a posição (X, Y) de acordo com a porcentagem `xOffset` e `yOffset`
@@ -51,13 +55,18 @@ class Coordenada:
             self.y + int(self.altura * yOffset)
         )
 
+    def to_box (self) -> tuple[int, int, int, int]:
+        """Transformar a coordenada para uma `box`
+        - `(x-esquerda, y-cima, x-direita, y-baixo)`"""
+        x, y, largura, altura = self
+        return (x, y, largura + x, altura + y)
+
     @classmethod
     def from_box (cls, box: tuple[int, int, int, int]) -> Coordenada:
-        """Criar coordenada a partir de uma box
-        - `box`: `X esquerda-direita` + `Y esquerda-direita`
-        - `@classmethod`"""
-        x, y = int(box[0]), int(box[2])
-        largura, altura = int(box[1] - x), int(box[3] - y)
+        """Criar coordenada a partir de uma `box`
+        - `(x-esquerda, y-cima, x-direita, y-baixo)`"""
+        x, y = int(box[0]), int(box[1])
+        largura, altura = int(box[2] - x), int(box[3] - y)
         return cls(x, y, largura, altura)
 
 @dataclasses.dataclass
