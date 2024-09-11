@@ -40,7 +40,7 @@ def capturar_tela (regiao: Coordenada | None = None, cinza=False) -> Image.Image
     return imagem.convert("L") if cinza else imagem
 
 def procurar_imagens (imagem: tipagem.imagem,
-                      confianca = 0.8,
+                      confianca: tipagem.PORCENTAGENS = 0.8,
                       regiao: Coordenada | None = None,
                       referencia: tipagem.imagem | None = None,
                       cinza = False,
@@ -51,6 +51,7 @@ def procurar_imagens (imagem: tipagem.imagem,
     - `regiao` especifica uma parte da tela ou imagem de referência
     - `cinza` compara ambas imagem como grayscale (mais rápido)
     - `segundos` tempo de procura, a cada `delay` segundos, caso não encontre na primeira vez"""
+    confianca = float(confianca)
     conversao = "L" if cinza else "RGB"
     box = regiao.to_box() if regiao else None
     segundos, delay = (max(0, n) for n in (segundos, delay))
@@ -79,7 +80,7 @@ def procurar_imagens (imagem: tipagem.imagem,
     return coordenadas
 
 def procurar_imagem (imagem: tipagem.imagem,
-                     confianca = 0.8,
+                     confianca: tipagem.PORCENTAGENS = 0.8,
                      regiao: Coordenada | None = None,
                      referencia: tipagem.imagem | None = None,
                      cinza = False,
