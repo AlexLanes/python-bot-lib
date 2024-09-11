@@ -1,7 +1,7 @@
 # bot.database
 pyodbc
 polars[xlsx2csv, xlsxwriter]
-fastexcel # read_excel .xls para o polars
+fastexcel # read_excel(".xls") para o polars
 
 # bot.estruturas
 pyyaml
@@ -10,7 +10,6 @@ pywinauto
 # bot.imagem
 numpy==1.26.4
 pillow
-PyScreeze
 opencv-python
 # opcional [ocr] easyocr
 

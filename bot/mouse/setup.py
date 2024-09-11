@@ -4,7 +4,6 @@ from time import sleep
 from .. import util, tipagem
 from ..estruturas import Coordenada
 # externo
-from pyscreeze import pixel
 from pynput.mouse import Controller, Button
 from win32api import (
     GetCursorPos as get_cursor_position,
@@ -72,13 +71,7 @@ def scroll_vertical (quantidade=1,
         MOUSE.scroll(0, -1 if direcao == "baixo" else 1)
         sleep(delay)
 
-def cor_mouse () -> tipagem.rgb:
-    """Obter o RGB da posição atual do mouse
-    - `r, g, b = cor_mouse()`"""
-    return pixel(*posicao_mouse())
-
 __all__ = [
-    "cor_mouse",
     "Coordenada",
     "mover_mouse",
     "clicar_mouse",
