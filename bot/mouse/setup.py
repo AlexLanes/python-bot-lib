@@ -4,46 +4,48 @@ from time import sleep
 from .. import util, tipagem
 from ..estruturas import Coordenada
 # externo
+import win32api
 from pynput.mouse import Controller, Button
-from win32api import (
-    GetCursorPos as get_cursor_position,
-    SetCursorPos as set_cursor_position
-)
 
 MOUSE = Controller()
 
-def posicao_mouse () -> tuple[int, int]:
-    """Obter a posição (X, Y) do mouse"""
-    return get_cursor_position()
+def posicao_atual () -> tuple[int, int]:
+    """Obter a posição `(x, y)` atual do mouse"""
+    return win32api.GetCursorPos()
 
-def obter_x_y (coordenada: tuple[int, int] | Coordenada | None) -> tuple[int, int]:
-    """Obter posicao (x, y) do item recebido
-    - `Default` posicao_mouse()"""
-    c = coordenada # apelido
-    if isinstance(c, Coordenada): return c.transformar() # centro da coordenada
-    if isinstance(c, tuple) and len(c) == 2: return c
-    return posicao_mouse()
+def posicao_central () -> tuple[int, int]:
+    """Obter a posição `(x, y)` central da tela"""
+    return tuple(
+        n + 1
+        for n in Coordenada.tela().transformar()
+    )
+
+def transformar_posicao (coordenada: tuple[int, int] | Coordenada | None) -> tuple[int, int]:
+    """Transformar a `coordenada` para posicao `(x, y)`"""
+    if isinstance(coordenada, Coordenada): return coordenada.transformar()
+    if isinstance(coordenada, tuple) and len(coordenada) == 2: return coordenada
+    return posicao_atual()
 
 def mover_mouse (coordenada: tuple[int, int] | Coordenada) -> None:
     """Mover o mouse, de forma instantânea, até a `coordenada`"""
-    coordenada = obter_x_y(coordenada)
+    coordenada = transformar_posicao(coordenada)
     # mover
-    set_cursor_position(coordenada)
+    win32api.SetCursorPos(coordenada)
     MOUSE.position = coordenada
     # esperar atualizar
     sleep(0.01)
-    c = coordenada
-    util.aguardar_condicao(lambda: c == MOUSE.position and c == get_cursor_position(), 0.1, 0.002)
+    condicao = lambda: coordenada == MOUSE.position and coordenada == posicao_atual()
+    util.aguardar_condicao(condicao, 0.1, 0.002)
 
 def mover_mouse_deslizando (coordenada: tuple[int, int] | Coordenada) -> None:
     """Mover o mouse, deslizando pixel por pixel, até a `coordenada`"""
-    coordenada = obter_x_y(coordenada)
+    coordenada = transformar_posicao(coordenada)
     cronometro, tempo_limite = util.cronometro(), 5.0
     direcao_movimento = lambda n: 1 if n > 0 else -1 if n < 0 else 0
-    movimento_relativo = lambda: tuple(desejado - atual for desejado, atual in zip(coordenada, posicao_mouse()))
+    movimento_relativo = lambda: tuple(desejado - atual for desejado, atual in zip(coordenada, posicao_atual()))
     # mover enquanto diferente da coordenada desejada e dentro do tempo estipulado
     # se houver gargalo na máquina, a movimentação do mouse pode falhar
-    while posicao_mouse() != coordenada and cronometro() < tempo_limite:
+    while posicao_atual() != coordenada and cronometro() < tempo_limite:
         x_relativo, y_relativo = movimento_relativo()
         while x_relativo or y_relativo:
             x_relativo -= (x := direcao_movimento(x_relativo))
@@ -75,7 +77,8 @@ __all__ = [
     "Coordenada",
     "mover_mouse",
     "clicar_mouse",
-    "posicao_mouse",
+    "posicao_atual",
+    "posicao_central",
     "scroll_vertical",
     "mover_mouse_deslizando"
 ]
