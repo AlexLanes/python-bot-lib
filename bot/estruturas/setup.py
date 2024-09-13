@@ -5,7 +5,10 @@ import os, typing, pathlib, shutil, inspect, itertools, functools, dataclasses
 # interno
 from .. import tipagem
 # externo
+import win32api, win32con
 from polars import DataFrame
+
+P = typing.ParamSpec("P")
 
 @dataclasses.dataclass
 class Coordenada:
@@ -15,6 +18,21 @@ class Coordenada:
     y: int
     largura: int
     altura: int
+
+    @classmethod
+    def tela (cls) -> Coordenada:
+        """Coordenada da tela"""
+        largura = win32api.GetSystemMetrics(win32con.SM_CXSCREEN) - 1
+        altura = win32api.GetSystemMetrics(win32con.SM_CYSCREEN) - 1
+        return Coordenada(0, 0, largura, altura)
+
+    @classmethod
+    def from_box (cls, box: tuple[int, int, int, int]) -> Coordenada:
+        """Criar coordenada a partir de uma `box`
+        - `(x-esquerda, y-cima, x-direita, y-baixo)`"""
+        x, y = int(box[0]), int(box[1])
+        largura, altura = int(box[2] - x), int(box[3] - y)
+        return Coordenada(x, y, largura, altura)
 
     def __iter__ (self) -> typing.Generator[int, None, None]:
         """Utilizado com o `tuple(coordenada)` e `x, y, largura, altura = coordenada`"""
@@ -51,8 +69,8 @@ class Coordenada:
         # enforça o range entre 0.0 e 1.0
         xOffset, yOffset = max(0.0, min(1.0, xOffset)), max(0.0, min(1.0, yOffset))
         return (
-            self.x + int(self.largura * xOffset),
-            self.y + int(self.altura * yOffset)
+            int(self.x + self.largura * xOffset),
+            int(self.y + self.altura * yOffset)
         )
 
     def to_box (self) -> tuple[int, int, int, int]:
@@ -60,14 +78,6 @@ class Coordenada:
         - `(x-esquerda, y-cima, x-direita, y-baixo)`"""
         x, y, largura, altura = self
         return (x, y, largura + x, altura + y)
-
-    @classmethod
-    def from_box (cls, box: tuple[int, int, int, int]) -> Coordenada:
-        """Criar coordenada a partir de uma `box`
-        - `(x-esquerda, y-cima, x-direita, y-baixo)`"""
-        x, y = int(box[0]), int(box[1])
-        largura, altura = int(box[2] - x), int(box[3] - y)
-        return cls(x, y, largura, altura)
 
 @dataclasses.dataclass
 class ResultadoSQL:
@@ -166,7 +176,6 @@ class ResultadoSQL:
             nan_to_null=True
         )
 
-P = typing.ParamSpec("P")
 class Resultado [T]:
     """Classe para capturar o resultado ou `Exception` de alguma chamada
 
