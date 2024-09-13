@@ -53,10 +53,12 @@ def procurar_imagens (imagem: tipagem.imagem,
     - `segundos` tempo de procura, a cada `delay` segundos, caso não encontre na primeira vez"""
     confianca = float(confianca)
     conversao = "L" if cinza else "RGB"
-    box = regiao.to_box() if regiao else None
     segundos, delay = (max(0, n) for n in (segundos, delay))
+
     np_imagem = np.asarray(parse_pillow(imagem).convert(conversao))
     altura, largura, *_ = np_imagem.shape
+    box = regiao.to_box() if regiao else None
+    x_offset, y_offset = (box or (0, 0))[0:2]
 
     coordenadas = []
     cronometro = util.cronometro()
@@ -70,7 +72,7 @@ def procurar_imagens (imagem: tipagem.imagem,
 
         # criar as coordenadas e filtrar possíveis coordenadas com o centro dentro de outra
         for (y, x, *_) in zip(*resultado):
-            coordenada = Coordenada(x, y, largura, altura)
+            coordenada = Coordenada(x + x_offset, y + y_offset, largura, altura)
             if any(c in coordenada for c in coordenadas): continue
             coordenadas.append(coordenada)
 
