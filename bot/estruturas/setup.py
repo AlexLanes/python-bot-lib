@@ -241,30 +241,30 @@ class Caminho:
     - Iteração sobre diretório: `for caminho in Caminho(): ...`
     - Demais métodos/atributos estão comentados"""
 
-    __p: pathlib.Path
+    path: pathlib.Path
 
     def __init__ (self, *fragmento: str) -> None:
-        self.__p = pathlib.Path(*fragmento).resolve()
+        self.path = pathlib.Path(*fragmento).resolve()
 
     @classmethod
     def diretorio_execucao (cls) -> Caminho:
         """Obter o caminho para o diretório de execução atual"""
         caminho = object.__new__(cls)
-        caminho.__p = pathlib.Path.cwd().resolve()
+        caminho.path = pathlib.Path.cwd().resolve()
         return caminho
 
     @classmethod
     def diretorio_usuario (cls) -> Caminho:
         """Obter o caminho para o diretório do usuário atual"""
         caminho = object.__new__(cls)
-        caminho.__p = pathlib.Path.home().resolve()
+        caminho.path = pathlib.Path.home().resolve()
         return caminho
 
     def __repr__ (self) -> str:
-        return f"<Caminho '{self.__p}'>"
+        return f"<Caminho '{self.path}'>"
 
     def __str__ (self) -> str:
-        return str(self.__p)
+        return str(self.path)
 
     def __add__ (self, fragmento: str) -> Caminho:
         return Caminho(self.string, os.path.basename(str(fragmento)))
@@ -275,7 +275,7 @@ class Caminho:
     def __iter__ (self) -> typing.Generator[Caminho, None, None]:
         if not self.diretorio():
             return
-        for p in self.__p.iterdir():
+        for p in self.path.iterdir():
             yield Caminho(p)
 
     def __eq__ (self, caminho: Caminho | str) -> bool:
@@ -293,17 +293,17 @@ class Caminho:
     @property
     def parente (self) -> Caminho:
         """Obter o caminho para o parente do caminho atual"""
-        return Caminho(self.__p.parent)
+        return Caminho(self.path.parent)
 
     @property
     def nome (self) -> str:
         """Nome final do caminho"""
-        return self.__p.name
+        return self.path.name
 
     @property
     def fragmentos (self) -> list[str]:
         """Fragmentos ordenados do caminho"""
-        return list(self.__p.parts)
+        return list(self.path.parts)
 
     @property
     def data_criacao (self) -> Datetime:
@@ -311,7 +311,7 @@ class Caminho:
         - `ValueError` caso o caminho não exista"""
         if not self.existe():
             raise ValueError(f"{self} inexistente")
-        return Datetime.fromtimestamp(os.path.getctime(self.__p))
+        return Datetime.fromtimestamp(os.path.getctime(self.path))
 
     @property
     def data_modificao (self) -> Datetime:
@@ -319,7 +319,7 @@ class Caminho:
         - `ValueError` caso o caminho não exista"""
         if not self.existe():
             raise ValueError(f"{self} inexistente")
-        return Datetime.fromtimestamp(os.path.getmtime(self.__p))
+        return Datetime.fromtimestamp(os.path.getmtime(self.path))
 
     @property
     def tamanho (self) -> int:
@@ -327,22 +327,22 @@ class Caminho:
         - `ValueError` caso o caminho não exista"""
         if not self.existe():
             raise ValueError(f"{self} inexistente")
-        return os.path.getsize(self.__p) if not self.diretorio() else sum(
-            os.path.getsize(caminho.__p) if not self.diretorio() else caminho.tamanho
+        return os.path.getsize(self.path) if not self.diretorio() else sum(
+            os.path.getsize(caminho.path) if not self.diretorio() else caminho.tamanho
             for caminho in self
         )
 
     def existe (self) -> bool:
         """Checar se o caminho existe"""
-        return self.__p.exists()
+        return self.path.exists()
 
     def arquivo (self) -> bool:
         """Checar se o caminho existente é de um arquivo"""
-        return self.__p.is_file()
+        return self.path.is_file()
 
     def diretorio (self) -> bool:
         """Checar se o caminho existente é de um diretório"""
-        return self.__p.is_dir()
+        return self.path.is_dir()
 
     def copiar (self, diretorio: Caminho) -> Caminho:
         """Copiar o arquivo ou diretório do caminho atual para o `diretorio` e retornar o caminho
@@ -350,9 +350,9 @@ class Caminho:
         - Não tem efeito caso caminho não exista"""
         destino = diretorio.criar_diretorios() / self.nome
         if self.arquivo():
-            shutil.copyfile(self.__p, destino.__p)
+            shutil.copyfile(self.path, destino.path)
         elif self.diretorio():
-            shutil.copytree(self.__p, destino.__p, dirs_exist_ok=True)
+            shutil.copytree(self.path, destino.path, dirs_exist_ok=True)
         return destino
 
     def renomear (self, novo_nome: str) -> Caminho:
@@ -361,10 +361,10 @@ class Caminho:
         - Não tem efeito caso caminho não exista"""
         destino = self.parente / os.path.basename(novo_nome)
         if self.arquivo():
-            shutil.copyfile(self.__p, destino.__p)
+            shutil.copyfile(self.path, destino.path)
             self.apagar_arquivo()
         elif self.diretorio():
-            shutil.copytree(self.__p, destino.__p, dirs_exist_ok=True)
+            shutil.copytree(self.path, destino.path, dirs_exist_ok=True)
             self.apagar_diretorio()
         return destino
 
@@ -379,13 +379,13 @@ class Caminho:
     def criar_diretorios (self) -> typing.Self:
         """Criar todos os diretórios no caminho atual que não existem
         - Não altera diretórios existentes"""
-        if not self.existe(): self.__p.mkdir(parents=True)
+        if not self.existe(): self.path.mkdir(parents=True)
         return self
 
     def apagar_arquivo (self) -> Caminho:
         """Apagar o arquivo do caminho atual e retornar ao parente
         - Não tem efeito caso não exista ou não seja arquivo"""
-        if self.arquivo(): self.__p.unlink()
+        if self.arquivo(): self.path.unlink()
         return self.parente
 
     def apagar_diretorio (self) -> Caminho:
@@ -393,14 +393,14 @@ class Caminho:
         - Não tem efeito caso não exista ou não seja diretório"""
         for caminho in self:
             caminho.apagar_diretorio() if caminho.diretorio() else caminho.apagar_arquivo()
-        if self.diretorio(): self.__p.rmdir()
+        if self.diretorio(): self.path.rmdir()
         return self.parente
 
     def procurar (self, filtro: typing.Callable[[Caminho], bool], recursivo=False) -> list[Caminho]:
         """Procurar caminhos de acordo com o `filtro`
         - `recursivo` indicador para percorrer os diretórios filhos
         - Não tem efeito caso não exista ou não seja diretório"""
-        glob = self.__p.rglob if recursivo else self.__p.glob
+        glob = self.path.rglob if recursivo else self.path.glob
         return [
             caminho
             for path in glob("*")

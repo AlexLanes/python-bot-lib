@@ -283,7 +283,7 @@ class Edge (Navegador):
             argumentos.append(f"--load-extension={caminho_extensoes}")
 
         for argumento in argumentos: options.add_argument(argumento)
-        options.add_experimental_option('useAutomationExtension', False)
+        options.add_experimental_option("useAutomationExtension", False)
         options.add_experimental_option("excludeSwitches", ["enable-logging", "enable-automation"])
         options.add_experimental_option("prefs", {
             "download.directory_upgrade": True,
