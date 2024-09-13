@@ -1,17 +1,15 @@
 # std
-from time import sleep
-from pstats import Stats
-from typing import Callable
-from cProfile import Profile
+import time, asyncio, inspect, typing, pstats, cProfile
 from multiprocessing.pool import ThreadPool
 from multiprocessing.context import TimeoutError as Timeout
 # interno
 from ... import util, logger, database, estruturas
 
+P = typing.ParamSpec("P")
+
 def timeout (segundos: float):
-    """Executar a função por `segundos` até retornar ou `TimeoutError` caso ultrapasse o tempo
-    - Função"""
-    def timeout (func: Callable):
+    """Executar a função por `segundos` até retornar ou `TimeoutError` caso ultrapasse o tempo"""
+    def timeout (func: typing.Callable):
         def timeout (*args, **kwargs):
             mensagem = f"Função({func.__name__}) não finalizou sua execução no tempo configurado de {segundos} segundos e resultou em Timeout"
             try: return ThreadPool(1).apply_async(func, args, kwargs).get(segundos)
@@ -23,11 +21,10 @@ def timeout (segundos: float):
 def retry (*erro: Exception, tentativas=3, segundos=5):
     """Realizar `tentativas` de se chamar uma função e, em caso de erro, aguardar `segundos` e tentar novamente
     - `erro` especificar quais são as `Exception` permitidas para retry
-    - `raise` na última tentativa com falha
-    - Função"""
+    - `raise` na última tentativa com falha"""
     erro = erro or (Exception,)
     assert tentativas >= 1 and segundos >= 1, "Tentativas e Segundos para o retry devem ser >= 1"
-    def retry (func: Callable):
+    def retry (func: typing.Callable):
         def retry (*args, **kwargs):
 
             nome_funcao = func.__name__
@@ -37,7 +34,7 @@ def retry (*erro: Exception, tentativas=3, segundos=5):
                     ultima_excecao = grupo_excecoes.exceptions[-1]
                     mensagem_erro = type(ultima_excecao).__name__ + f"({ str(ultima_excecao).strip() })"
                     logger.alertar(f"Tentativa {tentativa}/{tentativas} de execução da função({ nome_funcao }) resultou em erro\n\t{mensagem_erro}")
-                    if tentativa < tentativas: sleep(segundos) # sleep() não necessário na última tentativa
+                    if tentativa < tentativas: time.sleep(segundos) # sleep() não necessário na última tentativa
                     else: # lançar a exceção na última tentativa
                         ultima_excecao.add_note(f"Foram realizadas {tentativas} tentativa(s) de execução da função({ nome_funcao })")
                         raise ultima_excecao
@@ -45,9 +42,8 @@ def retry (*erro: Exception, tentativas=3, segundos=5):
         return retry
     return retry
 
-def tempo_execucao (func: Callable):
-    """Loggar o tempo de execução da função
-    - Função"""
+def tempo_execucao (func: typing.Callable):
+    """Loggar o tempo de execução da função"""
     def tempo_execucao (*args, **kwargs):
         cronometro, resultado = util.cronometro(), func(*args, **kwargs)
         tempo = util.expandir_tempo(cronometro())
@@ -55,18 +51,17 @@ def tempo_execucao (func: Callable):
         return resultado
     return tempo_execucao
 
-def perfil_execucao (func: Callable):
+def perfil_execucao (func: typing.Callable):
     """Loggar o perfil de execução da função
-    - Tempos acumulados menores de 0.01 segundos são excluídos
-    - Função"""
+    - Tempos acumulados menores de 0.01 segundos são excluídos"""
     def perfil_execucao (*args, **kwargs):
         # Diretorio de execução atual para limpar o nome no dataframe
         cwd = estruturas.Caminho.diretorio_execucao().string
         cwd = f"{cwd[0].lower()}{cwd[1:]}"
 
         # Executar função com o profile ativo e gerar o report
-        with Profile() as profile: resultado = func(*args, **kwargs)
-        stats = Stats(profile).sort_stats(2).get_stats_profile()
+        with cProfile.Profile() as profile: resultado = func(*args, **kwargs)
+        stats = pstats.Stats(profile).sort_stats(2).get_stats_profile()
         tempo = stats.total_tt
         stats = stats.func_profiles
 
@@ -94,9 +89,18 @@ def perfil_execucao (func: Callable):
         return resultado
     return perfil_execucao
 
+def async_run[T] (func: typing.Callable[P, T | typing.Coroutine[None, None, T]]):
+    """Executar função async automaticamente como `asyncio.run()`"""
+    def async_run (*args: P.args, **kwargs: P.kwargs) -> T:
+        resultado = func(*args, **kwargs)
+        funcao_async = inspect.iscoroutinefunction(func)
+        return asyncio.run(resultado) if funcao_async else resultado
+    return async_run
+
 __all__ = [
     "retry",
     "timeout",
+    "async_run",
     "tempo_execucao",
     "perfil_execucao",
 ]
