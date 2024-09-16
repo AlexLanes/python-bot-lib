@@ -18,9 +18,12 @@ def timeout (segundos: float):
         return timeout
     return timeout
 
-def retry (*erro: Exception, tentativas=3, segundos=5):
+def retry (*erro: Exception,
+           tentativas=3, segundos=5,
+           ignorar: tuple[Exception, ...] = (RuntimeError,)):
     """Realizar `tentativas` de se chamar uma função e, em caso de erro, aguardar `segundos` e tentar novamente
     - `erro` especificar quais são as `Exception` permitidas para retry
+    - `ignorar` exceções para não se aplicar o `@retry`
     - `raise` na última tentativa com falha"""
     erro = erro or (Exception,)
     assert tentativas >= 1 and segundos >= 1, "Tentativas e Segundos para o retry devem ser >= 1"
@@ -30,6 +33,9 @@ def retry (*erro: Exception, tentativas=3, segundos=5):
             nome_funcao = func.__name__
             for tentativa in range(1, tentativas + 1):
                 try: return func(*args, **kwargs)
+                except *ignorar as grupo_ignorado:
+                    ultima_excecao = grupo_ignorado.exceptions[-1]
+                    raise ultima_excecao from None
                 except *erro as grupo_excecoes:
                     ultima_excecao = grupo_excecoes.exceptions[-1]
                     mensagem_erro = type(ultima_excecao).__name__ + f"({ str(ultima_excecao).strip() })"
