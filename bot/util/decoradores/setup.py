@@ -22,8 +22,8 @@ def retry (*erro: Exception,
            tentativas=3, segundos=5,
            ignorar: tuple[Exception, ...] = (RuntimeError,)):
     """Realizar `tentativas` de se chamar uma função e, em caso de erro, aguardar `segundos` e tentar novamente
-    - `erro` especificar quais são as `Exception` permitidas para retry
-    - `ignorar` exceções para não se aplicar o `@retry`
+    - `erro` especificar as exceções permitidas para retry. `(Default: Exception)`
+    - `ignorar` exceções para não se aplicar o retry. `(Default: RuntimeError)`
     - `raise` na última tentativa com falha"""
     erro = erro or (Exception,)
     assert tentativas >= 1 and segundos >= 1, "Tentativas e Segundos para o retry devem ser >= 1"
