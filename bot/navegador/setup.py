@@ -275,8 +275,17 @@ class Edge (Navegador):
         options = wd.EdgeOptions()
         self.diretorio_dowload = estruturas.Caminho(download) if isinstance(download, str) else download
         argumentos = [
-            "--ignore-certificate-errors", "--disable-infobars", "--disable-notifications",
-            "--start-maximized", "--kiosk-printing", "--disable-blink-features=AutomationControlled"
+            "--kiosk-printing", "--ignore-certificate-errors",
+            "--remote-allow-origins=*", "--no-first-run",
+            "--no-service-autorun", "--no-default-browser-check",
+            "--homepage=about:blank", "--no-pings",
+            "--password-store=basic", "--disable-popup-blocking",
+            "--disable-notifications", "--disable-infobars",
+            "--disable-breakpad", "--disable-component-update",
+            "--disable-backgrounding-occluded-windows", "--disable-renderer-backgrounding",
+            "--disable-background-networking", "--disable-blink-features=AutomationControlled",
+            "--disable-features=IsolateOrigins,site-per-process", "--disable-dev-shm-usage",
+            "--disable-session-crashed-bubble", "--disable-search-engine-choice-screen"
         ]
         if anonimo: argumentos.append("--inprivate")
         if caminho_extensoes := configfile.obter_opcao_ou("navegador", "caminho_extensoes"):
@@ -288,11 +297,14 @@ class Edge (Navegador):
         options.add_experimental_option("prefs", {
             "download.directory_upgrade": True,
             "download.prompt_for_download": False,
+            "profile.password_manager_enabled": False,
+            "profile.default_content_settings.popups": 2,
             "savefile.default_directory": self.diretorio_dowload.string,
             "download.default_directory": self.diretorio_dowload.string,
             "printing.print_preview_sticky_settings.appState": formatos.Json({
                 "recentDestinations": [{ "id": "Save as PDF", "origin": "local", "account": "" }],
-                "selectedDestinationId": "Save as PDF", "version": 2
+                "selectedDestinationId": "Save as PDF",
+                "version": 2
             }).stringify(False)
         })
 
@@ -334,8 +346,17 @@ class Chrome (Navegador):
         options = uc.ChromeOptions()
         self.diretorio_dowload = estruturas.Caminho(download) if isinstance(download, str) else download
         argumentos = [
-            "--start-maximized", "--disable-infobars", "--disable-notifications",
-            "--ignore-certificate-errors", "--kiosk-printing", "--disable-popup-blocking"
+            "--kiosk-printing", "--ignore-certificate-errors",
+            "--remote-allow-origins=*", "--no-first-run",
+            "--no-service-autorun", "--no-default-browser-check",
+            "--homepage=about:blank", "--no-pings",
+            "--password-store=basic", "--disable-popup-blocking",
+            "--disable-notifications", "--disable-infobars",
+            "--disable-breakpad", "--disable-component-update",
+            "--disable-backgrounding-occluded-windows", "--disable-renderer-backgrounding",
+            "--disable-background-networking", "--disable-blink-features=AutomationControlled",
+            "--disable-features=IsolateOrigins,site-per-process", "--disable-dev-shm-usage",
+            "--disable-session-crashed-bubble", "--disable-search-engine-choice-screen"
         ]
         if caminho_extensoes := configfile.obter_opcao_ou("navegador", "caminho_extensoes"):
             argumentos.append(f"--load-extension={caminho_extensoes}")
@@ -345,12 +366,14 @@ class Chrome (Navegador):
         options.add_experimental_option("prefs", {
             "download.directory_upgrade": True,
             "download.prompt_for_download": False,
-            "profile.default_content_settings.popups": 0,
+            "profile.password_manager_enabled": False,
+            "profile.default_content_settings.popups": 2,
             "download.default_directory": self.diretorio_dowload.string,
             "savefile.default_directory": self.diretorio_dowload.string,
             "printing.print_preview_sticky_settings.appState": formatos.Json({
                 "recentDestinations": [{ "id": "Save as PDF", "origin": "local", "account": "" }],
-                "selectedDestinationId": "Save as PDF", "version": 2
+                "selectedDestinationId": "Save as PDF",
+                "version": 2
             }).stringify(False)
         })
 
