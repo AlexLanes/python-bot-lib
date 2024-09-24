@@ -394,15 +394,17 @@ class Caminho:
     def apagar_arquivo (self) -> Caminho:
         """Apagar o arquivo do caminho atual e retornar ao parente
         - Não tem efeito caso não exista ou não seja arquivo"""
-        if self.arquivo(): self.path.unlink()
+        if self.existe() and not self.diretorio():
+            self.path.unlink()
         return self.parente
 
     def apagar_diretorio (self) -> Caminho:
         """Apagar o diretório e conteúdo do caminho atual e retornar ao parente
         - Não tem efeito caso não exista ou não seja diretório"""
-        for caminho in self:
-            caminho.apagar_diretorio() if caminho.diretorio() else caminho.apagar_arquivo()
-        if self.diretorio(): self.path.rmdir()
+        if self.diretorio():
+            for caminho in self:
+                caminho.apagar_diretorio() if caminho.diretorio() else caminho.apagar_arquivo()
+            self.path.rmdir()
         return self.parente
 
     def procurar (self, filtro: typing.Callable[[Caminho], bool], recursivo=False) -> list[Caminho]:
