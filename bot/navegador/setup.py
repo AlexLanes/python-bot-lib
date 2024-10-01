@@ -21,10 +21,19 @@ from selenium.common.exceptions import (
 )
 
 COMANDO_VERSAO_CHROME = r'(Get-Item -Path "$env:PROGRAMFILES\Google\Chrome\Application\chrome.exe").VersionInfo.FileVersion'
+CONFIG_PRINT_PDF = formatos.Json({
+    "version": 2,
+    "selectedDestinationId": "Save as PDF",
+    "recentDestinations": [{
+        "id": "Save as PDF",
+        "origin": "local",
+        "account": ""
+    }]
+}).stringify(False)
 ARGUMENTOS_DEFAULT = [
     "--ignore-certificate-errors", "--remote-allow-origins=*", "--no-first-run",
     "--no-service-autorun", "--no-default-browser-check", "--homepage=about:blank",
-    "--password-store=basic", "--disable-popup-blocking", "--no-pings",
+    "--kiosk-printing", "--password-store=basic", "--disable-popup-blocking", "--no-pings",
     "--disable-notifications", "--disable-infobars", "--disable-component-update",
     "--disable-breakpad", "--disable-backgrounding-occluded-windows", "--disable-renderer-backgrounding",
     "--disable-background-networking", "--disable-blink-features=AutomationControlled",
@@ -234,22 +243,15 @@ class Navegador:
         time.sleep(1)
         return arquivo
 
-    def imprimir_pdf (self, scale=1,
-                            pageRanges="",
-                            landscape=False,
-                            printBackground=False) -> bytes:
-        """Imprimir a página/frame atual do navegador com o comando CDP `Page.printToPDF`"""
-        parametros = {
-            "scale": scale,
-            "landscape": landscape,
-            "pageRanges": pageRanges,
-            "printBackground": printBackground,
-        }
-        pdf = self.driver.execute_cdp_cmd("Page.printToPDF", parametros)["data"]
-        return base64.b64decode(pdf)
+    def imprimir_pdf (self) -> estruturas.Caminho:
+        """Imprimir a página/frame atual do navegador para `.pdf`
+        - Retorna o `Caminho` para o arquivo"""
+        self.diretorio_download.criar_diretorios()
+        self.driver.execute_script("window.print();")
+        return self.aguardar_download(".pdf", timeout=20)
 
     def screenshot (self, elemento: WebElement | None = None) -> bytes:
-        """Realizar uma captura do navegador no formato `png` com o comando CDP `Page.captureScreenshot`
+        """Realizar uma captura do navegador, no formato `png`, com o comando `CDP Page.captureScreenshot`
         - `elemento` para restringir a área de captura
         - Scroll do `elemento` para o centro da tela"""
         parametros = { "format": "png" }
@@ -295,7 +297,10 @@ class Edge (Navegador):
 
             "download.directory_upgrade": True,
             "download.prompt_for_download": False,
-            "download.default_directory": self.diretorio_download.string
+            "download.default_directory": self.diretorio_download.string,
+
+            "savefile.default_directory": self.diretorio_download.string,
+            "printing.print_preview_sticky_settings.appState": CONFIG_PRINT_PDF
         })
 
         self.driver = wd.Edge(options)
@@ -321,6 +326,7 @@ class Chrome (Navegador):
     - `timeout` utilizado na espera por elementos
     - `download` diretório para download de arquivos
     - `extensoes` caminhos para extensões existentes do Chrome
+    - `perfil` caminho para o perfil que será utilizado na abertura do navegador
     - Utilizada a biblioteca `undetected_chromedriver` para evitar detecção (Modo anônimo ocasiona a detecção)
     - Possível de capturar as mensagens de rede pelo método `mensagens_rede`"""
 
@@ -353,7 +359,10 @@ class Chrome (Navegador):
 
             "download.directory_upgrade": True,
             "download.prompt_for_download": False,
-            "download.default_directory": self.diretorio_download.string
+            "download.default_directory": self.diretorio_download.string,
+
+            "savefile.default_directory": self.diretorio_download.string,
+            "printing.print_preview_sticky_settings.appState": CONFIG_PRINT_PDF
         })
 
         self.driver = uc.Chrome(options, version_main=int(versao))
