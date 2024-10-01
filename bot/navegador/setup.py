@@ -1,12 +1,12 @@
 # std
-import time, enum, typing, atexit, collections
+import time, enum, typing, atexit, base64, collections
 from datetime import (
     datetime as Datetime,
     timedelta as Timedelta
 )
 # interno
 from .mensagem import Mensagem
-from .. import util, tipagem, logger, sistema, formatos, estruturas, configfile
+from .. import util, tipagem, logger, sistema, formatos, imagem, estruturas
 # externo
 import selenium.webdriver as wd
 import undetected_chromedriver as uc
@@ -20,8 +20,17 @@ from selenium.common.exceptions import (
     NoSuchElementException as ElementoNaoEncontrado
 )
 
-SCRIPT_NOVA_GUIA = "window.open('').focus()"
 COMANDO_VERSAO_CHROME = r'(Get-Item -Path "$env:PROGRAMFILES\Google\Chrome\Application\chrome.exe").VersionInfo.FileVersion'
+ARGUMENTOS_DEFAULT = [
+    "--ignore-certificate-errors", "--remote-allow-origins=*", "--no-first-run",
+    "--no-service-autorun", "--no-default-browser-check", "--homepage=about:blank",
+    "--password-store=basic", "--disable-popup-blocking", "--no-pings",
+    "--disable-notifications", "--disable-infobars", "--disable-component-update",
+    "--disable-breakpad", "--disable-backgrounding-occluded-windows", "--disable-renderer-backgrounding",
+    "--disable-background-networking", "--disable-blink-features=AutomationControlled",
+    "--disable-features=IsolateOrigins,site-per-process", "--disable-dev-shm-usage",
+    "--disable-session-crashed-bubble", "--disable-search-engine-choice-screen"
+]
 
 class Navegador:
     """Classe do navegador `selenium` que deve ser herdada"""
@@ -91,20 +100,17 @@ class Navegador:
 
     def nova_aba (self) -> typing.Self:
         """Abrir uma nova aba e alterar o foco para ela"""
-        # driver.switch_to.new_window("tab") não funciona em modo anônimo
-        abas = set(self.abas)
-        self.driver.execute_script(SCRIPT_NOVA_GUIA)
-        novo_handle, *_ = set(self.abas).difference(abas)
-        self.driver.switch_to.window(novo_handle)
+        self.driver.switch_to.new_window("tab")
         logger.informar("Aberto uma nova aba")
         return self
 
     def fechar_aba (self) -> typing.Self:
         """Fechar a aba focada e alterar o foco para a primeira aba
         - Cria uma nova aba caso só exista uma"""
-        titulo = self.titulo
+        aba, titulo = self.aba, self.titulo
         if len(self.abas) == 1:
-            self.driver.execute_script(SCRIPT_NOVA_GUIA)
+            self.driver.switch_to.new_window("tab")
+            self.driver.switch_to.window(aba)
         self.driver.close()
         self.driver.switch_to.window(self.abas[0])
         logger.informar(f"Fechado a aba '{titulo}' e focado na aba '{self.titulo}'")
@@ -131,13 +137,11 @@ class Navegador:
         """Encontrar elemento na aba atual com base em um `localizador` para a `estrategia` selecionada
         - Exceção `ElementoNaoEncontrado` caso não seja encontrado"""
         localizador: str = localizador if isinstance(localizador, str) else str(localizador.value)
-        logger.debug(f"Procurando elemento no navegador ('{estrategia}', '{localizador}')")
         return self.driver.find_element(estrategia, localizador)
 
     def encontrar_elementos (self, estrategia: tipagem.ESTRATEGIAS_WEBELEMENT, localizador: str | enum.Enum) -> list[WebElement]:
         """Encontrar elemento(s) na aba atual com base em um `localizador` para a `estrategia` selecionada"""
         localizador = localizador if isinstance(localizador, str) else str(localizador.value)
-        logger.debug(f"Procurando elementos no navegador ('{estrategia}', '{localizador}')")
         elementos = self.driver.find_elements(estrategia, localizador)
         return elementos
 
@@ -145,7 +149,6 @@ class Navegador:
         """Alterar o frame atual do DOM da página para o `frame` contendo `@name, @id ou WebElement`
         - Necessário para encontrar e interagir com `WebElements` dentro de `<iframes>`
         - `None` para retornar ao default_content (raiz)"""
-        logger.debug(f"Alterando frame da aba '{self.titulo}'")
         s = self.driver.switch_to
         s.frame(frame) if frame else s.default_content()
         return self
@@ -231,87 +234,75 @@ class Navegador:
         time.sleep(1)
         return arquivo
 
+    def imprimir_pdf (self, scale=1,
+                            pageRanges="",
+                            landscape=False,
+                            printBackground=False) -> bytes:
+        """Imprimir a página/frame atual do navegador com o comando CDP `Page.printToPDF`"""
+        parametros = {
+            "scale": scale,
+            "landscape": landscape,
+            "pageRanges": pageRanges,
+            "printBackground": printBackground,
+        }
+        pdf = self.driver.execute_cdp_cmd("Page.printToPDF", parametros)["data"]
+        return base64.b64decode(pdf)
+
+    def screenshot (self, elemento: WebElement | None = None) -> bytes:
+        """Realizar uma captura do navegador no formato `png` com o comando CDP `Page.captureScreenshot`
+        - `elemento` para restringir a área de captura
+        - Scroll do `elemento` para o centro da tela"""
+        parametros = { "format": "png" }
+        if elemento:
+            self.driver.execute_script(
+                """
+                arguments[0].scrollIntoView({ block: "center" });
+                await new Promise(_ => setTimeout(_, 1000));
+                """,
+                elemento
+            )
+            parametros["clip"] = { **elemento.rect, "scale": 1 }
+        imagem = self.driver.execute_cdp_cmd("Page.captureScreenshot", parametros)["data"]
+        return base64.b64decode(imagem)
+
     def coordenada_elemento (self, elemento: WebElement) -> estruturas.Coordenada:
         """Obter a coordenada do `elemento` referente a tela
-        - Scroll do `elemento` para o centro da tela
-        - Não funciona para elementos dentro de iframe"""
-        coordenada = self.driver.execute_script(
-            """
-            const y_offset = window.outerHeight - window.innerHeight
-            arguments[0].scrollIntoView({ block: "center" })
-            await new Promise(_ => setTimeout(_, 1000))
-
-            const rect = arguments[0].getBoundingClientRect()
-            return {
-                x: Math.ceil(rect.x),
-                y: Math.ceil(rect.y + y_offset),
-                largura: Math.ceil(rect.width),
-                altura: Math.ceil(rect.height)
-            }
-            """,
-            elemento
-        )
-        return estruturas.Coordenada(**coordenada)
-
-    def imprimir_pdf (self) -> estruturas.Caminho:
-        """Imprimir a página/frame atual do navegador para `.pdf`
-        - Retorna o `Caminho` para o arquivo"""
-        self.driver.execute_script("window.print();")
-        return self.aguardar_download(".pdf", timeout=20)
+        - Scroll do `elemento` para o centro da tela"""
+        coordenada = imagem.procurar_imagem(self.screenshot(elemento), 0.9, segundos=2)
+        assert coordenada, "Imagem do elemento na tela não foi encontrada"
+        return coordenada
 
 class Edge (Navegador):
     """Navegador Edge baseado no `selenium`
     - `timeout` utilizado na espera por elementos
-    - `download` diretório para download/impressão de arquivos
-    - `anonimo` para abrir o navegador como inprivate"
+    - `download` diretório para download de arquivos
     - O Edge é o mais provável de estar disponível para utilização"""
 
     driver: wd.Edge
     """Driver Edge"""
 
     def __init__ (self, timeout=30.0,
-                        download: str | estruturas.Caminho = "./downloads",
-                        anonimo=False) -> None:
-        options = wd.EdgeOptions()
-        self.diretorio_dowload = estruturas.Caminho(download) if isinstance(download, str) else download
-        argumentos = [
-            "--kiosk-printing", "--ignore-certificate-errors",
-            "--remote-allow-origins=*", "--no-first-run",
-            "--no-service-autorun", "--no-default-browser-check",
-            "--homepage=about:blank", "--no-pings",
-            "--password-store=basic", "--disable-popup-blocking",
-            "--disable-notifications", "--disable-infobars",
-            "--disable-breakpad", "--disable-component-update",
-            "--disable-backgrounding-occluded-windows", "--disable-renderer-backgrounding",
-            "--disable-background-networking", "--disable-blink-features=AutomationControlled",
-            "--disable-features=IsolateOrigins,site-per-process", "--disable-dev-shm-usage",
-            "--disable-session-crashed-bubble", "--disable-search-engine-choice-screen"
-        ]
-        if anonimo: argumentos.append("--inprivate")
-        if caminho_extensoes := configfile.obter_opcao_ou("navegador", "caminho_extensoes"):
-            argumentos.append(f"--load-extension={caminho_extensoes}")
-
+                        download: str | estruturas.Caminho = "./downloads") -> None:
+        options, argumentos = wd.EdgeOptions(), ARGUMENTOS_DEFAULT.copy()
         for argumento in argumentos: options.add_argument(argumento)
         options.add_experimental_option("useAutomationExtension", False)
         options.add_experimental_option("excludeSwitches", ["enable-logging", "enable-automation"])
         options.add_experimental_option("prefs", {
-            "download.directory_upgrade": True,
-            "download.prompt_for_download": False,
+            "credentials_enable_service": False,
             "profile.password_manager_enabled": False,
-            "profile.default_content_settings.popups": 2,
-            "savefile.default_directory": self.diretorio_dowload.string,
-            "download.default_directory": self.diretorio_dowload.string,
-            "printing.print_preview_sticky_settings.appState": formatos.Json({
-                "recentDestinations": [{ "id": "Save as PDF", "origin": "local", "account": "" }],
-                "selectedDestinationId": "Save as PDF",
-                "version": 2
-            }).stringify(False)
+            "profile.default_content_settings.popups": 2
         })
 
         self.driver = wd.Edge(options)
         self.driver.maximize_window()
         self.timeout_inicial = timeout
         self.driver.implicitly_wait(timeout)
+
+        self.diretorio_dowload = estruturas.Caminho(download) if isinstance(download, str) else download
+        self.driver.execute_cdp_cmd("Browser.setDownloadBehavior", {
+            "behavior": "allow",
+            "downloadPath": str(self.diretorio_dowload)
+        })
         self.driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
             "source": """
                 Object.defineProperty(navigator, "webdriver", {
@@ -328,7 +319,8 @@ class Edge (Navegador):
 class Chrome (Navegador):
     """Navegador Chrome baseado no `selenium`
     - `timeout` utilizado na espera por elementos
-    - `download` diretório para download/impressão de arquivos
+    - `download` diretório para download de arquivos
+    - `extensoes` caminhos para extensões existentes do Chrome
     - Utilizada a biblioteca `undetected_chromedriver` para evitar detecção (Modo anônimo ocasiona a detecção)
     - Possível de capturar as mensagens de rede pelo método `mensagens_rede`"""
 
@@ -336,51 +328,39 @@ class Chrome (Navegador):
     """Driver Chrome"""
 
     def __init__ (self, timeout=30.0,
-                        download: str | estruturas.Caminho = "./downloads") -> None:
+                        download: str | estruturas.Caminho = "./downloads",
+                        extensoes: list[str | estruturas.Caminho] = [],
+                        perfil: estruturas.Caminho | str | None = None) -> None:
         # obter a versão do google chrome para o `undetected_chromedriver`, pois ele utiliza sempre a mais recente
         sucesso, mensagem = sistema.executar(COMANDO_VERSAO_CHROME, powershell=True)
         versao = (mensagem.split(".") or " ")[0]
         if not sucesso or not versao.isdigit():
             raise Exception("Versão do Google Chrome não foi localizada")
 
-        options = uc.ChromeOptions()
-        self.diretorio_dowload = estruturas.Caminho(download) if isinstance(download, str) else download
-        argumentos = [
-            "--kiosk-printing", "--ignore-certificate-errors",
-            "--remote-allow-origins=*", "--no-first-run",
-            "--no-service-autorun", "--no-default-browser-check",
-            "--homepage=about:blank", "--no-pings",
-            "--password-store=basic", "--disable-popup-blocking",
-            "--disable-notifications", "--disable-infobars",
-            "--disable-breakpad", "--disable-component-update",
-            "--disable-backgrounding-occluded-windows", "--disable-renderer-backgrounding",
-            "--disable-background-networking", "--disable-blink-features=AutomationControlled",
-            "--disable-features=IsolateOrigins,site-per-process", "--disable-dev-shm-usage",
-            "--disable-session-crashed-bubble", "--disable-search-engine-choice-screen"
-        ]
-        if caminho_extensoes := configfile.obter_opcao_ou("navegador", "caminho_extensoes"):
-            argumentos.append(f"--load-extension={caminho_extensoes}")
-
+        options, argumentos = uc.ChromeOptions(), ARGUMENTOS_DEFAULT.copy()
+        if extensoes: argumentos.append(f"--load-extension={ ",".join(str(e).strip() for e in extensoes) }")
+        if perfil:
+            perfil = estruturas.Caminho(perfil)
+            argumentos.append(f"--user-data-dir={perfil.parente}")
+            argumentos.append(f"--profile-directory={perfil.nome}")
         for argumento in argumentos: options.add_argument(argumento)
         options.set_capability("goog:loggingPrefs", { "performance": "ALL" }) # logs performance
         options.add_experimental_option("prefs", {
-            "download.directory_upgrade": True,
-            "download.prompt_for_download": False,
+            "credentials_enable_service": False,
             "profile.password_manager_enabled": False,
-            "profile.default_content_settings.popups": 2,
-            "download.default_directory": self.diretorio_dowload.string,
-            "savefile.default_directory": self.diretorio_dowload.string,
-            "printing.print_preview_sticky_settings.appState": formatos.Json({
-                "recentDestinations": [{ "id": "Save as PDF", "origin": "local", "account": "" }],
-                "selectedDestinationId": "Save as PDF",
-                "version": 2
-            }).stringify(False)
+            "profile.default_content_settings.popups": 2
         })
 
         self.driver = uc.Chrome(options, version_main=int(versao))
         self.driver.maximize_window()
         self.timeout_inicial = timeout
         self.driver.implicitly_wait(timeout)
+
+        self.diretorio_dowload = estruturas.Caminho(download) if isinstance(download, str) else download
+        self.driver.execute_cdp_cmd("Browser.setDownloadBehavior", {
+            "behavior": "allow",
+            "downloadPath": str(self.diretorio_dowload)
+        })
 
         logger.informar("Navegador Chrome iniciado")
 
@@ -394,7 +374,7 @@ class Chrome (Navegador):
     @typing.override
     def __del__ (self) -> None:
         logger.informar("Navegador fechado")
-        try: self.driver.quit()
+        try: getattr(self.driver, "quit", lambda: "")()
         except OSError: pass # usado TASKKILL ao fim da execução
 
     def mensagens_rede (self, filtro: typing.Callable[[Mensagem], bool] | None = None) -> list[Mensagem]:
