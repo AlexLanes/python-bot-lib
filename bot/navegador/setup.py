@@ -284,13 +284,18 @@ class Edge (Navegador):
     def __init__ (self, timeout=30.0,
                         download: str | estruturas.Caminho = "./downloads") -> None:
         options, argumentos = wd.EdgeOptions(), ARGUMENTOS_DEFAULT.copy()
+        self.diretorio_dowload = estruturas.Caminho(download) if isinstance(download, str) else download
         for argumento in argumentos: options.add_argument(argumento)
         options.add_experimental_option("useAutomationExtension", False)
         options.add_experimental_option("excludeSwitches", ["enable-logging", "enable-automation"])
         options.add_experimental_option("prefs", {
             "credentials_enable_service": False,
             "profile.password_manager_enabled": False,
-            "profile.default_content_settings.popups": 2
+            "profile.default_content_settings.popups": 2,
+
+            "download.directory_upgrade": True,
+            "download.prompt_for_download": False,
+            "download.default_directory": self.diretorio_dowload.string
         })
 
         self.driver = wd.Edge(options)
@@ -298,11 +303,6 @@ class Edge (Navegador):
         self.timeout_inicial = timeout
         self.driver.implicitly_wait(timeout)
 
-        self.diretorio_dowload = estruturas.Caminho(download) if isinstance(download, str) else download
-        self.driver.execute_cdp_cmd("Browser.setDownloadBehavior", {
-            "behavior": "allow",
-            "downloadPath": str(self.diretorio_dowload)
-        })
         self.driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
             "source": """
                 Object.defineProperty(navigator, "webdriver", {
@@ -338,6 +338,7 @@ class Chrome (Navegador):
             raise Exception("Versão do Google Chrome não foi localizada")
 
         options, argumentos = uc.ChromeOptions(), ARGUMENTOS_DEFAULT.copy()
+        self.diretorio_dowload = estruturas.Caminho(download) if isinstance(download, str) else download
         if extensoes: argumentos.append(f"--load-extension={ ",".join(str(e).strip() for e in extensoes) }")
         if perfil:
             perfil = estruturas.Caminho(perfil)
@@ -348,19 +349,17 @@ class Chrome (Navegador):
         options.add_experimental_option("prefs", {
             "credentials_enable_service": False,
             "profile.password_manager_enabled": False,
-            "profile.default_content_settings.popups": 2
+            "profile.default_content_settings.popups": 2,
+
+            "download.directory_upgrade": True,
+            "download.prompt_for_download": False,
+            "download.default_directory": self.diretorio_dowload.string
         })
 
         self.driver = uc.Chrome(options, version_main=int(versao))
         self.driver.maximize_window()
         self.timeout_inicial = timeout
         self.driver.implicitly_wait(timeout)
-
-        self.diretorio_dowload = estruturas.Caminho(download) if isinstance(download, str) else download
-        self.driver.execute_cdp_cmd("Browser.setDownloadBehavior", {
-            "behavior": "allow",
-            "downloadPath": str(self.diretorio_dowload)
-        })
 
         logger.informar("Navegador Chrome iniciado")
 
