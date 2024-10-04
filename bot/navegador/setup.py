@@ -69,7 +69,7 @@ class Navegador:
         """Percorrer as abas, ignorando as especiais, e retornar à original
         - Caso tenha sido feito `break/return` no iterator, o retorno à aba original não acontece"""
         original = self.aba
-        especial = lambda: self.url.lower().strip().startswith(("edge", "chrome"))
+        especial = lambda: self.url.startswith(("edge", "chrome")) and "new-tab" not in self.url
         for aba in self.abas:
             try:
                 self.driver.switch_to.window(aba)
