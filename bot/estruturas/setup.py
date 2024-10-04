@@ -276,7 +276,7 @@ class Caminho:
         return str(self.path)
 
     def __add__ (self, fragmento: str) -> Caminho:
-        return Caminho(self.string, os.path.basename(str(fragmento)))
+        return Caminho(self.string, str(fragmento))
 
     def __truediv__ (self, fragmento: str) -> Caminho:
         return self + fragmento
