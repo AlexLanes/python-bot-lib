@@ -66,7 +66,7 @@ class DatabaseODBC:
     __conexao: pyodbc.Connection
     """Objeto de conexão com o database"""
 
-    def __init__ (self, nome_driver: str, /, **kwargs: dict[str, str]) -> None:
+    def __init__ (self, nome_driver: str, **kwargs: str) -> None:
         """Inicializar a conexão com o driver odbc
         - `odbc_driver` Não precisa ser exato mas deve estar em `Database.listar_drivers()`
         - Demais configurações para a conexão podem ser informadas no `**kwargs`
