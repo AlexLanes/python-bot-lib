@@ -21,7 +21,7 @@ TimeConfig.after_setcursorpos_wait = 0.01
 # desativar forçadamente o logger do pywinauto
 logger = logging.getLogger("pywinauto")
 logger.disabled = True
-[h.close() for h in logger.handlers]
+for h in logger.handlers: h.close()
 logger.handlers.clear()
 
 class Janela:
@@ -45,10 +45,11 @@ class Janela:
             self.__aplicacao = Application(backend).connect(handle=handle)
             return
 
+        titulos_janelas = self.titulos_janelas()
         titulo_normalizado = util.normalizar(titulo)
-        titulos = [
+        titulos = [titulo] if titulo in titulos_janelas else [
             titulo
-            for titulo in self.titulos_janelas()
+            for titulo in titulos_janelas
             if titulo_normalizado in util.normalizar(titulo)
         ]
         assert titulos, f"Janela de titulo '{titulo}' não foi encontrada"
