@@ -91,7 +91,8 @@ class LeitorOCR:
         ]
 
     @staticmethod
-    def encontrar_textos (textos: typing.Iterable[str], extracao: list[tuple[str, Coordenada]]) -> list[Coordenada | None]:
+    def encontrar_textos (textos: typing.Iterable[str],
+                          extracao: list[tuple[str, Coordenada, float]]) -> list[Coordenada | None]:
         """Encontrar as coordenadas dos `textos` na `extraçao` retornada pela a leitura da tela
         - Resultado de retorno é na mesma ordem que `textos`
         - `None` caso não tenha sido encontrado o `texto`
@@ -148,7 +149,7 @@ class LeitorOCR:
         for index, texto in nao_encontrados:
             qtd_palavras = len(texto.split(" "))
             # tentar encontrar um Match para o `texto` em `extração`
-            for texto_extracao, coordenada in extracao:
+            for texto_extracao, coordenada, _ in extracao:
                 if coordenada in coordenadas: continue # coordenada já está sendo utilizada
                 if len(texto_extracao.split(" ")) <= 1: continue # desnecessário
                 # checar Match
