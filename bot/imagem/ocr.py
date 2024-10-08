@@ -9,26 +9,23 @@ import numpy as np
 from PIL import Image
 
 class LeitorOCR:
-    """Classe de abstração do EasyOCR
+    """Classe de abstração do EasyOCR para ler/detectar textos em imagens
     - Caso possua GPU da NVIDIA, instalar o `CUDA Toolkit` e instalar as bibliotecas indicadas pelo pytorch https://pytorch.org/get-started/locally/"""
 
-    def __init__ (self, confianca: tipagem.PORCENTAGENS = "0.4"):
-        """Inicia o leitor OCR
-        - `confianca` porcentagem mínima de confiança no texto extraído `(entre 0.0 e 1.0)`"""
+    def __init__ (self):
         try: from easyocr import Reader
         except ImportError: raise ImportError("Pacote opcional [ocr] necessário. Realize `pip install bot[ocr]` para utulizar o LeitorOCR")
         self.__reader = Reader(["en"])
-        self.__confianca = max(0.0, min(1.0, float(confianca)))
 
-    def ler_tela (self, regiao: Coordenada | None = None) -> list[tuple[str, Coordenada]]:
-        """Extrair texto e coordenadas da tela
+    def ler_tela (self, regiao: Coordenada | None = None) -> list[tuple[str, Coordenada, float]]:
+        """Extrair informações da tela
         - `regiao` para limitar a área de extração
-        - `for texto, coordenada in leitor.ler_tela()`"""
+        - `for texto, coordenada, confianca in leitor.ler_tela()`"""
         cronometro = util.cronometro()
         extracoes = self.__ler(capturar_tela(regiao, True))
 
         # corrigir offset com a regiao informada
-        for _, coordenada in extracoes:
+        for _, coordenada, _ in extracoes:
             if not regiao: break # região não foi informada, não há o que corrigir
             coordenada.x += regiao.x
             coordenada.y += regiao.y
@@ -37,29 +34,31 @@ class LeitorOCR:
         logger.debug(f"Leitura da tela realizada em {tempo}")
         return extracoes
 
-    def ler_imagem (self, imagem: tipagem.imagem) -> list[tuple[str, Coordenada]]:
-        """Extrair texto e coordenadas da `imagem`
-        - `for texto, coordenada in leitor.ler_imagem()`"""
+    def ler_imagem (self, imagem: tipagem.imagem) -> list[tuple[str, Coordenada, float]]:
+        """Extrair informações da `imagem`
+        - `for texto, coordenada, confianca in leitor.ler_imagem()`"""
         cronometro = util.cronometro()
         extracoes = self.__ler(parse_pillow(imagem))
         tempo = util.expandir_tempo(cronometro())
         logger.debug(f"Leitura da imagem realizada em {tempo}")
         return extracoes
 
-    def __ler (self, imagem: Image.Image) -> list[tuple[str, Coordenada]]:
+    def __ler (self, imagem: Image.Image) -> list[tuple[str, Coordenada, float]]:
         """Receber a imagem e extrair os dados"""
         imagem: np.ndarray = np.asarray(imagem)
         return [
-            (texto, Coordenada.from_box((box[0][0], box[0][1], box[1][0], box[2][1])))
+            (
+                texto,
+                Coordenada.from_box((box[0][0], box[0][1], box[1][0], box[2][1])),
+                confianca
+            )
             for box, texto, confianca in self.__reader
-                .readtext(imagem, mag_ratio=2, min_size=5, slope_ths=0.25, width_ths=0.4)
-            if confianca >= self.__confianca
+                .readtext(imagem, mag_ratio=2, min_size=3, slope_ths=0.25, width_ths=0.4)
         ]
 
     def detectar_tela (self, regiao: Coordenada | None = None) -> list[Coordenada]:
         """Extrair coordenadas de textos da tela
-        - `regiao` para limitar a área de extração
-        - `confiança` não se aplica na detecção"""
+        - `regiao` para limitar a área de extração"""
         cronometro = util.cronometro()
         coordenadas = self.__detectar(capturar_tela(regiao, True))
 
@@ -74,8 +73,7 @@ class LeitorOCR:
         return coordenadas
 
     def detectar_imagem (self, imagem: tipagem.imagem) -> list[Coordenada]:
-        """Extrair coordenadas da `imagem`
-        - `confiança` não se aplica na detecção"""
+        """Extrair coordenadas da `imagem`"""
         cronometro = util.cronometro()
         coordenadas = self.__detectar(parse_pillow(imagem))
         tempo = util.expandir_tempo(cronometro())
@@ -85,7 +83,7 @@ class LeitorOCR:
     def __detectar (self, imagem: Image.Image) -> list[Coordenada]:
         """Receber a imagem e detectar as coordenadas"""
         imagem: np.ndarray = np.asarray(imagem)
-        boxes, _ = self.__reader.detect(imagem, mag_ratio=2, min_size=5, slope_ths=0.25, width_ths=0.4)
+        boxes, _ = self.__reader.detect(imagem, mag_ratio=2, min_size=3, slope_ths=0.25, width_ths=0.4)
         boxes: list[tuple[np.int32, ...]] = np.concatenate(boxes)
         return [
             Coordenada.from_box((x1, y1, x2, y2))
