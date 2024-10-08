@@ -109,7 +109,7 @@ class LeitorOCR:
             (util.encontrar_texto(texto, extracao, lambda item: item[0]) or (None, None))[1]
             for texto in textos
         ]
-        if all(coordenadas) or all(c in coordenadas for _, c in extracao):
+        if all(coordenadas) or all(c in coordenadas for _, c, _ in extracao):
             return coordenadas
 
         # --------------------------------------------------- #
