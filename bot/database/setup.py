@@ -168,18 +168,18 @@ class DatabaseODBC:
         return pyodbc.drivers()
 
 class Sqlite:
-    """Classe de abstração do módulo `sqlite3`"""
+    """Classe de abstração do módulo `sqlite3`
+    - `database` caminho para o arquivo .db ou .sqlite (Default apenas na memória)
+    - Comando para ativar as `foreign_keys` realizado automaticamente
+    - Aberto transação automaticamente. Necessário realizar `commit()` para persistir alterações"""
 
     __conexao: sqlite3.Connection
     """Conexão com o sqlite3"""
 
     def __init__ (self, database: str | estruturas.Caminho = ":memory:") -> None:
-        """Inicialização do banco de dados
-        - `database` caminho para o arquivo .db ou .sqlite, 
-        - Default carregar apenas na memória"""
         database = str(database)
         logger.informar(f"Iniciando conexão Sqlite com o database '{database}'")
-        self.__conexao = sqlite3.connect(database, autocommit=False)
+        self.__conexao = sqlite3.connect(database)
         self.__conexao.execute("PRAGMA foreign_keys = ON")
 
     def __del__ (self) -> None:
