@@ -6,18 +6,18 @@ import ctypes, warnings, logging
 from . import Coordenada
 from .. import util, tipagem
 # externo
-from pywinauto.timings import TimeConfig
+from pywinauto.timings import Timings
 from pywinauto import Application, Desktop
 from pywinauto.controls.hwndwrapper import HwndWrapper
 
 # ignorar warnings do pywinauto
 warnings.simplefilter('ignore', category=UserWarning)
-# reduzir o timeouts busca e fechamento de elementos e janelas
-TimeConfig.closeclick_retry = 0.01
-TimeConfig.window_find_retry = 0.01
-TimeConfig.after_setfocus_wait = 0.01
-TimeConfig.after_clickinput_wait = 0.01
-TimeConfig.after_setcursorpos_wait = 0.01
+# reduzir o timeouts
+Timings.closeclick_retry = 0
+Timings.window_find_retry = 0
+Timings.after_setfocus_wait = 0
+Timings.after_clickinput_wait = 0
+Timings.after_setcursorpos_wait = 0
 # desativar forçadamente o logger do pywinauto
 logger = logging.getLogger("pywinauto")
 logger.disabled = True
