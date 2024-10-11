@@ -86,11 +86,18 @@ def transformar_tipo[T: tipagem.primitivo] (valor: str, tipo: type[T]) -> T:
         case "<class 'bool'>": return valor.lower().strip() == "true"
         case _: return None
 
-def cronometro () -> typing.Callable[[], float]:
-    """Inicializa um cronômetro que retorna o tempo passado a cada chamada na função
+def cronometro (resetar=False) -> typing.Callable[[], float]:
+    """Inicializa um cronômetro que retorna o tempo decorrido a cada chamada na função
+    - `resetar` indicador para resetar o tempo após cada chamada
     - Arredondado para 3 casas decimais"""
     inicio = time.perf_counter()
-    return lambda: round(time.perf_counter() - inicio, 3)
+    def func ():
+        nonlocal inicio
+        agora = time.perf_counter()
+        delta = round(agora - inicio, 3)        
+        if resetar: inicio = agora
+        return delta
+    return func
 
 __all__ = [
     "normalizar",
