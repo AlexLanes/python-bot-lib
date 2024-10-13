@@ -22,9 +22,12 @@ class Coordenada:
     @classmethod
     def tela (cls) -> Coordenada:
         """Coordenada da tela"""
-        largura = win32api.GetSystemMetrics(win32con.SM_CXSCREEN) - 1
-        altura = win32api.GetSystemMetrics(win32con.SM_CYSCREEN) - 1
-        return Coordenada(0, 0, largura, altura)
+        return Coordenada(
+            win32api.GetSystemMetrics(win32con.SM_XVIRTUALSCREEN),
+            win32api.GetSystemMetrics(win32con.SM_YVIRTUALSCREEN),
+            win32api.GetSystemMetrics(win32con.SM_CXSCREEN),
+            win32api.GetSystemMetrics(win32con.SM_CYSCREEN)
+        )
 
     @classmethod
     def from_box (cls, box: tuple[int, int, int, int]) -> Coordenada:
