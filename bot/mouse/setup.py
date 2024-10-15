@@ -4,10 +4,15 @@ from time import sleep
 from .. import util, tipagem
 from ..estruturas import Coordenada
 # externo
-import win32api
-from pynput.mouse import Controller, Button
+import win32api, win32con
+from pynput.mouse import Controller
 
 MOUSE = Controller()
+EVENTOS_MOUSE = {
+    "left": (win32con.MOUSEEVENTF_LEFTDOWN, win32con.MOUSEEVENTF_LEFTUP),
+    "middle": (win32con.MOUSEEVENTF_MIDDLEDOWN, win32con.MOUSEEVENTF_MIDDLEUP),
+    "right": (win32con.MOUSEEVENTF_RIGHTDOWN, win32con.MOUSEEVENTF_RIGHTUP)
+}
 
 def posicao_atual () -> tuple[int, int]:
     """Obter a posição `(x, y)` atual do mouse"""
@@ -29,13 +34,7 @@ def transformar_posicao (coordenada: tuple[int, int] | Coordenada | None) -> tup
 def mover_mouse (coordenada: tuple[int, int] | Coordenada) -> None:
     """Mover o mouse, de forma instantânea, até a `coordenada`"""
     coordenada = transformar_posicao(coordenada)
-    # mover
     win32api.SetCursorPos(coordenada)
-    MOUSE.position = coordenada
-    # esperar atualizar
-    sleep(0.01)
-    condicao = lambda: coordenada == MOUSE.position and coordenada == posicao_atual()
-    util.aguardar_condicao(condicao, 0.1, 0.002)
 
 def mover_mouse_deslizando (coordenada: tuple[int, int] | Coordenada) -> None:
     """Mover o mouse, deslizando pixel por pixel, até a `coordenada`"""
@@ -59,7 +58,9 @@ def clicar_mouse (botao: tipagem.BOTOES_MOUSE = "left",
                   delay=0.1) -> None:
     """Clicar com o `botão` do mouse `quantidade` vezes na `coordenada` ou posição atual"""
     if coordenada: mover_mouse(coordenada) # mover mouse se requisitado
-    MOUSE.click(Button[botao], max(1, quantidade))
+    for _ in range(max(1, quantidade)):
+        for evento in EVENTOS_MOUSE[botao]:
+            win32api.mouse_event(evento, 0, 0)
     sleep(delay)
 
 def scroll_vertical (quantidade=1,
