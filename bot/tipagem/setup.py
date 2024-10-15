@@ -1,10 +1,6 @@
 # std
 from typing import Literal, Iterable
 from datetime import datetime, date, time
-# interno
-from ..estruturas import Caminho
-# externo
-from PIL.Image import Image
 
 type url = str
 """String formato url"""
@@ -12,6 +8,8 @@ type char = str
 """String com 1 caractere"""
 type email = str
 """String formato E-mail"""
+type rgb = tuple[int, int, int]
+"""Tipo da cor RGB"""
 type primitivo = str | int | float | bool | None
 """Tipos primitivos do Python"""
 
@@ -21,12 +19,6 @@ type nomeado = dict[str, tipoSQL]
 """Parâmetros necessários quando o SQL é nomeado ':nome'"""
 type posicional = Iterable[tipoSQL]
 """Parâmetros necessários quando o SQL é posicionail '?'"""
-
-type rgb = tuple[int, int, int]
-"""Tipo da cor RGB"""
-type imagem = Caminho | Image | bytes
-"""Tipo de imagem aceito pelas funções
-- `Caminho` para o arquivo | `bytes` da imagem | `Image` do módulo `pillow`"""
 
 DIRECOES_SCROLL = Literal["cima", "baixo"]
 """Direções de scroll do mouse"""
@@ -46,7 +38,6 @@ __all__ = [
     "rgb",
     "char",
     "email",
-    "imagem",
     "tipoSQL",
     "nomeado",
     "primitivo",

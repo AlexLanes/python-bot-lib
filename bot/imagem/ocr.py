@@ -1,12 +1,10 @@
 # std
 import typing, functools
 # interno
-from ..estruturas import Coordenada
-from .. import util, logger, tipagem
-from .setup import capturar_tela, parse_pillow
+from .. import util
+from . import Coordenada, Imagem
 # externo
 import numpy as np
-from PIL import Image
 
 class LeitorOCR:
     """Classe de abstração do EasyOCR para ler/detectar textos em imagens
@@ -21,73 +19,55 @@ class LeitorOCR:
         """Extrair informações da tela
         - `regiao` para limitar a área de extração
         - `for texto, coordenada, confianca in leitor.ler_tela()`"""
-        cronometro = util.cronometro()
-        extracoes = self.__ler(capturar_tela(regiao, True))
+        imagem = Imagem.capturar_tela(regiao, True)
+        extracoes = self.__ler(imagem)
 
         # corrigir offset com a regiao informada
         for _, coordenada, _ in extracoes:
-            if not regiao: break # região não foi informada, não há o que corrigir
+            if not regiao: break
             coordenada.x += regiao.x
             coordenada.y += regiao.y
 
-        tempo = util.expandir_tempo(cronometro())
-        logger.debug(f"Leitura da tela realizada em {tempo}")
         return extracoes
 
-    def ler_imagem (self, imagem: tipagem.imagem) -> list[tuple[str, Coordenada, float]]:
+    def ler_imagem (self, imagem: Imagem) -> list[tuple[str, Coordenada, float]]:
         """Extrair informações da `imagem`
         - `for texto, coordenada, confianca in leitor.ler_imagem()`"""
-        cronometro = util.cronometro()
-        extracoes = self.__ler(parse_pillow(imagem))
-        tempo = util.expandir_tempo(cronometro())
-        logger.debug(f"Leitura da imagem realizada em {tempo}")
-        return extracoes
+        return self.__ler(imagem)
 
-    def __ler (self, imagem: Image.Image) -> list[tuple[str, Coordenada, float]]:
+    def __ler (self, imagem: Imagem) -> list[tuple[str, Coordenada, float]]:
         """Receber a imagem e extrair os dados"""
-        imagem: np.ndarray = np.asarray(imagem)
         return [
-            (
-                texto,
-                Coordenada.from_box((box[0][0], box[0][1], box[1][0], box[2][1])),
-                confianca
-            )
+            (texto, Coordenada.from_box((box[0][0], box[0][1], box[1][0], box[2][1])), confianca)
             for box, texto, confianca in self.__reader
-                .readtext(imagem, mag_ratio=2, min_size=3, slope_ths=0.25, width_ths=0.4)
+                .readtext(imagem.pixels, mag_ratio=2, min_size=3, slope_ths=0.25, width_ths=0.4)
         ]
 
     def detectar_tela (self, regiao: Coordenada | None = None) -> list[Coordenada]:
         """Extrair coordenadas de textos da tela
         - `regiao` para limitar a área de extração"""
-        cronometro = util.cronometro()
-        coordenadas = self.__detectar(capturar_tela(regiao, True))
+        imagem = Imagem.capturar_tela(regiao, True)
+        coordenadas = self.__detectar(imagem)
 
         # corrigir offset com a regiao informada
         for coordenada in coordenadas:
-            if not regiao: break # região não foi informada, não há o que corrigir
+            if not regiao: break
             coordenada.x += regiao.x
             coordenada.y += regiao.y
     
-        tempo = util.expandir_tempo(cronometro())
-        logger.debug(f"Tela detectada em {tempo}")
         return coordenadas
 
-    def detectar_imagem (self, imagem: tipagem.imagem) -> list[Coordenada]:
+    def detectar_imagem (self, imagem: Imagem) -> list[Coordenada]:
         """Extrair coordenadas da `imagem`"""
-        cronometro = util.cronometro()
-        coordenadas = self.__detectar(parse_pillow(imagem))
-        tempo = util.expandir_tempo(cronometro())
-        logger.debug(f"Imagem detectada em {tempo}")
-        return coordenadas
+        return self.__detectar(imagem)
 
-    def __detectar (self, imagem: Image.Image) -> list[Coordenada]:
+    def __detectar (self, imagem: Imagem) -> list[Coordenada]:
         """Receber a imagem e detectar as coordenadas"""
-        imagem: np.ndarray = np.asarray(imagem)
-        boxes, _ = self.__reader.detect(imagem, mag_ratio=2, min_size=3, slope_ths=0.25, width_ths=0.4)
+        boxes, _ = self.__reader.detect(imagem.pixels, mag_ratio=2, min_size=3, slope_ths=0.25, width_ths=0.4)
         boxes: list[tuple[np.int32, ...]] = np.concatenate(boxes)
         return [
             Coordenada.from_box((x1, y1, x2, y2))
-            for (x1, x2, y1, y2) in boxes
+            for x1, x2, y1, y2 in boxes
         ]
 
     @staticmethod
