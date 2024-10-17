@@ -7,17 +7,17 @@ from . import Coordenada
 from .. import util, tipagem
 # externo
 from pywinauto.timings import Timings
-from pywinauto import Application, Desktop
+from pywinauto import Application, Desktop, mouse
 from pywinauto.controls.hwndwrapper import HwndWrapper
 
 # ignorar warnings do pywinauto
 warnings.simplefilter('ignore', category=UserWarning)
-# reduzir o timeouts
-Timings.closeclick_retry = 0
-Timings.window_find_retry = 0
-Timings.after_setfocus_wait = 0
-Timings.after_clickinput_wait = 0
-Timings.after_setcursorpos_wait = 0
+# reduzir timeouts
+Timings.after_setfocus_wait = 0.01
+for nome in ("closeclick_retry", "window_find_retry", "after_clickinput_wait", "after_setcursorpos_wait"):
+    setattr(Timings, nome, 0)
+# desativar o mouse.move para não interfirir com o focar
+mouse.move = lambda coords: None
 # desativar forçadamente o logger do pywinauto
 logger = logging.getLogger("pywinauto")
 logger.disabled = True

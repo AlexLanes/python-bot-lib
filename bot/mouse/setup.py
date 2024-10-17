@@ -35,6 +35,7 @@ def mover_mouse (coordenada: tuple[int, int] | Coordenada) -> None:
     """Mover o mouse, de forma instantânea, até a `coordenada`"""
     coordenada = transformar_posicao(coordenada)
     win32api.SetCursorPos(coordenada)
+    sleep(0.01)
 
 def mover_mouse_deslizando (coordenada: tuple[int, int] | Coordenada) -> None:
     """Mover o mouse, deslizando pixel por pixel, até a `coordenada`"""
