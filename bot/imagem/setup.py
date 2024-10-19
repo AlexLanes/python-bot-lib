@@ -20,7 +20,7 @@ class Imagem:
     pixels: np.ndarray
     """Pixels da imagem BGR ou Cinza"""
 
-    def __init__ (self, caminho: Caminho | str):
+    def __init__ (self, caminho: Caminho | str) -> None:
         caminho = Caminho(str(caminho))
         self.pixels = cv2.imread(caminho.path)
 
@@ -36,6 +36,9 @@ class Imagem:
     @classmethod
     def capturar_tela (cls, regiao: Coordenada | None = None,
                             cinza=False) -> Imagem:
+        """Criar uma imagem a partir da tela
+        - `regiao` para especificar uma parte da tela
+        - `cinza` altera os canais RGB por um de escala do cinza"""
         imagem = super().__new__(cls)
         x, y, largura, altura = regiao or Coordenada.tela()
 
@@ -64,6 +67,14 @@ class Imagem:
         imagem.pixels.shape = (altura, largura, 4)
         cor = cv2.COLOR_BGRA2GRAY if cinza else cv2.COLOR_BGRA2BGR
         imagem.pixels = cv2.cvtColor(imagem.pixels, cor)
+        return imagem
+
+    @classmethod
+    def from_bytes (cls, conteudo: bytes) -> Imagem:
+        """Criar uma imagem a partir de bytes do `conteúdo`"""
+        imagem = super().__new__(cls)
+        conteudo = np.frombuffer(conteudo, np.uint8)
+        imagem.pixels = cv2.imdecode(conteudo, cv2.IMREAD_COLOR)
         return imagem
 
     @property
@@ -106,7 +117,7 @@ class Imagem:
 
     def cinza (self) -> Imagem:
         """Criar uma nova imagem como cinza
-        - Altera os canais RGB por apenas um de escala do cinza"""
+        - Altera os canais RGB por um de escala do cinza"""
         imagem = super().__new__(type(self))
         cinza = len(self.pixels.shape) == 2
         imagem.pixels = np.array(self.pixels) if cinza else cv2.cvtColor(self.pixels, cv2.COLOR_BGR2GRAY)
