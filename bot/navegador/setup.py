@@ -336,21 +336,25 @@ class Chrome (Navegador):
     def __init__ (self, timeout=30.0,
                         download: str | estruturas.Caminho = "./downloads",
                         extensoes: list[str | estruturas.Caminho] = [],
-                        perfil: estruturas.Caminho | str | None = None) -> None:
+                        perfil: estruturas.Caminho | str | None = None,
+                        argumentos_adicionais: list[str] = []) -> None:
         # obter a versão do google chrome para o `undetected_chromedriver`, pois ele utiliza sempre a mais recente
         sucesso, mensagem = sistema.executar(COMANDO_VERSAO_CHROME, powershell=True)
         versao = (mensagem.split(".") or " ")[0]
         if not sucesso or not versao.isdigit():
             raise Exception("Versão do Google Chrome não foi localizada")
 
-        options, argumentos = uc.ChromeOptions(), ARGUMENTOS_DEFAULT.copy()
-        self.diretorio_download = estruturas.Caminho(download) if isinstance(download, str) else download
-        if extensoes: argumentos.append(f"--load-extension={ ",".join(str(e).strip() for e in extensoes) }")
+        argumentos = { *ARGUMENTOS_DEFAULT, *argumentos_adicionais }
+        if extensoes: argumentos.add(f"--load-extension={ ",".join(str(e).strip() for e in extensoes) }")
         if perfil:
-            perfil = estruturas.Caminho(perfil)
-            argumentos.append(f"--user-data-dir={perfil.parente}")
-            argumentos.append(f"--profile-directory={perfil.nome}")
-        for argumento in argumentos: options.add_argument(argumento)
+            perfil = estruturas.Caminho(str(perfil))
+            argumentos.add(f"--user-data-dir={perfil.parente}")
+            argumentos.add(f"--profile-directory={perfil.nome}")
+
+        options = uc.ChromeOptions()
+        self.diretorio_download = estruturas.Caminho(str(download))
+        for argumento in argumentos:
+            options.add_argument(argumento)
         options.set_capability("goog:loggingPrefs", { "performance": "ALL" }) # logs performance
         options.add_experimental_option("prefs", {
             "credentials_enable_service": False,
