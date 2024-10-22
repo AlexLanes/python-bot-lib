@@ -1,5 +1,5 @@
 # std
-import time, enum, typing, atexit, base64, collections
+import time, enum, typing, base64, collections
 from datetime import (
     datetime as Datetime,
     timedelta as Timedelta
@@ -376,10 +376,6 @@ class Chrome (Navegador):
 
         logger.informar("Navegador Chrome iniciado")
 
-        # `undetected_chromedriver` está com problema intermitente ao fechar
-        # a task que é aberta ao criar o driver está ficando ativa após o `quit()`
-        atexit.register(lambda: sistema.executar("TASKKILL", "/F", "/IM", "chrome.exe", timeout=5))
-
     def __repr__ (self) -> str:
         return f"<Chrome aba focada '{self.titulo}'>"
 
@@ -387,7 +383,8 @@ class Chrome (Navegador):
     def __del__ (self) -> None:
         logger.informar("Navegador fechado")
         try: getattr(self.driver, "quit", lambda: "")()
-        except OSError: pass # usado TASKKILL ao fim da execução
+        # usado TASKKILL ao fim da execução caso tenha ocorrido erro
+        except: sistema.executar("TASKKILL", "/F", "/IM", "chrome.exe", timeout=5)
 
     def mensagens_rede (self, filtro: typing.Callable[[Mensagem], bool] | None = None) -> list[Mensagem]:
         """Consultar as mensagens de rede produzidas pelas abas
