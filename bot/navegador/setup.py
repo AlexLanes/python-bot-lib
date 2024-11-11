@@ -270,7 +270,8 @@ class Navegador:
     def coordenada_elemento (self, elemento: WebElement) -> estruturas.Coordenada:
         """Obter a coordenada do `elemento` referente a tela
         - Scroll do `elemento` para o centro da tela"""
-        coordenada = imagem.procurar_imagem(self.screenshot(elemento), 0.9, segundos=2)
+        screenshot = imagem.Imagem.from_bytes(self.screenshot(elemento))
+        coordenada = screenshot.procurar_imagem(segundos=2)
         assert coordenada, "Imagem do elemento na tela não foi encontrada"
         return coordenada
 

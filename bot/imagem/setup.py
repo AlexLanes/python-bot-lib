@@ -66,6 +66,14 @@ class Imagem:
         imagem.pixels = cv2.cvtColor(imagem.pixels, cor)
         return imagem
 
+    @classmethod
+    def from_bytes (cls, conteudo: bytes) -> Imagem:
+        """Criar uma imagem a partir de bytes do `conteúdo`"""
+        imagem = super().__new__(cls)
+        conteudo = np.frombuffer(conteudo, np.uint8)
+        imagem.pixels = cv2.imdecode(conteudo, cv2.IMREAD_COLOR)
+        return imagem
+
     @property
     def png (self) -> bytes:
         """Codificar a imagem para `png`"""
