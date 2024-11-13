@@ -66,16 +66,13 @@ class Navegador:
         object.__setattr__(self, nome, valor)
 
     def __iter__ (self) -> typing.Generator[str, None, None]:
-        """Percorrer as abas, ignorando as especiais, e retornar à original
-        - Caso tenha sido feito `break/return` no iterator, o retorno à aba original não acontece"""
+        """Percorrer as abas, ignorando abas especiais não focáveis, e retornar para a aba original"""
         original = self.aba
-        especial = lambda: self.url.startswith(("edge", "chrome")) and "new-tab" not in self.url
-        for aba in self.abas:
-            try:
-                self.driver.switch_to.window(aba)
-                if not especial(): yield aba
-            except Exception: pass
-        self.driver.switch_to.window(original)
+        try:
+            for aba in self.abas:
+                try: self.driver.switch_to.window(aba); yield aba
+                except Exception: continue
+        finally: self.driver.switch_to.window(original)
 
     @property
     def titulo (self) -> str:
@@ -94,7 +91,8 @@ class Navegador:
 
     @property
     def abas (self) -> list[str]:
-        """IDs das abas abertas do navegador"""
+        """IDs das abas abertas do navegador
+        - Usar `for aba in navegador` para focar nas abas e retornar a original ao fim"""
         return self.driver.window_handles
 
     def titulos (self) -> list[str]:
@@ -117,7 +115,7 @@ class Navegador:
         """Fechar a aba focada e alterar o foco para a primeira aba
         - Cria uma nova aba caso só exista uma"""
         aba, titulo = self.aba, self.titulo
-        if len(self.abas) == 1:
+        if len([*self]) == 1:
             self.driver.switch_to.new_window("tab")
             self.driver.switch_to.window(aba)
         self.driver.close()
