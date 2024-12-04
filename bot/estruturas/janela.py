@@ -33,8 +33,8 @@ class Janela:
     __aplicacao: Application
     """Application da janela"""
 
-    def __init__ (self, titulo: str = None,
-                        class_name: str = None,
+    def __init__ (self, titulo: str | None = None,
+                        class_name: str | None = None,
                         backend: tipagem.BACKENDS_JANELA = "win32") -> None:
         """Inicializar a conexão com a janela
         - Se o `titulo` e `class_name` forem omitidos, será pego a janela focada atual
@@ -46,16 +46,15 @@ class Janela:
             return
 
         titulos_janelas = self.titulos_janelas()
-        titulo_normalizado = util.normalizar(titulo)
-        titulos = [titulo] if titulo in titulos_janelas else [
-            titulo
-            for titulo in titulos_janelas
-            if titulo_normalizado in util.normalizar(titulo)
-        ]
-        assert titulos, f"Janela de titulo '{titulo}' não foi encontrada"
+        titulo_normalizado = util.normalizar(titulo or "")
+        titulo = None if not titulo else titulo if titulo in titulos_janelas else ([
+            titulo_janela
+            for titulo_janela in titulos_janelas
+            if titulo_normalizado in util.normalizar(titulo_janela)
+        ] or [None])[0]
 
-        self.__janela = Desktop(backend).window(title=titulos[0], class_name=class_name, visible_only=True)
-        self.__aplicacao = Application(backend).connect(title=titulos[0], class_name=class_name, visible_only=True)
+        self.__janela = Desktop(backend).window(title=titulo, class_name=class_name, visible_only=True)
+        self.__aplicacao = Application(backend).connect(title=titulo, class_name=class_name, visible_only=True)
 
     def __eq__ (self, other: Janela) -> bool:
         """Comparar se o handler de uma janela é o mesmo que a outra"""
