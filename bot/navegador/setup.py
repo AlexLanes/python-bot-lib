@@ -288,7 +288,7 @@ class Edge (Navegador):
         self.diretorio_download = estruturas.Caminho(download) if isinstance(download, str) else download
         for argumento in argumentos: options.add_argument(argumento)
         options.add_experimental_option("useAutomationExtension", False)
-        options.add_experimental_option("excludeSwitches", ["enable-logging", "enable-automation"])
+        options.add_experimental_option("excludeSwitches", ["enable-logging"])
         options.add_experimental_option("prefs", {
             "credentials_enable_service": False,
             "profile.password_manager_enabled": False,
