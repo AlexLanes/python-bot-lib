@@ -176,16 +176,21 @@ class Navegador:
     def aguardar_titulo (self, titulo: str, timeout=30) -> typing.Self:
         """Aguardar alguma aba conter o `título` e alterar o foco para ela
         - Exceção `TimeoutError` caso não finalize no tempo estipulado"""
-        normalizado = util.normalizar(titulo)
-        def alguma_aba_contem_titulo () -> bool:
-            for _ in self:
-                if normalizado in util.normalizar(self.titulo):
+        aba_com_titulo: str | None = None
+        titulo_normalizado = util.normalizar(titulo)
+
+        def aba_contendo_titulo () -> bool:
+            nonlocal aba_com_titulo
+            for aba in self:
+                if titulo_normalizado in util.normalizar(self.titulo):
+                    aba_com_titulo = aba
                     return True
             return False
 
-        if not util.aguardar_condicao(alguma_aba_contem_titulo, timeout, 1):
+        if not util.aguardar_condicao(aba_contendo_titulo, timeout, 1):
             raise TimeoutError(f"Aba contendo o título '{titulo}' não foi encontrada após {timeout} segundos")
-        return self
+
+        return self.focar_aba(aba_com_titulo)
 
     def aguardar_staleness (self, elemento: WebElement, timeout=60) -> typing.Self:
         """Aguardar a condição staleness_of do `elemento` por `timeout` segundos
