@@ -36,7 +36,8 @@ class Janela:
 
     def __init__ (self, titulo: str | None = None,
                         class_name: str | None = None,
-                        backend: tipagem.BACKENDS_JANELA = "win32") -> None:
+                        backend: tipagem.BACKENDS_JANELA = "win32",
+                        top_level_only = True) -> None:
         """Inicializar a conexão com a janela
         - Se o `titulo` e `class_name` forem omitidos, será pego a janela focada atual
         - `backend` varia de acordo com a janela, testar com ambos para encontrar o melhor"""
@@ -54,8 +55,9 @@ class Janela:
             if titulo_normalizado in util.normalizar(titulo_janela)
         ] or [None])[0]
 
-        self.elemento = Desktop(backend).window(title=titulo, class_name=class_name, visible_only=True).wrapper_object()
-        self.aplicacao = Application(backend).connect(title=titulo, class_name=class_name, visible_only=True)
+        args = { "title": titulo, "class_name": class_name, "visible_only": True, "top_level_only": top_level_only }
+        self.elemento = Desktop(backend).window(**args).wrapper_object()
+        self.aplicacao = Application(backend).connect(**args)
 
     def __eq__ (self, other: Janela) -> bool:
         """Comparar se o handler de uma janela é o mesmo que a outra"""
@@ -112,15 +114,15 @@ class Janela:
         """Encerrar o processo da aplicação forçadamente"""
         self.aplicacao.kill()
 
-    def elementos (self, *, title: str = None, title_re: str = None,
-                   class_name: str = None, control_id: int = None,
+    def elementos (self, *, title: str = None, title_re: str = None, class_name: str = None,
+                   control_id: int = None, parent: HwndWrapper | None = None,
                    top_level_only=True, visible_only=True, enabled_only=True) -> list[HwndWrapper]:
         """Obter uma lista elementos com base nos parâmetros informados
         - O tipo do retorno pode ser diferente dependendo do tipo do backend e controle
         - Retornado uma classe genérica que compartilham múltiplos métodos"""
         return self.aplicacao.windows(title=title, title_re=title_re, class_name=class_name,
-                                      control_id=control_id, top_level_only=top_level_only,
-                                      visible_only=visible_only, enabled_only=enabled_only)
+                                      control_id=control_id, parent=parent,
+                                      top_level_only=top_level_only, visible_only=visible_only, enabled_only=enabled_only)
 
     @staticmethod
     def titulos_janelas () -> set[str]:
