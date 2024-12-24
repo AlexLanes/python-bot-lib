@@ -113,14 +113,16 @@ class Janela:
         """Encerrar o processo da aplicação forçadamente"""
         self.aplicacao.kill()
 
-    def elementos (self, *, title: str = None, title_re: str = None, class_name: str = None,
+    def elementos (self, *, title: str = None, title_re: str = None,
+                   class_name: str = None, class_name_re: str = None,
                    control_id: int = None, parent: HwndWrapper | None = None,
                    top_level_only=True, visible_only=True, enabled_only=True) -> list[HwndWrapper]:
         """Obter uma lista elementos com base nos parâmetros informados
         - Procura elementos a partir do nível superior da janela
         - O tipo do retorno pode ser diferente dependendo do tipo do backend e controle
         - Retornado uma classe genérica que compartilham múltiplos métodos"""
-        return self.aplicacao.windows(title=title, title_re=title_re, class_name=class_name,
+        return self.aplicacao.windows(title=title, title_re=title_re,
+                                      class_name=class_name, class_name_re=class_name_re,
                                       control_id=control_id, parent=parent,
                                       top_level_only=top_level_only, visible_only=visible_only, enabled_only=enabled_only)
 
