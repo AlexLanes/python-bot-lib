@@ -108,7 +108,8 @@ class Janela:
         return self
     def fechar (self) -> None:
         """Fechar a janela atual"""
-        self.elemento.close(5)
+        backend_win32 = isinstance(self.elemento, HwndWrapper)
+        self.elemento.close(5) if backend_win32 else self.elemento.close()
     def encerrar (self) -> None:
         """Encerrar o processo da aplicação forçadamente"""
         self.aplicacao.kill()
