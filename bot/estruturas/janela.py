@@ -14,7 +14,7 @@ from pywinauto.controls.hwndwrapper import HwndWrapper
 # ignorar warnings do pywinauto
 warnings.simplefilter('ignore', category=UserWarning)
 # reduzir timeouts
-Timings.after_setfocus_wait = 0.01
+Timings.after_setfocus_wait = 0.1
 for nome in ("closeclick_retry", "window_find_retry", "after_clickinput_wait", "after_setcursorpos_wait"):
     setattr(Timings, nome, 0)
 # desativar o mouse.move para não interfirir com o focar
@@ -42,7 +42,7 @@ class Janela:
         - `backend` varia de acordo com a janela, testar com ambos para encontrar o melhor"""
         if not titulo and not class_name:
             handle = ctypes.windll.user32.GetForegroundWindow()
-            self.elemento = Desktop(backend).window(handle=handle).wrapper_object()
+            self.elemento = Desktop(backend).window(handle=handle)
             self.aplicacao = Application(backend).connect(handle=handle)
             return
 
@@ -55,7 +55,7 @@ class Janela:
         ] or [None])[0]
 
         args = { "title": titulo, "class_name": class_name, "visible_only": True }
-        self.elemento = Desktop(backend).window(**args).wrapper_object()
+        self.elemento = Desktop(backend).window(**args)
         self.aplicacao = Application(backend).connect(**args)
 
     def __eq__ (self, other: Janela) -> bool:
@@ -114,10 +114,11 @@ class Janela:
         """Encerrar o processo da aplicação forçadamente"""
         self.aplicacao.kill()
 
-    def elementos (self, *, title: str = None, title_re: str = None,
-                   class_name: str = None, class_name_re: str = None,
-                   control_id: int = None, parent: HwndWrapper | None = None,
-                   top_level_only=True, visible_only=True, enabled_only=True) -> list[HwndWrapper]:
+    def elementos (self, *,
+            title: str | None = None, title_re: str | None = None,
+            class_name: str | None = None, class_name_re: str | None = None,
+            control_id: int | None = None, parent: HwndWrapper | None = None,
+            top_level_only=True, visible_only=True, enabled_only=True) -> list[HwndWrapper]:
         """Obter uma lista elementos com base nos parâmetros informados
         - Procura elementos a partir do nível superior da janela
         - O tipo do retorno pode ser diferente dependendo do tipo do backend e controle
