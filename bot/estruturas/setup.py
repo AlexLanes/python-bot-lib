@@ -175,7 +175,7 @@ class ResultadoSQL:
         )
         return DataFrame(
             map(to_string, linhas) if transformar_string else linhas,
-            self.colunas,
+            { coluna: str for coluna in self.colunas } if transformar_string else self.colunas,
             nan_to_null=True
         )
 
