@@ -46,10 +46,20 @@ def encontrar_texto[T] (texto: str,
         return opcoes[textos.index(texto)]
 
     # opção normalizada
-    texto = normalizar(texto)
-    textos = [normalizar(opcao) for opcao in textos]
-    if texto in textos:
-        return opcoes[textos.index(texto)]
+    texto_normalizado = normalizar(texto)
+    textos_normalizados = [normalizar(opcao) for opcao in textos]
+    if texto_normalizado in textos_normalizados:
+        return opcoes[textos_normalizados.index(texto_normalizado)]
+
+    # opção normalizada com replace de caracteres parecidos
+    texto_replace = texto_normalizado
+    textos_replace = textos_normalizados.copy()
+    for chars, replace in [(r"[l1!]", "i"), (r"[0dq]", "o")]:
+        texto_replace = re.sub(chars, replace, texto_replace)
+        for index, texto in enumerate(textos_replace):
+            textos_replace[index] = re.sub(chars, replace, texto)
+    if texto_replace in textos_replace:
+        return opcoes[textos_replace.index(texto_replace)]
 
     # comparando similaridade dos caracteres
     # algorítimo `gestalt pattern matching`
@@ -58,8 +68,8 @@ def encontrar_texto[T] (texto: str,
         # ou punir bastante se for a mesma quantidade de caracteres
         punicao_tamanho = abs((len(a) - len(b)) * 0.05) or 0.15
         return difflib.SequenceMatcher(None, a, b).ratio() - punicao_tamanho
-    similaridades = [calcular_similaridade(texto, t) for t in textos]
 
+    similaridades = [calcular_similaridade(texto_normalizado, t) for t in textos_normalizados]
     maior = max(similaridades) if similaridades else 0
     return opcoes[similaridades.index(maior)] if maior >= 0.6 else None
 
