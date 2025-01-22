@@ -127,6 +127,13 @@ class Imagem:
         _, imagem.pixels = cv2.threshold(imagem.pixels, 0, 255, cv2.THRESH_OTSU)
         return imagem
 
+    def redimensionar (self, escala=2.0) -> Imagem:
+        """Criar uma nova imagem redimensionada para a % `escala`"""
+        imagem = self.copiar()
+        altura, largura, *_ = map(lambda x: int(x * escala), self.pixels.shape)
+        imagem.pixels = cv2.resize(imagem.pixels, dsize=(largura, altura), interpolation=cv2.INTER_LINEAR)
+        return imagem
+
     def cores (self, limite: int | None = 10) -> list[tuple[tipagem.rgb, int]]:
         """Obter a cor RGB e frequência de cada pixel da imagem
         - `limite` quantidade que será retornada das mais frequentes
