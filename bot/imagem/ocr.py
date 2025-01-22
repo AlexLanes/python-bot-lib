@@ -40,7 +40,7 @@ class LeitorOCR:
         return [
             (texto, Coordenada.from_box((box[0][0], box[0][1], box[1][0], box[2][1])), confianca)
             for box, texto, confianca in self.__reader
-                .readtext(imagem.pixels, mag_ratio=2, min_size=3, contrast_ths=1, slope_ths=0.25, width_ths=0.4)
+                .readtext(imagem.pixels, mag_ratio=2, min_size=3, slope_ths=0.25, width_ths=0.4)
         ]
 
     def detectar_tela (self, regiao: Coordenada | None = None) -> list[Coordenada]:
