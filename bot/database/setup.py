@@ -63,7 +63,9 @@ class DatabaseODBC:
     - Abstração do `pyodbc`
     - Testado com PostgreSQL, MySQL e SQLServer"""
 
-    __conexao: pyodbc.Connection
+    odbc_args: str
+    """Argumentos de conexão ODBC"""
+    conexao: pyodbc.Connection
     """Objeto de conexão com o database"""
 
     def __init__ (self, nome_driver: str, **kwargs: str) -> None:
@@ -88,14 +90,16 @@ class DatabaseODBC:
 
         # montar a conexão
         kwargs["driver"] = nome_driver
-        conexao = ";".join(f"{nome}={valor}" 
-                           for nome, valor in kwargs.items())
-        self.__conexao = pyodbc.connect(conexao, autocommit=False, timeout=5)
+        self.odbc_args = ";".join(
+            f"{nome}={valor}" 
+            for nome, valor in kwargs.items()
+        )
+        self.conexao = pyodbc.connect(self.odbc_args, autocommit=False, timeout=5)
 
     def __del__ (self) -> None:
         """Fechar a conexão quando sair do escopo"""
         logger.informar(f"Encerrando conexão com o database")
-        try: self.__conexao.close()
+        try: self.conexao.close()
         except: pass
 
     def __repr__ (self) -> str:
@@ -104,7 +108,7 @@ class DatabaseODBC:
     def tabelas (self, schema: str = None) -> list[tuple[str, str | None]]:
         """Nomes das tabelas e schemas disponíveis
         - `for tabela, schema in database.tabelas()`"""
-        cursor = self.__conexao.cursor()
+        cursor = self.conexao.cursor()
         itens = [
             (tabela, schema if schema else None)
             for _, schema, tabela, *_ in cursor.tables(tableType="TABLE", schema=schema)
@@ -115,7 +119,7 @@ class DatabaseODBC:
     def colunas (self, tabela: str, schema: str = None) -> list[tuple[str, str]]:
         """Nomes das colunas e tipos da tabela
         - `for coluna, tipo in database.colunas(tabela, schema)`"""
-        cursor = self.__conexao.cursor()
+        cursor = self.conexao.cursor()
         return [
             (item[3], item[5])
             for item in cursor.columns(tabela, schema=schema)
@@ -123,11 +127,17 @@ class DatabaseODBC:
 
     def commit (self) -> None:
         """Commitar alterações feitas na conexão"""
-        self.__conexao.commit()
+        self.conexao.commit()
 
     def rollback (self) -> None:
         """Reverter as alterações, pós commit, feitas na conexão"""
-        self.__conexao.rollback()
+        self.conexao.rollback()
+
+    def reconectar (self) -> None:
+        """Refaz a conexão caso encerrada"""
+        try: self.conexao.execute("SELECT 1")
+        except pyodbc.OperationalError:
+            self.conexao = pyodbc.connect(self.odbc_args, autocommit=False, timeout=5)
 
     def execute (self, sql: str, parametros: tipagem.nomeado | tipagem.posicional = None) -> estruturas.ResultadoSQL:
         """Executar uma única instrução SQL
@@ -139,7 +149,7 @@ class DatabaseODBC:
             sql, nomes = sql_nomeado_para_posicional(sql, parametros)
             parametros = [ref_parametros[nome] for nome in nomes]
 
-        cursor = self.__conexao.execute(sql, parametros) if parametros else self.__conexao.execute(sql)
+        cursor = self.conexao.execute(sql, parametros) if parametros else self.conexao.execute(sql)
         colunas = tuple(coluna[0] for coluna in cursor.description) if cursor.description else tuple()
         linhas_afetadas = cursor.rowcount if cursor.rowcount >= 0 and not colunas else None
         gerador = (tuple(linha) for linha in cursor)
