@@ -8,8 +8,8 @@ from .. import util, tipagem
 # externo
 from pywinauto.timings import Timings
 from pywinauto.win32structures import RECT
-from pywinauto import Application, Desktop, mouse
 from pywinauto.controls.hwndwrapper import HwndWrapper
+from pywinauto import Application, Desktop, mouse, WindowSpecification
 
 # ignorar warnings do pywinauto
 warnings.simplefilter('ignore', category=UserWarning)
@@ -123,6 +123,8 @@ class Janela:
         - Procura elementos a partir do nível superior da janela
         - O tipo do retorno pode ser diferente dependendo do tipo do backend e controle
         - Retornado uma classe genérica que compartilham múltiplos métodos"""
+        if isinstance(parent, WindowSpecification):
+            parent = parent.wrapper_object()
         return self.aplicacao.windows(title=title, title_re=title_re,
                                       class_name=class_name, class_name_re=class_name_re,
                                       control_id=control_id, parent=parent,
