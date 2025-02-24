@@ -1,7 +1,7 @@
 # std
 from __future__ import annotations
 from typing import Self
-import ctypes, warnings, logging
+import ctypes, warnings, logging, re
 # interno
 from . import Coordenada
 from .. import util, tipagem
@@ -115,8 +115,8 @@ class Janela:
         self.aplicacao.kill()
 
     def elementos (self, *,
-            title: str | None = None, title_re: str | None = None,
-            class_name: str | None = None, class_name_re: str | None = None,
+            title: str | None = None, title_re: str | re.Pattern[str] | None = None,
+            class_name: str | None = None, class_name_re: str | re.Pattern[str] | None = None,
             control_id: int | None = None, parent: HwndWrapper | None = None,
             top_level_only=True, visible_only=True, enabled_only=True) -> list[HwndWrapper]:
         """Obter uma lista elementos com base nos parâmetros informados
