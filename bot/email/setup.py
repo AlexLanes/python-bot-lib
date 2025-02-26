@@ -1,9 +1,6 @@
 # std
-from smtplib import SMTP
-from typing import Generator
-from imaplib import IMAP4_SSL
+import re, smtplib, imaplib, typing
 from email.message import Message
-from re import search as re_search
 from email import message_from_bytes
 from email.mime.text import MIMEText
 from email.header import decode_header
@@ -18,25 +15,33 @@ from datetime import (
 # interno
 from .. import tipagem, logger, configfile, util, formatos, estruturas
 
-def enviar_email (destinatarios: list[tipagem.email], assunto="", conteudo="", anexos: list[estruturas.Caminho] = []) -> None:
+def enviar_email (destinatarios: typing.Iterable[tipagem.email],
+                  assunto = "",
+                  conteudo = "",
+                  anexos: list[estruturas.Caminho] = []) -> None:
     """Enviar email para uma lista de `destinatarios` com `assunto`, `conteudo` e lista de `anexos`
     - Abstração `smtplib`
     - `conteudo` pode ser uma string html se começar com "<"
-    - Variáveis .ini `[email.enviar] -> user, password, host`"""
+    - Variáveis .ini `[email.enviar] -> user, password, host, [port: 587, ssl: False, ]`"""
     logger.informar(f"Enviando e-mail '{assunto}' para {str(destinatarios)}")
     assert destinatarios, "Pelo menos um e-mail é necessário para ser enviado"
 
     # variaveis do configfile
-    user, password, host = configfile.obter_opcoes("email.enviar", ["user", "password", "host"])
-    # from no-reply
-    _from = f"no-reply <{user}>"
+    secao = "email.enviar"
+    ssl = configfile.obter_opcao_ou(secao, "ssl", False)
+    port = configfile.obter_opcao_ou(secao, "port", 587)
+    user, password, host = configfile.obter_opcoes(secao, ("user", "password", "host"))
 
+    # remetente
+    from_no_reply = f"no-reply <{user}>"
+
+    # mensagem
     mensagem = MIMEMultipart()
-    # headers do e-mail
-    mensagem["From"] = _from
+    # headers
+    mensagem["From"] = from_no_reply
     mensagem["To"] = ", ".join(destinatarios)
     mensagem["Subject"] = assunto
-    # body do e-mail
+    # body
     if conteudo and conteudo[0] == " ": # remover espaços vazios no começo
         conteudo = conteudo.lstrip()
     tipo = "html" if conteudo.startswith("<") else "plain" # html se começar com "<"
@@ -57,15 +62,18 @@ def enviar_email (destinatarios: list[tipagem.email], assunto="", conteudo="", a
 
     # conectar ao servidor SMTP e enviar o e-mail
     try:
-        with SMTP(host, 587) as smtp:
-            smtp.starttls()
+        TipoSMTP = smtplib.SMTP_SSL if ssl else smtplib.SMTP
+        with TipoSMTP(host, port, timeout=10.0) as smtp:
+            estruturas.Resultado(smtp.starttls)
             smtp.login(user, password)
-            erro = smtp.sendmail(_from, destinatarios, mensagem.as_string())
+            erro = smtp.sendmail(from_no_reply, destinatarios, mensagem.as_string())
             assert not erro, formatos.Json(erro).stringify(False)
     except Exception as erro:
         logger.alertar(f"Erro ao enviar e-mail\n\t{type(erro).__name__}\n\t{erro}")
 
-def obter_emails (limite: int | slice = None, query="ALL", visualizar=False) -> Generator[estruturas.Email, None, None]:
+def obter_emails (limite: int | slice | None = None,
+                  query="ALL",
+                  visualizar=False) -> typing.Generator[estruturas.Email, None, None]:
     """Obter e-mails de uma `Inbox`
     - Abstração `imaplib`
     - Variáveis .ini `[email.obter] -> user, password, host`
@@ -83,17 +91,20 @@ def obter_emails (limite: int | slice = None, query="ALL", visualizar=False) -> 
     def extrair_email (email: str) -> tipagem.email:
         """Extrair apenas a parte do e-mail da string fornecida
         - `email` pode conter o nome da pessoa antes do email"""
-        resultado = re_search(r"[\w\-\.]+@([\w\-]+\.)+[\w\-]{2,4}", util.normalizar(email))
+        resultado = re.search(r"[\w\-\.]+@([\w\-]+\.)+[\w\-]{2,4}", util.normalizar(email))
         if resultado == None:
             logger.alertar(f"Uma extração de e-mail não retornou resultado: '{email}'")
             return ""
         return resultado.group()
+
     def extrair_assunto (assunto: str) -> str:
         """Extrair assunto do e-mail e realizar o decode quando necessário
         - o subject pode vir em formatos não convencionais como `=?utf-8?B?Q29tbyBvIEhvbG1lcyByZWNlYmUgb3Mgbm92b3MgdXN1w6FyaW9z?=`"""
-        decoded = [mensagem.decode(charset or "utf-8") if isinstance(mensagem, bytes) else mensagem 
-                   for mensagem, charset in decode_header(assunto)]
-        return "".join(decoded)
+        return "".join(
+            mensagem.decode(charset or "utf-8") if isinstance(mensagem, bytes) else mensagem 
+            for mensagem, charset in decode_header(assunto)
+        )
+
     def extrair_datetime (datetime: str | None) -> Datetime:
         """Extrair o datetime do e-mail e realizar o parse para o `Datetime` BRT
         - Retorna o Datetime.now() BRT caso seja None ou ocorra algum erro"""
@@ -106,7 +117,7 @@ def obter_emails (limite: int | slice = None, query="ALL", visualizar=False) -> 
             logger.alertar(f"Extração do datetime '{datetime}' do email resultou em falha")
             return Datetime.now(brt)
 
-    with IMAP4_SSL(host) as imap:
+    with imaplib.IMAP4_SSL(host) as imap:
         imap.login(user, password)
         imap.select(readonly=not visualizar) # Selecionar Inbox e método de visualização
 
