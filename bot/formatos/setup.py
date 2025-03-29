@@ -1,6 +1,7 @@
 # std
 from __future__ import annotations
-from typing import Generator, Any, Self
+from types import UnionType, NoneType
+from typing import Any, Generator, Self, get_args, get_origin
 from json import (
     JSONDecodeError,
     dumps as json_dumps, 
@@ -15,7 +16,7 @@ from xml.etree.ElementTree import (
     fromstring as xml_from_string,
 )
 # interno
-from .. import logger, tipagem, estruturas
+from .. import tipagem, estruturas
 # externo
 import yaml
 from jsonschema import (
@@ -70,6 +71,14 @@ class Json [T]:
         self.__item = item
         self.__valido = True
 
+    @classmethod
+    def parse (cls, json: str) -> tuple[Json, str | None]:
+        """Realiza o parse de uma string JSON na classe `Json`
+        - retorno `(Json, None) ou (Json vazio, mensagem de erro)`"""
+        try: return Json(json_parse(json)), None
+        except JSONDecodeError as erro:
+            return Json({}), erro.msg
+
     def __repr__ (self) -> str:
         """Representação da classe"""
         tipo = self.tipo().__name__
@@ -82,12 +91,12 @@ class Json [T]:
     def __getattr__ (self, chave: str) -> Json:
         return self[chave]
 
-    def __getitem__ (self, valor: int | str) -> Json:
+    def __getitem__ (self, value: int | str) -> Json:
         """Obter o item filho na posição `int` ou elemento de nome `str`
         - Invalidar o `json` se o caminho for invalido"""
         try:
             if self.tipo() in (list, tuple, dict):
-                return Json(self.__item[valor])
+                return Json(self.__item[value]) # type: ignore
 
         # caminho inválido
         except (KeyError, IndexError): pass
@@ -105,14 +114,14 @@ class Json [T]:
 
     def __contains__ (self, value: object) -> bool:
         """Comparador `in` do valor"""
-        return value in self.valor() if self.tipo() in (list, tuple, dict, str) else False
+        return value in self.valor() if self.tipo() in (list, tuple, dict, str) else False # type: ignore
 
     def tipo (self) -> type[T]:
-        """Tipo atual do `json`"""
+        """Tipo raiz do `json`"""
         return type(self.__item)
 
     def valor (self) -> T:
-        """Valor atual do `json`"""
+        """Valor raiz do `json`"""
         return self.__item
 
     def stringify (self, indentar=True) -> str:
@@ -125,22 +134,23 @@ class Json [T]:
             raise TypeError(f"Tipo inesperado para ser transformado em json: '{type(obj)}'")
         return json_dumps(self.__item, ensure_ascii=False, default=tratamentos, indent=4 if indentar else None)
 
-    def validar (self, schema: dict) -> bool:
-        """Validar se o `json` está de acordo com o `schema`"""
-        try: return validate_schema(self.__item, schema) == None
+    def validar (self, schema: dict[str, Any]) -> tuple[bool, None | str]:
+        """Validar se o `json` está de acordo com o `schema`
+        - retorno `(sucesso, None ou mensagem de erro)`"""
+        try: return validate_schema(self.__item, schema) == None, None
         except SchemaError as erro:
-            logger.alertar(f"Schema de validação do {self} apresentou erro\n\t{erro.message}\n\t{schema}")
+            return False, f"Schema para validação apresentou o erro: {erro.message}"
         except ValidationError as erro:
-            logger.alertar(f"Validação do {self} apresentou erro\n\t{erro.message}\n\t{self.__item}")
-        return False
+            return False, f"Erro de validação: {erro.message}"
 
-    @classmethod
-    def parse (cls, json: str) -> Json | None:
-        """Realiza o parse de uma string JSON na classe `Json`
-        - `None` caso ocorra falha"""
-        try: return Json(json_parse(json))
-        except JSONDecodeError as erro:
-            return logger.alertar(f"Falha ao realizar o parse no json\n\t{json}\n\t{erro.msg}")
+    def unmarshal[C] (self, cls: type[C]) -> tuple[C, None | str]:
+        """Realizar o parse dos `Json` conforme a classe `cls`
+        - retorno `(instancia preenchida corretamente, None) ou (instancia vazia, mensagem de erro)`"""
+        valor = self.valor()
+        return Unmarshaller(cls).parse(valor) if isinstance(valor, dict) else (
+            object.__new__(cls),
+            f"Json deve ser do tipo 'dict' para ser feito o unmarshal e não tipo '{self.tipo()}'"
+        )
 
 class ElementoXML:
     """Classe de manipulação do XML
@@ -149,7 +159,10 @@ class ElementoXML:
     __elemento: Element
     __prefixos: dict[str, tipagem.url] = {}
 
-    def __init__ (self, nome: str, texto: str = None, namespace: tipagem.url = None, atributos: dict[str, str] = None) -> None:
+    def __init__ (self, nome: str,
+                        texto: str | None = None,
+                        namespace: tipagem.url | None = None,
+                        atributos: dict[str, str] | None = None) -> None:
         nome = f"{{{namespace}}}{nome}" if namespace else nome
         self.__elemento = Element(nome, atributos or {})
         self.__elemento.text = texto
@@ -190,38 +203,16 @@ class ElementoXML:
         """Formato `bool`"""
         return bool(len(self) or self.texto)
 
-    def __getitem__ (self, valor: int | str) -> ElementoXML | None:
+    def __getitem__ (self, value: int | str) -> ElementoXML | None:
         """Obter o elemento filho na posição `int` ou o primeiro elemento de nome `str`
         - `None` caso não seja possível"""
         elementos = self.elementos()
-        if isinstance(valor, int) and valor < len(elementos):
-            return elementos[valor]
-        if isinstance(valor, str) and any(e.nome == valor for e in elementos):
-            return [e for e in elementos if e.nome == valor][0]
+        if isinstance(value, int) and value < len(elementos):
+            return elementos[value]
+        for elemento in elementos:
+            if elemento.nome == str(value):
+                return elemento
         return None
-
-    @property
-    def __dict__ (self) -> dict[str, str | None | list[dict]]:
-        """Versão `dict` do `ElementoXML`"""
-        elemento = {}
-        # atributos
-        elemento.update({ f"@{nome}": valor for nome, valor in self.atributos.items() })
-        # namespace
-        if ns := self.namespace:
-            prefixo = ([p for p, url in self.__prefixos.items() if url == ns] or ["ns"])[0]
-            elemento.update({ f"@xmlns:{prefixo}": ns })
-        # elemento = filhos ou texto
-        elemento[self.nome] = [e.__dict__ for e in self] if len(self) else self.texto
-        return elemento
-
-    def __nome_namespace (self) -> tuple[str, tipagem.url | None]:
-        """Extrair nome e namespace do `Element.tag`
-        - `nome, namespace = self.__nome_namespace()`"""
-        tag = self.__elemento.tag
-        if tag.startswith("{") and "}" in tag:
-            idx = tag.index("}")
-            return (tag[idx + 1 :], tag[1 : idx])
-        else: return (tag, None)
 
     @property
     def nome (self) -> str:
@@ -257,14 +248,39 @@ class ElementoXML:
         self.__elemento.text = valor
 
     @property
-    def atributos (self) -> dict[str, tipagem.url]:
+    def atributos (self) -> dict[str, str]:
         """`Atributos` do elemento"""
         return self.__elemento.attrib
 
     @atributos.setter
-    def atributos (self, valor: dict[str, tipagem.url]) -> None:
+    def atributos (self, valor: dict[str, str]) -> None:
         """Setar `atributos`"""
         self.__elemento.attrib = valor
+
+    def __nome_namespace (self) -> tuple[str, tipagem.url | None]:
+        """Extrair nome e namespace do `Element.tag`
+        - `nome, namespace = self.__nome_namespace()`"""
+        tag = self.__elemento.tag
+        if tag.startswith("{") and "}" in tag:
+            idx = tag.index("}")
+            return (tag[idx + 1 :], tag[1 : idx])
+        else: return (tag, None)
+
+    def to_dict (self) -> dict[str, str | None | list[dict]]:
+        """Versão `dict` do `ElementoXML`"""
+        elemento = {}
+        # atributos
+        elemento.update({
+            f"@{nome}": valor
+            for nome, valor in self.atributos.items()
+        })
+        # namespace
+        if ns := self.namespace:
+            prefixo = ([p for p, url in self.__prefixos.items() if url == ns] or ["ns"])[0]
+            elemento.update({ f"@xmlns:{prefixo}": ns })
+        # elemento = filhos ou texto
+        elemento[self.nome] = [e.to_dict() for e in self] if len(self) else self.texto
+        return elemento
 
     def elementos (self) -> list[ElementoXML]:
         """Elementos filhos do elemento
@@ -274,11 +290,11 @@ class ElementoXML:
             for elemento in self.__elemento
         ]
 
-    def encontrar (self, xpath: str, namespaces: dict[str, tipagem.url] = None) -> list[ElementoXML]:
+    def encontrar (self, xpath: str, namespaces: dict[str, tipagem.url] | None = None) -> list[ElementoXML]:
         """Encontrar elementos que resultem no `xpath` informado
         - `xpath` deve retornar em elementos apenas, não em texto ou atributo
         - `namespaces` para utilizar prefixos no `xpath`, informar um dicionario { ns: url } ou registrar_prefixo()"""
-        namespaces = namespaces or {}
+        namespaces = namespaces.copy() if namespaces else {}
         namespaces.update(self.__prefixos)
         return [
             ElementoXML.__from_element(element)
@@ -321,9 +337,128 @@ class ElementoXML:
         ElementoXML.__prefixos[prefixo] = namespace
         return register_namespace(prefixo, namespace) or namespace
 
+class UnmarshalError (Exception):
+    def __init__ (self, path: str, expected: type, value: Any) -> None:
+        super().__init__(
+            f"Erro ao processar '{path}'; Esperado({expected}); Recebido '{value}' ({type(value).__name__})"
+        )
+
+class Unmarshaller[T]:
+    """Classe para validação e parse de um `dict` para uma classe customizada
+
+    ```
+    # Classes de exemplo
+    # tipos primitivos, dict, list e classes
+    class Endereco:
+        rua: str
+        numero: int | None
+    class Pessoa:
+        nome: str
+        idade: int
+        endereco: Endereco
+        documentos: dict[str, str | None]
+
+    # validar sucesso
+    item, erro = Unmarshaller(Pessoa).parse({
+        "nome": "João",
+        "idade": 42,
+        "endereco": {"rua": "Avenida", "numero": None, "pais": "Brasil"},
+        "documentos": {"cpf": "123", "rg": None }
+    })
+    assert not erro, f"Falha no unmarshal: {erro}"
+    ```
+    """
+
+    __cls: type[T]
+    __primitives = (str, int, float, bool, NoneType)
+
+    def __init__(self, cls: type[T]) -> None:
+        self.__cls = cls
+
+    def parse (self, dados: dict[str, Any], **kwargs: str) -> tuple[T, None | str]:
+        """Realizar o parse dos `dados` conforme a classe informada
+        - retorno `(instancia preenchida corretamente, None) ou (instancia vazia, mensagem de erro)`"""
+        erro = None
+        path = kwargs.get("path", "")
+        obj = object.__new__(self.__cls)
+        annotations_of_cls = self.__collect_annotations()
+
+        try:
+            for name, t in annotations_of_cls.items():
+                current_path = f"{path}.{name}" if path else name
+                if name not in dados and not self.__is_optional_type(t):
+                    raise UnmarshalError(current_path, t, "")
+                value = self.__validate(t, dados[name], current_path)
+                setattr(obj, name, value)
+
+        except UnmarshalError as e:
+            erro = str(e)
+
+        return obj, erro
+
+    def __validate (self, expected: type | Any, value: Any, path: str) -> Any:
+        # any
+        if expected is Any: return value
+
+        # primitive
+        if any(t in self.__primitives and isinstance(value, t)
+               for t in self.__expand_if_union(expected)):
+            return value
+
+        # class
+        if hasattr(expected, '__annotations__'):
+            if not isinstance(value, dict):
+                raise UnmarshalError(path, dict, value)
+            value, nok = Unmarshaller(expected).parse(value, path=path)
+            if nok: raise UnmarshalError(path, dict, value)
+            return value
+
+        origin = get_origin(expected)
+
+        # list
+        if expected is list or origin is list:
+            item_type, *_ = get_args(expected) or [Any]
+            if not isinstance(value, list):
+                raise UnmarshalError(path, list, value)
+            return [
+                self.__validate(item_type, v, f"{path}[{i}]")
+                for i, v in enumerate(value)
+            ]
+
+        # dict
+        if expected is dict or origin is dict:
+            key_type, val_type = get_args(expected) or (str, Any)
+            if key_type is not str:
+                raise NotImplementedError("Apenas dict[str, V] é suportado.")
+            if not isinstance(value, dict):
+                raise UnmarshalError(path, dict, value)
+            return {
+                k: self.__validate(val_type, v, f"{path}.{k}")
+                for k, v in value.items()
+            }
+
+        raise UnmarshalError(path, expected, value)
+
+    def __collect_annotations (self) -> dict[str, type]:
+        base_and_parent_annotations = {}
+        for cls in reversed(self.__cls.__mro__):
+            base_and_parent_annotations.update(getattr(cls, '__annotations__', {}))
+        return base_and_parent_annotations
+
+    def __is_optional_type (self, t: type) -> bool:
+        return (
+            get_origin(t) is UnionType
+            and NoneType in get_args(t)
+            and len(get_args(t)) > 1
+        )
+
+    def __expand_if_union (self, t: type) -> tuple[type]:
+        return get_args(t) if get_origin(t) is UnionType else (t, )
+
 __all__ = [
     "Json",
     "yaml_parse",
     "ElementoXML",
+    "Unmarshaller",
     "yaml_stringify"
 ]
