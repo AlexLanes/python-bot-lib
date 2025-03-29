@@ -24,7 +24,7 @@ DIRECOES_SCROLL = Literal["cima", "baixo"]
 """Direções de scroll do mouse"""
 BOTOES_MOUSE = Literal["left", "middle", "right"]
 """Botões aceitos pelo `pynput`"""
-PORCENTAGENS = Literal["0.9", "0.8", "0.7", "0.6", "0.5", "0.4", "0.3", "0.2", "0.1"]
+PORCENTAGENS = Literal["0.9", "0.8", "0.7", "0.6", "0.5", "0.4", "0.3", "0.2", "0.1"] | float
 """Porcentagens (float) entre 0.0 e 1.0"""
 ESTRATEGIAS_WEBELEMENT = Literal["id", "xpath", "link text", "name", "tag name", "class name", "css selector", "partial link text"]
 """Estratégias para a localização de WebElements no `Selenium`"""
