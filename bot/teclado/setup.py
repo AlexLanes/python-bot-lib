@@ -1,7 +1,7 @@
 # std
 from time import sleep
 from atexit import register
-from typing import Callable
+from typing import Any, Callable
 # interno
 from .. import tipagem
 # externo
@@ -11,23 +11,23 @@ from pynput.keyboard import Controller, Key, Listener
 TECLADO = Controller()
 CALLBACKS: dict[str, Callable[[], None]] = {}
 
-def apertar_tecla (tecla: tipagem.BOTOES_TECLADO, quantidade=1, delay=0.1) -> None:
+def apertar_tecla (tecla: tipagem.BOTOES_TECLADO | tipagem.char, quantidade=1, delay=0.1) -> None:
     """Apertar e soltar uma tecla `qtd` vezes
     - `tecla` pode ser do `BOTOES_TECLADO` ou um `char`"""
-    tecla: Key | str = tecla if len(tecla) == 1 else Key[tecla]
+    t = tecla if len(tecla) == 1 else Key[tecla]
     for _ in range(max(quantidade, 1)):
-        TECLADO.tap(tecla)
+        TECLADO.tap(t)
         sleep(delay)
 
-def atalho_teclado (teclas: list[tipagem.BOTOES_TECLADO], delay=0.5) -> None:
+def atalho_teclado (teclas: list[tipagem.BOTOES_TECLADO | tipagem.char], delay=0.5) -> None:
     """Apertar as `teclas` sequencialmente e depois soltá-las em ordem reversa
     - `tecla` pode ser do `BOTOES_TECLADO` ou um `char`"""
-    teclas: list[Key | str] = [
+    t = [
         tecla if len(tecla) == 1 else Key[tecla]
         for tecla in teclas
     ]
-    for tecla in teclas: TECLADO.press(tecla) # pressionar
-    for tecla in reversed(teclas): TECLADO.release(tecla) # soltar
+    for tecla in t: TECLADO.press(tecla) # pressionar
+    for tecla in reversed(t): TECLADO.release(tecla) # soltar
     sleep(delay)
 
 def digitar_teclado (texto: str, delay=0.05) -> None:
@@ -51,7 +51,7 @@ def texto_copiado (apagar=False) -> str:
     if apagar: copiar_texto("")
     return texto
 
-def observar_tecla (tecla: tipagem.BOTOES_TECLADO, callback: Callable[[], None]) -> None:
+def observar_tecla (tecla: tipagem.BOTOES_TECLADO | tipagem.char, callback: Callable[[], None]) -> None:
     """Observar quando a `tecla` é apertada e chamar o `callback`
     - `tecla` pode ser do `BOTOES_TECLADO` ou um `char`"""
     CALLBACKS[tecla] = callback
@@ -60,8 +60,8 @@ def observar_tecla (tecla: tipagem.BOTOES_TECLADO, callback: Callable[[], None])
     if len(CALLBACKS) > 1: return
 
     # iniciar observador
-    def on_press (tecla: Key | str) -> None:
-        tecla: str = tecla.name if isinstance(tecla, Key) else str(tecla).strip("'")
+    def on_press (t: Key | str | Any) -> None:
+        tecla = t.name if isinstance(t, Key) else str(t).strip("'")
         callback = CALLBACKS.get(tecla, lambda: None)
         callback()
 
