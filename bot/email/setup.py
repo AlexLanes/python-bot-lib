@@ -1,5 +1,5 @@
 # std
-import re, smtplib, imaplib, typing
+import re, smtplib, imaplib, typing, dataclasses
 from email.message import Message
 from email import message_from_bytes
 from email.mime.text import MIMEText
@@ -14,6 +14,28 @@ from datetime import (
 )
 # interno
 from .. import tipagem, logger, configfile, util, formatos, estruturas
+
+@dataclasses.dataclass
+class Email:
+    """Classe para armazenar informações extraídas de Email"""
+
+    uid: int
+    """id do e-mail"""
+    remetente: tipagem.email
+    """Remetente que enviou o e-mail"""
+    destinatarios: list[tipagem.email]
+    """Destinatários que receberam o e-mail"""
+    assunto: str
+    """Assunto do e-mail"""
+    data: Datetime
+    """Data de envio do e-mail"""
+    texto: str | None
+    """Conteúdo do e-mail como texto"""
+    html: str | None
+    """Conteúdo do e-mail como html"""
+    anexos: list[tuple[str, str, bytes]]
+    """Anexos do e-mail
+    - `for nome, tipo, conteudo in email.anexos:`"""
 
 def enviar_email (destinatarios: typing.Iterable[tipagem.email],
                   assunto = "",
@@ -30,7 +52,7 @@ def enviar_email (destinatarios: typing.Iterable[tipagem.email],
     secao = "email.enviar"
     ssl = configfile.obter_opcao_ou(secao, "ssl", False)
     port = configfile.obter_opcao_ou(secao, "port", 587)
-    user, password, host = configfile.obter_opcoes(secao, ("user", "password", "host"))
+    user, password, host = configfile.obter_opcoes_obrigatorias(secao, "user", "password", "host")
 
     # remetente
     from_no_reply = f"no-reply <{user}>"
@@ -66,14 +88,14 @@ def enviar_email (destinatarios: typing.Iterable[tipagem.email],
         with TipoSMTP(host, port, timeout=10.0) as smtp:
             estruturas.Resultado(smtp.starttls)
             smtp.login(user, password)
-            erro = smtp.sendmail(from_no_reply, destinatarios, mensagem.as_string())
+            erro = smtp.sendmail(from_no_reply, destinatarios, mensagem.as_string()) # type: ignore
             assert not erro, formatos.Json(erro).stringify(False)
     except Exception as erro:
         logger.alertar(f"Erro ao enviar e-mail\n\t{type(erro).__name__}\n\t{erro}")
 
 def obter_emails (limite: int | slice | None = None,
                   query="ALL",
-                  visualizar=False) -> typing.Generator[estruturas.Email, None, None]:
+                  visualizar=False) -> typing.Generator[Email, None, None]:
     """Obter e-mails de uma `Inbox`
     - Abstração `imaplib`
     - Variáveis .ini `[email.obter] -> user, password, host`
@@ -86,7 +108,7 @@ def obter_emails (limite: int | slice | None = None,
         - (OR (TO 'example@gmail.com') (FROM 'example@gmail.com')) = Emails enviados para OU recebidos de"""
     limite = limite if isinstance(limite, slice) else slice(limite)
     # variaveis do configfile
-    user, password, host = configfile.obter_opcoes("email.obter", ["user", "password", "host"])
+    user, password, host = configfile.obter_opcoes_obrigatorias("email.obter", "user", "password", "host")
 
     def extrair_email (email: str) -> tipagem.email:
         """Extrair apenas a parte do e-mail da string fornecida
@@ -110,7 +132,7 @@ def obter_emails (limite: int | slice | None = None,
         - Retorna o Datetime.now() BRT caso seja None ou ocorra algum erro"""
         brt = TimeZone(TimeDelta(hours=-3))
         try:
-            data: Datetime = parsedate_to_datetime(datetime)
+            data = parsedate_to_datetime(datetime)
             assert isinstance(data, Datetime)
             return data.astimezone(brt)
         except:
@@ -122,43 +144,52 @@ def obter_emails (limite: int | slice | None = None,
         imap.select(readonly=not visualizar) # Selecionar Inbox e método de visualização
 
         # obter os ids da query
-        uids: bytes = imap.search(None, query)[1][0] # ids em byte
-        uids: list[str] = uids.decode().split(" ") # transformar para uma lista de ids em string
-        uids = [*reversed(uids)][limite] # inverter para os mais recentes primeiro e aplicar o slice nos ids
+        uids_bytes: bytes = imap.search(None, query)[1][0] # type: ignore
+         # inverter para os mais recentes primeiro e aplicar o slice nos ids
+        uids = list(reversed(uids_bytes.decode().split(" ")))[limite]
 
         if not uids or uids[0] == "": return
 
         for uid in uids:
-            email = estruturas.Email(int(uid), "", [], "", None, None, None, []) # armazenará as informações extraídas
-            mensagem: bytes = imap.fetch(uid, '(RFC822)')[1][0][1] # bytes da mensagem
-            mensagem: Message = message_from_bytes(mensagem) # parser email
-
             # marcar lido
             if visualizar: imap.store(uid, "+FLAGS", "SEEN")
 
-            # extrair headers desejados
-            email.remetente = extrair_email(mensagem.get("From", ""))
-            email.destinatarios = [extrair_email(email) for email in mensagem.get("To", "").split(",")]
-            email.assunto = extrair_assunto(mensagem.get("Subject", ""))
-            email.data = extrair_datetime(mensagem.get("Date"))
+            # parse da mensagem
+            bytes_email: bytes = imap.fetch(uid, '(RFC822)')[1][0][1] # type: ignore
+            mensagem: Message = message_from_bytes(bytes_email)
+
+            # criar estrutura
+            email = Email(
+                uid = int(uid),
+                remetente = extrair_email(mensagem.get("From", "")),
+                destinatarios = [extrair_email(email) for email in mensagem.get("To", "").split(",")],
+                assunto = extrair_assunto(mensagem.get("Subject", "")),
+                data = extrair_datetime(mensagem.get("Date")),
+                texto = None,
+                html = None,
+                anexos = [],
+            )
 
             # navegar pelas partes do multipart/...
             # extrair o conteúdo e possíveis anexos
             for parte in mensagem.walk():
+
                 # extrair anexo
                 if "attachment" in parte.get("Content-Disposition", ""):
                     nome = parte.get_filename("blob")
                     tipo = parte.get_content_type()
                     arquivo = parte.get_payload(decode=True)
-                    email.anexos.append((nome, tipo, arquivo))
+                    email.anexos.append((nome, tipo, arquivo)) # type: ignore
+
                 # extrai o conteúdo como string
                 elif "text/plain" in parte.get_content_type():
-                    payload: bytes = parte.get_payload(decode=True)
+                    payload: bytes = parte.get_payload(decode=True) # type: ignore
                     charset = parte.get_content_charset("utf-8")
                     email.texto = payload.decode(charset)
+
                 # extrai o conteúdo html como string
                 elif "text/html" in parte.get_content_type():
-                    payload: bytes = parte.get_payload(decode=True)
+                    payload: bytes = parte.get_payload(decode=True) # type: ignore
                     charset = parte.get_content_charset("utf-8")
                     email.html = payload.decode(charset)
 
