@@ -1,7 +1,7 @@
 import bot
 
 USUARIO, REPOSITORIO = "AlexLanes", "python-bot-lib"
-HOST, TOKEN = bot.configfile.obter_opcoes("github", ["host", "token"])
+HOST, TOKEN = bot.configfile.obter_opcoes_obrigatorias("github", "host", "token")
 
 def apagar_release (id_release: int) -> None:
     response = bot.http.request(
@@ -40,8 +40,9 @@ def obter_releases () -> dict[str, int]:
             "Authorization": f"Bearer {TOKEN}"
         }
     )
-    releases = bot.formatos.Json.parse(response.text)
-    schema = {
+
+    releases, erro = bot.formatos.Json.parse(response.text)
+    assert response.status_code == 200 and not erro and releases.validar({
         "type": "array",
         "items": {
             "type": "object",
@@ -50,8 +51,7 @@ def obter_releases () -> dict[str, int]:
                 "tag_name": { "type": "string" }
             }
         }
-    }
-    assert response.status_code == 200 and releases and releases.validar(schema)
+    }), "Erro ao obter os releases"
 
     return {
         release["tag_name"]: release["id"]
