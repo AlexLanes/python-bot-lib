@@ -1,5 +1,6 @@
 # std
 import re, sqlite3, typing
+import itertools, functools, dataclasses
 # interno
 from .. import tipagem, database, logger, estruturas
 # externo
@@ -57,6 +58,102 @@ def criar_excel (caminho: estruturas.Caminho, planilhas: dict[str, polars.DataFr
 
     return caminho
 
+@dataclasses.dataclass
+class ResultadoSQL:
+    """Classe utilizada no retorno de comando em banco de dados
+
+    ```
+    # representação "vazio", "com linhas afetadas" ou "com colunas e linhas"
+    repr(resultado)
+    resultado.linhas_afetadas != None # para comandos de manipulação
+    resultado.colunas # para comandos de consulta
+
+    # teste de sucesso, indica se teve linhas_afetadas ou linhas/colunas retornadas
+    bool(resultado) | if resultado: ...
+
+    # quantidade de linhas retornadas
+    len(resultado)
+
+    # iteração sobre as linhas `Generator`
+    # as linhas são consumidas quando iteradas sobre
+    linha: tuple[tipagem.tipoSQL, ...] = next(resultado.linhas)
+    for linha in resultado.linhas:
+    for linha in resultado:
+
+    # fácil acesso a primeira linha
+    resultado["nome_coluna"]
+    ```"""
+
+    linhas_afetadas: int | None
+    """Quantidade de linhas afetadas pelo comando sql
+    - `None` indica que não se aplica para o comando sql"""
+    colunas: tuple[str, ...]
+    """Colunas das linhas retornadas (se houver)"""
+    linhas: typing.Iterable[tuple[tipagem.tipoSQL, ...]]
+    """Generator das linhas retornadas (se houver)
+    - Consumido quando iterado sobre"""
+
+    def __iter__ (self) -> typing.Generator[tuple[tipagem.tipoSQL, ...], None, None]:
+        """Generator do self.linhas"""
+        for linha in self.linhas:
+            yield linha
+
+    @functools.cached_property
+    def __p (self) -> tuple[tipagem.tipoSQL, ...] | None:
+        """Cache da primeira linha no resultado
+        - `None` caso não possua"""
+        self.linhas, linhas = itertools.tee(self.linhas)
+        try: return next(linhas)
+        except StopIteration: return None
+
+    def __repr__ (self) -> str:
+        "Representação da classe"
+        tipo = f"com {self.linhas_afetadas} linha(s) afetada(s)" if self.linhas_afetadas \
+            else f"com {len(self.colunas)} coluna(s) e {len(self)} linha(s)" if self.__p \
+            else f"vazio"
+        return f"<ResultadoSQL {tipo}>"
+
+    def __bool__ (self) -> bool:
+        """Representação se possui linhas ou linhas_afetadas"""
+        return "vazio" not in repr(self)
+
+    def __len__ (self) -> int:
+        """Obter a quantidade de linhas no retornadas"""
+        self.linhas, linhas = itertools.tee(self.linhas)
+        return sum(1 for _ in linhas)
+
+    def __getitem__ (self, campo: str) -> tipagem.tipoSQL:
+        """Obter o `campo` da primeira linha"""
+        return self.__p[self.colunas.index(campo)] if self.__p else None
+
+    def to_dict (self) -> dict[str, int | None | list[dict]]:
+        """Representação formato dicionário"""
+        self.linhas, linhas = itertools.tee(self.linhas)
+        return {
+            "linhas_afetadas": self.linhas_afetadas,
+            "resultados": [
+                { 
+                    coluna: valor
+                    for coluna, valor in zip(self.colunas, linha)
+                }
+                for linha in linhas
+            ]
+        }
+
+    def to_dataframe (self, transformar_string=False) -> polars.DataFrame:
+        """Salvar o resultado em um `polars.DataFrame`
+        - `transformar_string` flag se os dados serão convertidos em `str`"""
+        self.linhas, linhas = itertools.tee(self.linhas)
+        to_string = lambda linha: tuple(
+            str(valor) if valor != None else None
+            for valor in linha
+        )
+        return polars.DataFrame(
+            map(to_string, linhas) if transformar_string else linhas,
+            { coluna: str for coluna in self.colunas } if transformar_string else self.colunas,
+            nan_to_null=True
+        )
+
 class DatabaseODBC:
     """Classe para manipulação de Databases via drivers ODBC
     - Necessário possuir o driver instalado em `ODBC Data Sources`
@@ -105,7 +202,7 @@ class DatabaseODBC:
     def __repr__ (self) -> str:
         return f"<Database ODBC>"
 
-    def tabelas (self, schema: str = None) -> list[tuple[str, str | None]]:
+    def tabelas (self, schema: str | None = None) -> list[tuple[str, str | None]]:
         """Nomes das tabelas e schemas disponíveis
         - `for tabela, schema in database.tabelas()`"""
         cursor = self.conexao.cursor()
@@ -116,7 +213,7 @@ class DatabaseODBC:
         itens.sort(key=lambda item: item[0]) # ordernar pelo nome das tabelas
         return itens
 
-    def colunas (self, tabela: str, schema: str = None) -> list[tuple[str, str]]:
+    def colunas (self, tabela: str, schema: str | None = None) -> list[tuple[str, str]]:
         """Nomes das colunas e tipos da tabela
         - `for coluna, tipo in database.colunas(tabela, schema)`"""
         cursor = self.conexao.cursor()
@@ -139,23 +236,23 @@ class DatabaseODBC:
         except pyodbc.OperationalError:
             self.conexao = pyodbc.connect(self.odbc_args, autocommit=False, timeout=5)
 
-    def execute (self, sql: str, parametros: tipagem.nomeado | tipagem.posicional = None) -> estruturas.ResultadoSQL:
+    def execute (self, sql: str, parametros: tipagem.nomeado | tipagem.posicional | None = None) -> ResultadoSQL:
         """Executar uma única instrução SQL
         - `sql` Comando que será executado. Recomendado ser parametrizado com argumentos posicionais `?` ou nomeados `:nome`
         - `parametros` Parâmetros presentes no `sql`"""
         # `pyodbc` não aceita parâmetros nomeados
         if isinstance(parametros, dict):
             ref_parametros = parametros
-            sql, nomes = sql_nomeado_para_posicional(sql, parametros)
+            sql, nomes = sql_nomeado_para_posicional(sql, parametros) # type: ignore
             parametros = [ref_parametros[nome] for nome in nomes]
 
         cursor = self.conexao.execute(sql, parametros) if parametros else self.conexao.execute(sql)
         colunas = tuple(coluna[0] for coluna in cursor.description) if cursor.description else tuple()
         linhas_afetadas = cursor.rowcount if cursor.rowcount >= 0 and not colunas else None
         gerador = (tuple(linha) for linha in cursor)
-        return estruturas.ResultadoSQL(linhas_afetadas, colunas, gerador)
+        return ResultadoSQL(linhas_afetadas, colunas, gerador)
 
-    def execute_many (self, sql: str, parametros: typing.Iterable[tipagem.nomeado] | typing.Iterable[tipagem.posicional]) -> estruturas.ResultadoSQL:
+    def execute_many (self, sql: str, parametros: typing.Iterable[tipagem.nomeado] | typing.Iterable[tipagem.posicional]) -> ResultadoSQL:
         """Executar uma ou mais instruções SQL
         - Utilizar apenas comandos SQL que resultem em `linhas_afetadas`
         - `sql` Comando que será executado. Recomendado ser parametrizado com argumentos posicionais `?` ou nomeados `:nome`
@@ -169,7 +266,7 @@ class DatabaseODBC:
                 if resultado.linhas_afetadas: total_linhas_afetadas += resultado.linhas_afetadas
             except pyodbc.DatabaseError as erro: 
                 logger.alertar(f"Erro ao executar o parâmetro {parametro}\n\t{[ *erro.args ]}")
-        return estruturas.ResultadoSQL(total_linhas_afetadas, tuple(), (x for x in []))
+        return ResultadoSQL(total_linhas_afetadas, tuple(), (x for x in []))
 
     @staticmethod
     def listar_drivers () -> list[str]:
@@ -204,13 +301,13 @@ class Sqlite:
     def tabelas (self) -> list[str]:
         """Nomes das tabelas disponíveis"""
         sql = "SELECT name FROM sqlite_schema WHERE type = 'table' AND name NOT LIKE 'sqlite_%'"
-        return [tabela for tabela, *_ in self.execute(sql)]
+        return [str(tabela) for tabela, *_ in self.execute(sql)]
 
     def colunas (self, tabela: str) -> list[tuple[str, str]]:
         """Nomes das colunas e tipos da tabela
         - `for coluna, tipo in database.colunas(tabela)`"""
         return [
-            (coluna, tipo)
+            (str(coluna), str(tipo))
             for _, coluna, tipo, *_, in self.execute(f"PRAGMA table_info({tabela})")
         ]
 
@@ -224,25 +321,25 @@ class Sqlite:
         self.__conexao.rollback()
         return self
 
-    def execute (self, sql: str, parametros: tipagem.nomeado | tipagem.posicional = None) -> estruturas.ResultadoSQL:
+    def execute (self, sql: str, parametros: tipagem.nomeado | tipagem.posicional | None = None) -> ResultadoSQL:
         """Executar uma única instrução SQL
         - `sql` Comando que será executado. Recomendado ser parametrizado com argumentos posicionais `?` ou nomeados `:nome`
         - `parametros` Parâmetros presentes no `sql`"""
-        cursor = self.__conexao.execute(sql, parametros) if parametros else self.__conexao.execute(sql)
+        cursor = self.__conexao.execute(sql, parametros) if parametros else self.__conexao.execute(sql) # type: ignore
         colunas = tuple(coluna[0] for coluna in cursor.description) if cursor.description else tuple()
         linhas_afetadas = cursor.rowcount if cursor.rowcount >= 0 and not colunas else None
         gerador = (linha for linha in cursor)
-        return estruturas.ResultadoSQL(linhas_afetadas, colunas, gerador)
+        return ResultadoSQL(linhas_afetadas, colunas, gerador)
 
-    def execute_many (self, sql: str, parametros: typing.Iterable[tipagem.nomeado] | typing.Iterable[tipagem.posicional]) -> estruturas.ResultadoSQL:
+    def execute_many (self, sql: str, parametros: typing.Iterable[tipagem.nomeado] | typing.Iterable[tipagem.posicional]) -> ResultadoSQL:
         """Executar uma ou mais instruções SQL
         - `sql` Comando que será executado. Recomendado ser parametrizado com argumentos nomeados `:nome` ou posicionais `?`
         - `parametros` Lista dos parâmetros presentes no `sql`"""
-        cursor = self.__conexao.executemany(sql, parametros)
+        cursor = self.__conexao.executemany(sql, parametros) # type: ignore
         colunas = tuple(coluna[0] for coluna in cursor.description) if cursor.description else tuple()
         linhas_afetadas = cursor.rowcount if cursor.rowcount >= 0 and not colunas else None
         gerador = (linha for linha in cursor)
-        return estruturas.ResultadoSQL(linhas_afetadas, colunas, gerador)
+        return ResultadoSQL(linhas_afetadas, colunas, gerador)
 
     def to_excel (self, caminho: estruturas.Caminho) -> estruturas.Caminho:
         """Salvar as linhas de todas as tabelas da conexão no `caminho` formato excel

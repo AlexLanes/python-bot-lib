@@ -1,12 +1,9 @@
 # std
 from __future__ import annotations
 from datetime import datetime as Datetime
-import os, typing, pathlib, shutil, inspect, itertools, functools, dataclasses
-# interno
-from .. import tipagem
+import os, typing, pathlib, shutil, inspect, dataclasses
 # externo
 import win32api, win32con
-from polars import DataFrame
 
 P = typing.ParamSpec("P")
 
@@ -82,103 +79,6 @@ class Coordenada:
         x, y, largura, altura = self
         return (x, y, largura + x, altura + y)
 
-@dataclasses.dataclass
-class ResultadoSQL:
-    """Classe utilizada no retorno de comando em banco de dados
-
-    ```
-    # representação "vazio", "com linhas afetadas" ou "com colunas e linhas"
-    repr(resultado)
-    resultado.linhas_afetadas != None # para comandos de manipulação
-    resultado.colunas # para comandos de consulta
-
-    # teste de sucesso, indica se teve linhas_afetadas ou linhas/colunas retornadas
-    bool(resultado) | if resultado: ...
-
-    # quantidade de linhas retornadas
-    len(resultado)
-
-    # iteração sobre as linhas `Generator`
-    # as linhas são consumidas quando iteradas sobre
-    linha: tuple[tipagem.tipoSQL, ...] = next(resultado.linhas)
-    for linha in resultado.linhas:
-    for linha in resultado:
-
-    # fácil acesso a primeira linha
-    resultado["nome_coluna"]
-    ```"""
-
-    linhas_afetadas: int | None
-    """Quantidade de linhas afetadas pelo comando sql
-    - `None` indica que não se aplica para o comando sql"""
-    colunas: tuple[str, ...]
-    """Colunas das linhas retornadas (se houver)"""
-    linhas: typing.Generator[tuple[tipagem.tipoSQL, ...], None, None]
-    """Generator das linhas retornadas (se houver)
-    - Consumido quando iterado sobre"""
-
-    def __iter__ (self) -> typing.Generator[tuple[tipagem.tipoSQL, ...], None, None]:
-        """Generator do self.linhas"""
-        for linha in self.linhas:
-            yield linha
-
-    @functools.cached_property
-    def __p (self) -> tuple[tipagem.tipoSQL, ...] | None:
-        """Cache da primeira linha no resultado
-        - `None` caso não possua"""
-        self.linhas, linhas = itertools.tee(self.linhas)
-        try: return next(linhas)
-        except StopIteration: return None
-
-    def __repr__ (self) -> str:
-        "Representação da classe"
-        tipo = f"com {self.linhas_afetadas} linha(s) afetada(s)" if self.linhas_afetadas \
-            else f"com {len(self.colunas)} coluna(s) e {len(self)} linha(s)" if self.__p \
-            else f"vazio"
-        return f"<ResultadoSQL {tipo}>"
-
-    def __bool__ (self) -> bool:
-        """Representação se possui linhas ou linhas_afetadas"""
-        return "vazio" not in repr(self)
-
-    def __len__ (self) -> int:
-        """Obter a quantidade de linhas no retornadas"""
-        self.linhas, linhas = itertools.tee(self.linhas)
-        return sum(1 for _ in linhas)
-
-    def __getitem__ (self, campo: str) -> tipagem.tipoSQL:
-        """Obter o `campo` da primeira linha"""
-        return self.__p[self.colunas.index(campo)]
-
-    @property
-    def __dict__ (self) -> dict[str, int | None | list[dict]]:
-        """Representação formato dicionário"""
-        self.linhas, linhas = itertools.tee(self.linhas)
-        return {
-            "linhas_afetadas": self.linhas_afetadas,
-            "resultados": [
-                { 
-                    coluna: valor
-                    for coluna, valor in zip(self.colunas, linha)
-                }
-                for linha in linhas
-            ]
-        }
-
-    def to_dataframe (self, transformar_string=False) -> DataFrame:
-        """Salvar o resultado em um `polars.DataFrame`
-        - `transformar_string` flag se os dados serão convertidos em `str`"""
-        self.linhas, linhas = itertools.tee(self.linhas)
-        to_string = lambda linha: tuple(
-            str(valor) if valor != None else None
-            for valor in linha
-        )
-        return DataFrame(
-            map(to_string, linhas) if transformar_string else linhas,
-            { coluna: str for coluna in self.colunas } if transformar_string else self.colunas,
-            nan_to_null=True
-        )
-
 class Resultado [T]:
     """Classe para capturar o resultado ou `Exception` de alguma chamada
 
@@ -212,10 +112,10 @@ class Resultado [T]:
         except Exception as erro: self.__erro = erro
 
     @staticmethod
-    def decorador[T] (func: typing.Callable[P, T]):
+    def decorador[D] (func: typing.Callable[P, D]) -> typing.Callable[P, Resultado[D]]: # type: ignore
         """Permite que a classe seja utilizada como um decorador
         - Função"""
-        def decorador (*args: P.args, **kwargs: P.kwargs) -> Resultado[T]:
+        def decorador (*args: P.args, **kwargs: P.kwargs) -> Resultado[D]: # type: ignore
             return Resultado(func, *args, **kwargs)
         return decorador
 
@@ -229,19 +129,19 @@ class Resultado [T]:
 
     def unwrap (self) -> tuple[T, None] | tuple[None, Exception]:
         """Realizar unwrap do `valor, erro = resultado.unwrap()`"""
-        return self.__valor, self.__erro
+        return self.__valor, self.__erro # type: ignore
 
     def valor (self) -> T:
         """Obter o valor do resultado
         - `raise Exception` caso tenha apresentado erro"""
-        if not self:
+        if self.__erro != None:
             self.__erro.add_note("Valor não presente no resultado")
             raise self.__erro
-        return self.__valor
+        return self.__valor # type: ignore
 
-    def valor_ou (self, default: T) -> T:
+    def valor_ou[K] (self, default: K) -> T | K:
         """Obter o valor do resultado ou `default` caso tenha apresentado erro"""
-        return self.__valor if self else default
+        return self.__valor if self else default # type: ignore
 
 class Caminho:
     """Classe para representação de caminhos, em sua versão absoluta, 
@@ -288,10 +188,11 @@ class Caminho:
         if not self.diretorio():
             return
         for p in self.path.iterdir():
-            yield Caminho(p)
+            yield Caminho(str(p))
 
-    def __eq__ (self, caminho: Caminho | str) -> bool:
-        return  Caminho(str(caminho)).string == self.string
+    def __eq__ (self, value: object) -> bool:
+        caminho = value.string if isinstance(value, Caminho) else str(value)
+        return self.string == caminho
 
     def __hash__ (self) -> int:
         return hash(self.string)
@@ -305,7 +206,7 @@ class Caminho:
     @property
     def parente (self) -> Caminho:
         """Obter o caminho para o parente do caminho atual"""
-        return Caminho(self.path.parent)
+        return Caminho(str(self.path.parent))
 
     @property
     def nome (self) -> str:
@@ -418,7 +319,7 @@ class Caminho:
         return [
             caminho
             for path in glob("*")
-            if filtro(caminho := Caminho(path))
+            if filtro(caminho := Caminho(str(path)))
         ]
 
 class InfoStack:
@@ -448,28 +349,6 @@ class InfoStack:
             for frame in inspect.stack()
             if (caminho := Caminho(frame.filename)).arquivo()
         ]
-
-@dataclasses.dataclass
-class Email:
-    """Classe para armazenar informações extraídas de Email"""
-
-    uid: int
-    """id do e-mail"""
-    remetente: tipagem.email
-    """Remetente que enviou o e-mail"""
-    destinatarios: list[tipagem.email]
-    """Destinatários que receberam o e-mail"""
-    assunto: str
-    """Assunto do e-mail"""
-    data: Datetime
-    """Data de envio do e-mail"""
-    texto: str | None
-    """Conteúdo do e-mail como texto"""
-    html: str | None
-    """Conteúdo do e-mail como html"""
-    anexos: list[tuple[str, str, bytes]]
-    """Anexos do e-mail
-    - `for nome, tipo, conteudo in email.anexos:`"""
 
 class LowerDict [T]:
     """Classe usada para obter/criar/adicionar chaves de um `dict` como `lower-case`
@@ -520,16 +399,13 @@ class LowerDict [T]:
             )
         )
 
-    @property
-    def __dict__ (self) -> dict[str, T]:
+    def to_dict (self) -> dict[str, T]:
         return self.__d
 
 __all__ = [
-    "Email",
     "Caminho",
     "LowerDict",
     "InfoStack",
     "Resultado",
     "Coordenada",
-    "ResultadoSQL",
 ]
