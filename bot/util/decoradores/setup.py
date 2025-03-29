@@ -3,7 +3,7 @@ import time, asyncio, inspect, typing, pstats, cProfile
 from multiprocessing.pool import ThreadPool
 from multiprocessing.context import TimeoutError as Timeout
 # interno
-from ... import util, logger, database, estruturas
+from ... import util, logger, database, sistema
 
 P = typing.ParamSpec("P")
 
@@ -20,12 +20,12 @@ def timeout (segundos: float):
 
 def retry (*erro: Exception,
            tentativas=3, segundos=5,
-           ignorar: tuple[Exception, ...] = (RuntimeError,)):
+           ignorar: tuple[Exception, ...] = (NotImplementedError,)):
     """Realizar `tentativas` de se chamar uma função e, em caso de erro, aguardar `segundos` e tentar novamente
     - `erro` especificar as exceções permitidas para retry. `(Default: Exception)`
     - `ignorar` exceções para não se aplicar o retry. `(Default: RuntimeError)`
     - `raise` na última tentativa com falha"""
-    erro = erro or (Exception,)
+    erros = erro or (Exception,)
     assert tentativas >= 1 and segundos >= 1, "Tentativas e Segundos para o retry devem ser >= 1"
     def retry (func: typing.Callable):
         def retry (*args, **kwargs):
@@ -36,7 +36,7 @@ def retry (*erro: Exception,
                 except *ignorar as grupo_ignorado:
                     ultima_excecao = grupo_ignorado.exceptions[-1]
                     raise ultima_excecao from None
-                except *erro as grupo_excecoes:
+                except *erros as grupo_excecoes:
                     ultima_excecao = grupo_excecoes.exceptions[-1]
                     mensagem_erro = type(ultima_excecao).__name__ + f"({ str(ultima_excecao).strip() })"
                     logger.alertar(f"Tentativa {tentativa}/{tentativas} de execução da função({ nome_funcao }) resultou em erro\n\t{mensagem_erro}")
@@ -62,7 +62,7 @@ def perfil_execucao (func: typing.Callable):
     - Tempos acumulados menores de 0.01 segundos são excluídos"""
     def perfil_execucao (*args, **kwargs):
         # Diretorio de execução atual para limpar o nome no dataframe
-        cwd = estruturas.Caminho.diretorio_execucao().string
+        cwd = sistema.Caminho.diretorio_execucao().string
         cwd = f"{cwd[0].lower()}{cwd[1:]}"
 
         # Executar função com o profile ativo e gerar o report

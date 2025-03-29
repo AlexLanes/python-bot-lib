@@ -4,7 +4,7 @@ import re, time, typing, difflib, unicodedata
 from .. import tipagem
 
 def aguardar_condicao (condicao: typing.Callable[[], bool],
-                       timeout: int,
+                       timeout: int | float,
                        delay=0.1) -> bool:
     """Repetir a função `condição` por `timeout` segundos até que resulte em `True`
     - Retorna um `bool` indicando se a `condição` foi atendida
@@ -33,13 +33,13 @@ def normalizar (string: str) -> str:
 
 def encontrar_texto[T] (texto: str,
                         opcoes: typing.Iterable[T],
-                        key: typing.Callable[[T], str] = None) -> T | None:
+                        key: typing.Callable[[T], str] | None = None) -> T | None:
     """Encontrar a melhor opção em `opções` onde igual ou parecido ao `texto`
     - `None` caso nenhuma opção gerou um resultado satisfatório
     - `key` pode ser informado uma função para apontar para a `str` caso `opções` não seja uma `list[str]`"""
     opcoes = list(opcoes)
-    key = key or (lambda opcao: opcao)
-    textos = [key(opcao) for opcao in opcoes]
+    key_to_text = key or (lambda opcao: opcao)
+    textos = [key_to_text(opcao) for opcao in opcoes]
 
     # opção exata
     if texto in textos:
@@ -101,7 +101,7 @@ def cronometro (resetar=False) -> typing.Callable[[], float]:
     - `resetar` indicador para resetar o tempo após cada chamada
     - Arredondado para 3 casas decimais"""
     inicio = time.perf_counter()
-    def func ():
+    def func () -> float:
         nonlocal inicio
         agora = time.perf_counter()
         delta = round(agora - inicio, 3)        
