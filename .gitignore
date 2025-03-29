@@ -13,5 +13,8 @@
 **.spec
 **.egg-info
 
+# venv
+*venv
+
 # teste
 teste.py
