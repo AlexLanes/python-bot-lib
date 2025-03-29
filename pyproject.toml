@@ -1,0 +1,61 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bot"
+version = "2.5"
+description = "Pacote com funcionalidades gerais para criação de automações para o Windows"
+authors = [
+  { name = "Alex Lanes Angelo", email = "alex_lanes@hotmail.com" }
+]
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+urls = { Homepage = "https://github.com/AlexLanes/python-bot-lib" }
+dependencies = [
+  # database
+  "pyodbc",
+  "fastexcel",
+  "xlsxwriter",
+  "polars[xlsx2csv]",
+
+  # formatos
+  "pyyaml",
+
+  # http
+  "httpx",
+  "jsonschema",
+
+  # imagem
+  "pynput",
+  "pywin32",
+  "numpy==1.26.4",
+  "opencv-python",
+
+  # mouse / teclado
+  "pynput",
+  "pywin32",
+
+  # navegador
+  "selenium",
+  "setuptools",
+  "undetected-chromedriver",
+
+  # sistema
+  "pyperclip",
+  "pywinauto",
+]
+
+[project.optional-dependencies]
+ocr = ["easyocr"]
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["."]
+exclude = ["tests*"]
+
+[tool.setuptools.package-data]
+"bot" = ["sistema/QRes.exe"]

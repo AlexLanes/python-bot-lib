@@ -90,7 +90,7 @@ def main () -> None:
     - Gerar build na versão especificada no `setup.py`
     - Fazer o upload para o GitHub do release com a tag da versão
     """
-    sucesso, _ = bot.sistema.executar("python", "setup.py", "bdist_wheel")
+    sucesso, _ = bot.sistema.executar("build-script.bat")
     assert sucesso
     caminho = obter_ultima_build()
     print(f"\n### Build gerada com sucesso: {caminho} ###")
