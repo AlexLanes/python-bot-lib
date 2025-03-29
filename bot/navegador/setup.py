@@ -143,8 +143,10 @@ class Navegador:
     def encontrar_elemento (self, estrategia: tipagem.ESTRATEGIAS_WEBELEMENT, localizador: str | enum.Enum) -> WebElement:
         """Encontrar elemento na aba atual com base em um `localizador` para a `estrategia` selecionada
         - Exceção `ElementoNaoEncontrado` caso não seja encontrado"""
-        localizador: str = localizador if isinstance(localizador, str) else str(localizador.value)
-        return self.driver.find_element(estrategia, localizador)
+        return self.driver.find_element(
+            estrategia,
+            localizador if isinstance(localizador, str) else str(localizador.value)
+        )
 
     def encontrar_elementos (self, estrategia: tipagem.ESTRATEGIAS_WEBELEMENT, localizador: str | enum.Enum) -> list[WebElement]:
         """Encontrar elemento(s) na aba atual com base em um `localizador` para a `estrategia` selecionada"""
@@ -221,7 +223,7 @@ class Navegador:
         - Exceção `TimeoutError` caso não finalize no tempo estipulado"""
         inicio = Datetime.now() - Timedelta(milliseconds=500)
         arquivo: estruturas.Caminho | None = None
-        termos = [str(termo).lower() for termo in termos]
+        termos = tuple(str(termo).lower() for termo in termos)
         assert termos, "Pelo menos 1 termo é necessário para a busca"
 
         def download_finalizar () -> bool:
@@ -244,6 +246,7 @@ class Navegador:
             raise erro
 
         time.sleep(1)
+        assert arquivo
         return arquivo
 
     def imprimir_pdf (self) -> estruturas.Caminho:
@@ -266,7 +269,7 @@ class Navegador:
                 """,
                 elemento
             )
-            parametros["clip"] = { **elemento.rect, "scale": 1 }
+            parametros["clip"] = { **elemento.rect, "scale": 1 } # type: ignore
         imagem = self.driver.execute_cdp_cmd("Page.captureScreenshot", parametros)["data"]
         return base64.b64decode(imagem)
 
@@ -373,7 +376,7 @@ class Chrome (Navegador):
             "printing.print_preview_sticky_settings.appState": CONFIG_PRINT_PDF
         })
 
-        self.driver = uc.Chrome(options, version_main=int(versao))
+        self.driver = uc.Chrome(options, version_main=int(versao)) # type: ignore
         self.driver.maximize_window()
         self.timeout_inicial = timeout
         self.driver.implicitly_wait(timeout)
@@ -396,7 +399,7 @@ class Chrome (Navegador):
         id_mensagem = collections.defaultdict(Mensagem)
         for log in self.driver.get_log("performance"):
             if not isinstance(log, dict): continue
-            json = formatos.Json.parse(log.get("message", {}))
+            json, _ = formatos.Json.parse(log.get("message", {}))
             if not json or not json.message.params.requestId: continue
 
             message = json.message
@@ -436,7 +439,7 @@ class Explorer (Navegador):
         options.attach_to_edge_chrome = True
         options.add_argument("--ignore-certificate-errors")
 
-        self.driver = wd.Ie(options)
+        self.driver = wd.Ie(options) # type: ignore
         self.driver.maximize_window()
         self.timeout_inicial = timeout
         self.driver.implicitly_wait(timeout)
@@ -447,7 +450,7 @@ class Explorer (Navegador):
         return f"<Explorer aba focada '{self.titulo}'>"
 
     @typing.override
-    def aguardar_download (self, termos: list[str] = [".csv", "arquivo.xlsx"], timeout=60) -> str:
+    def aguardar_download (self, *termos: str, timeout=60) -> estruturas.Caminho:
         raise NotImplementedError("Método aguardar_download não disponível para o InternetExplorer")
 
 __all__ = [
