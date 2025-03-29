@@ -48,7 +48,7 @@ class Navegador:
     """Driver do `Selenium`"""
     timeout_inicial: float
     """Timeout informado na inicialização do navegador"""
-    diretorio_download: estruturas.Caminho
+    diretorio_download: sistema.Caminho
     """Caminho da pasta de download
     - `Edge | Chrome`"""
 
@@ -217,12 +217,12 @@ class Navegador:
         finally: self.alterar_timeout()
         return self
 
-    def aguardar_download (self, *termos: str, timeout=60) -> estruturas.Caminho:
+    def aguardar_download (self, *termos: str, timeout=60) -> sistema.Caminho:
         """Aguardar um novo arquivo, com nome contendo algum dos `termos`, no diretório de download por `timeout` segundos
         - Retorna o `Caminho` para o arquivo
         - Exceção `TimeoutError` caso não finalize no tempo estipulado"""
         inicio = Datetime.now() - Timedelta(milliseconds=500)
-        arquivo: estruturas.Caminho | None = None
+        arquivo: sistema.Caminho | None = None
         termos = tuple(str(termo).lower() for termo in termos)
         assert termos, "Pelo menos 1 termo é necessário para a busca"
 
@@ -249,7 +249,7 @@ class Navegador:
         assert arquivo
         return arquivo
 
-    def imprimir_pdf (self) -> estruturas.Caminho:
+    def imprimir_pdf (self) -> sistema.Caminho:
         """Imprimir a página/frame atual do navegador para `.pdf`
         - Retorna o `Caminho` para o arquivo"""
         self.diretorio_download.criar_diretorios()
@@ -291,9 +291,9 @@ class Edge (Navegador):
     """Driver Edge"""
 
     def __init__ (self, timeout=30.0,
-                        download: str | estruturas.Caminho = "./downloads") -> None:
+                        download: str | sistema.Caminho = "./downloads") -> None:
         options, argumentos = wd.EdgeOptions(), ARGUMENTOS_DEFAULT.copy()
-        self.diretorio_download = estruturas.Caminho(download) if isinstance(download, str) else download
+        self.diretorio_download = sistema.Caminho(download) if isinstance(download, str) else download
         for argumento in argumentos: options.add_argument(argumento)
         options.add_experimental_option("useAutomationExtension", False)
         options.add_experimental_option("excludeSwitches", ["enable-logging"])
@@ -341,9 +341,9 @@ class Chrome (Navegador):
     """Driver Chrome"""
 
     def __init__ (self, timeout=30.0,
-                        download: str | estruturas.Caminho = "./downloads",
-                        extensoes: list[str | estruturas.Caminho] = [],
-                        perfil: estruturas.Caminho | str | None = None,
+                        download: str | sistema.Caminho = "./downloads",
+                        extensoes: list[str | sistema.Caminho] = [],
+                        perfil: sistema.Caminho | str | None = None,
                         argumentos_adicionais: list[str] = []) -> None:
         # obter a versão do google chrome para o `undetected_chromedriver`, pois ele utiliza sempre a mais recente
         sucesso, mensagem = sistema.executar(COMANDO_VERSAO_CHROME, powershell=True)
@@ -354,12 +354,12 @@ class Chrome (Navegador):
         argumentos = { *ARGUMENTOS_DEFAULT, *argumentos_adicionais }
         if extensoes: argumentos.add(f"--load-extension={ ",".join(str(e).strip() for e in extensoes) }")
         if perfil:
-            perfil = estruturas.Caminho(str(perfil))
+            perfil = sistema.Caminho(str(perfil))
             argumentos.add(f"--user-data-dir={perfil.parente}")
             argumentos.add(f"--profile-directory={perfil.nome}")
 
         options = uc.ChromeOptions()
-        self.diretorio_download = estruturas.Caminho(str(download))
+        self.diretorio_download = sistema.Caminho(str(download))
         for argumento in argumentos:
             options.add_argument(argumento)
         options.set_capability("goog:loggingPrefs", { "performance": "ALL" }) # logs performance
@@ -450,7 +450,7 @@ class Explorer (Navegador):
         return f"<Explorer aba focada '{self.titulo}'>"
 
     @typing.override
-    def aguardar_download (self, *termos: str, timeout=60) -> estruturas.Caminho:
+    def aguardar_download (self, *termos: str, timeout=60) -> sistema.Caminho:
         raise NotImplementedError("Método aguardar_download não disponível para o InternetExplorer")
 
 __all__ = [

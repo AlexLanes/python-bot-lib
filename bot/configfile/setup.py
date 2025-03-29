@@ -1,10 +1,10 @@
 # std
 import configparser
 # interno
-from .. import util, estruturas, tipagem
+from .. import util, sistema, tipagem
 
 INICIALIZADO = False
-DIRETORIO_EXECUCAO = estruturas.Caminho.diretorio_execucao()
+DIRETORIO_EXECUCAO = sistema.Caminho.diretorio_execucao()
 CONFIG = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
 
 def inicializar_configfile (diretorio = DIRETORIO_EXECUCAO) -> None:

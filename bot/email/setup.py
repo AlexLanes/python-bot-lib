@@ -13,7 +13,7 @@ from datetime import (
     timedelta as TimeDelta
 )
 # interno
-from .. import tipagem, logger, configfile, util, formatos, estruturas
+from .. import tipagem, logger, configfile, util, formatos, sistema, estruturas
 
 @dataclasses.dataclass
 class Email:
@@ -40,7 +40,7 @@ class Email:
 def enviar_email (destinatarios: typing.Iterable[tipagem.email],
                   assunto = "",
                   conteudo = "",
-                  anexos: list[estruturas.Caminho] = []) -> None:
+                  anexos: list[sistema.Caminho] = []) -> None:
     """Enviar email para uma lista de `destinatarios` com `assunto`, `conteudo` e lista de `anexos`
     - Abstração `smtplib`
     - `conteudo` pode ser uma string html se começar com "<"

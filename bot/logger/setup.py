@@ -6,7 +6,7 @@ from datetime import (
     timedelta as Timedelta
 )
 # interno
-from .. import configfile, estruturas
+from .. import configfile, estruturas, sistema
 
 TIMEZONE = Timezone(Timedelta(hours=-3))
 INICIALIZADO_EM = Datetime.now(TIMEZONE)
@@ -15,8 +15,8 @@ FORMATO_MENSAGEM_LOG = "%(asctime)s | nome(%(name)s) | level(%(levelname)s) | %(
 FORMATO_DATA_LOG, FORMATO_NOME_LOG_PERSISTENCIA = "%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H-%M-%S.log"
 FORMATTER = logging.Formatter(FORMATO_MENSAGEM_LOG, FORMATO_DATA_LOG)
 
-CAMINHO_PACOTE = estruturas.Caminho(__file__).parente.string.removesuffix(r"\logger")
-DIRETORIO_EXECUCAO = estruturas.Caminho.diretorio_execucao()
+CAMINHO_PACOTE = sistema.Caminho(__file__).parente.string.removesuffix(r"\logger")
+DIRETORIO_EXECUCAO = sistema.Caminho.diretorio_execucao()
 CAMINHO_LOG_ATUAL = DIRETORIO_EXECUCAO / ".log"
 CAMINHO_DIRETORIO_PERSISTENCIA = DIRETORIO_EXECUCAO / "logs"
 CAMINHO_LOG_PERSISTENCIA = CAMINHO_DIRETORIO_PERSISTENCIA / INICIALIZADO_EM.strftime(FORMATO_NOME_LOG_PERSISTENCIA)
@@ -52,11 +52,11 @@ def inicializar_logger (diretorio = DIRETORIO_EXECUCAO) -> None:
     global INICIALIZADO
     INICIALIZADO = True
 
-def caminho_log_atual () -> estruturas.Caminho:
+def caminho_log_atual () -> sistema.Caminho:
     """Caminho para o arquivo log que é criado na raiz do projeto e que pode ser limpo pelo `limpar_log()`"""
     return CAMINHO_LOG_ATUAL
 
-def caminho_log_persistencia () -> estruturas.Caminho:
+def caminho_log_persistencia () -> sistema.Caminho:
     """Caminho para o arquivo log que é criado na inicialização do bot, se requisitado, para persistência na pasta `/logs`"""
     return CAMINHO_LOG_PERSISTENCIA
 

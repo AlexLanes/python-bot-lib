@@ -2,4 +2,3 @@
 
 from bot.sistema.setup import *
 from bot.sistema.janela import Janela
-from ..estruturas import Caminho

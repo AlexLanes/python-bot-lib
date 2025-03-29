@@ -2,7 +2,7 @@
 import re, sqlite3, typing
 import itertools, functools, dataclasses
 # interno
-from .. import tipagem, database, logger, estruturas
+from .. import tipagem, database, logger, sistema
 # externo
 import polars, pyodbc
 from xlsxwriter import Workbook
@@ -46,7 +46,7 @@ def formatar_dataframe (df: polars.DataFrame,
     with database.polars.Config(**kwargs):
         return str(df)
 
-def criar_excel (caminho: estruturas.Caminho, planilhas: dict[str, polars.DataFrame]) -> estruturas.Caminho:
+def criar_excel (caminho: sistema.Caminho, planilhas: dict[str, polars.DataFrame]) -> sistema.Caminho:
     """Criar um arquivo excel com os dados informados
     - `planilhas` Dicionário sendo a `key` o nome da planilha e `value` um `polars.Dataframe` com os dados
     - `caminho` deve terminar em `.xlsx`"""
@@ -283,7 +283,7 @@ class Sqlite:
     __conexao: sqlite3.Connection
     """Conexão com o sqlite3"""
 
-    def __init__ (self, database: str | estruturas.Caminho = ":memory:") -> None:
+    def __init__ (self, database: str | sistema.Caminho = ":memory:") -> None:
         database = str(database)
         logger.informar(f"Iniciando conexão Sqlite com o database '{database}'")
         self.__conexao = sqlite3.connect(database)
@@ -341,7 +341,7 @@ class Sqlite:
         gerador = (linha for linha in cursor)
         return ResultadoSQL(linhas_afetadas, colunas, gerador)
 
-    def to_excel (self, caminho: estruturas.Caminho) -> estruturas.Caminho:
+    def to_excel (self, caminho: sistema.Caminho) -> sistema.Caminho:
         """Salvar as linhas de todas as tabelas da conexão no `caminho` formato excel
         - `caminho` deve terminar com `.xlsx`"""
         return criar_excel(caminho, {

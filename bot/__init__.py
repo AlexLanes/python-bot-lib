@@ -17,10 +17,10 @@ from . import teclado
 from . import tipagem
 from . import util
 
-def configurar_diretorio (caminho: str | estruturas.Caminho) -> None:
+def configurar_diretorio (caminho: str | sistema.Caminho) -> None:
     """Configurar o diretório de execução do bot manualmente
     - `configfile` e `logger` utilizam para localizarem o diretório de execução"""
-    caminho = estruturas.Caminho(str(caminho))
+    caminho = sistema.Caminho(str(caminho))
     diretorio = caminho.parente if caminho.arquivo() else caminho
     from bot.configfile.setup import inicializar_configfile
     inicializar_configfile()

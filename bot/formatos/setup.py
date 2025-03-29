@@ -16,7 +16,7 @@ from xml.etree.ElementTree import (
     fromstring as xml_from_string,
 )
 # interno
-from .. import tipagem, estruturas
+from .. import tipagem, sistema
 # externo
 import yaml
 from jsonschema import (
@@ -168,7 +168,7 @@ class ElementoXML:
         self.__elemento.text = texto
 
     @classmethod
-    def parse (cls, xml: str | estruturas.Caminho) -> ElementoXML:
+    def parse (cls, xml: str | sistema.Caminho) -> ElementoXML:
         """Parse do `xml` para um `ElementoXML`
         - `xml` pode ser uma string xml ou o caminho até o arquivo .xml"""
         xml = str(xml).lstrip() # remover espaços vazios no começo

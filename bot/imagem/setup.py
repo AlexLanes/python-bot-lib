@@ -3,7 +3,8 @@ from __future__ import annotations
 import time, base64, collections
 # interno
 from .. import util, tipagem
-from ..estruturas import Coordenada, Caminho, filas
+from ..sistema import Caminho
+from ..estruturas import Coordenada, filas
 # externo
 import cv2, numpy as np
 import win32gui, win32ui, win32con
@@ -20,9 +21,9 @@ class Imagem:
     pixels: np.ndarray
     """Pixels da imagem BGR ou Cinza"""
 
-    def __init__ (self, caminho: Caminho | str):
+    def __init__ (self, caminho: Caminho | str) -> None:
         caminho = Caminho(str(caminho))
-        self.pixels = cv2.imread(caminho.path)
+        self.pixels = cv2.imread(caminho.string)
 
     def __repr__ (self) -> str:
         shape = self.pixels.shape
@@ -96,13 +97,13 @@ class Imagem:
     def salvar (self, caminho: Caminho | str) -> Caminho:
         """Salvar a imagem como arquivo no `caminho`"""
         caminho = Caminho(str(caminho))
-        cv2.imwrite(caminho.path, self.pixels)
+        cv2.imwrite(caminho.string, self.pixels)
         return caminho
 
     def exibir (self) -> None:
         """Exibir a imagem
         - Aguarda algum tecla ou janela ser fechada para continuar"""
-        cv2.imshow(None, self.pixels)
+        cv2.imshow(None, self.pixels) # type: ignore
         cv2.waitKey(0)
 
     def recortar (self, regiao: Coordenada) -> Imagem:

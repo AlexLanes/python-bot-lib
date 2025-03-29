@@ -59,7 +59,7 @@ def obter_releases () -> dict[str, int]:
         if release["tag_name"]
     }
 
-def upload_asset (id_release: int, caminho_build: bot.estruturas.Caminho) -> str:
+def upload_asset (id_release: int, caminho_build: bot.sistema.Caminho) -> str:
     """retorna o url para a build"""
     host = HOST.replace("api", "uploads")
     response = bot.http.request(
@@ -75,12 +75,12 @@ def upload_asset (id_release: int, caminho_build: bot.estruturas.Caminho) -> str
     assert response.status_code == 201
     return response.json()["browser_download_url"]
 
-def versao_build (caminho: bot.estruturas.Caminho) -> str:
+def versao_build (caminho: bot.sistema.Caminho) -> str:
     return "v" + caminho.nome.removeprefix("bot-").removesuffix("-py3-none-any.whl")
 
-def obter_ultima_build () -> bot.estruturas.Caminho:
+def obter_ultima_build () -> bot.sistema.Caminho:
     return sorted(
-        (c for c in bot.estruturas.Caminho(".", "dist") if c.arquivo()),
+        (c for c in bot.sistema.Caminho(".", "dist") if c.arquivo()),
         key = lambda c: c.nome,
         reverse = True
     )[0]
