@@ -1,9 +1,9 @@
 # std
 from __future__ import annotations
-from typing import Self
 import ctypes, warnings, logging, re
+from typing import Self
 # interno
-from . import Coordenada
+from ..estruturas import Coordenada
 from .. import util, tipagem
 # externo
 from pywinauto.timings import Timings
@@ -36,13 +36,14 @@ class Janela:
 
     def __init__ (self, titulo: str | None = None,
                         class_name: str | None = None,
+                        visible_only: bool = True,
                         backend: tipagem.BACKENDS_JANELA = "win32") -> None:
         """Inicializar a conexão com a janela
         - Se o `titulo` e `class_name` forem omitidos, será pego a janela focada atual
         - `backend` varia de acordo com a janela, testar com ambos para encontrar o melhor"""
         if not titulo and not class_name:
             handle = ctypes.windll.user32.GetForegroundWindow()
-            self.elemento = Desktop(backend).window(handle=handle)
+            self.elemento = Desktop(backend).window(handle=handle) # type: ignore
             self.aplicacao = Application(backend).connect(handle=handle)
             return
 
@@ -54,14 +55,15 @@ class Janela:
             if titulo_normalizado in util.normalizar(titulo_janela)
         ] or [None])[0]
 
-        args = { "title": titulo, "class_name": class_name, "visible_only": True }
-        self.elemento = Desktop(backend).window(**args)
+        args = { "title": titulo, "class_name": class_name, "visible_only": visible_only }
+        self.elemento = Desktop(backend).window(**args) # type: ignore
         self.aplicacao = Application(backend).connect(**args)
 
-    def __eq__ (self, other: Janela) -> bool:
+    def __eq__ (self, other: object) -> bool:
         """Comparar se o handler de uma janela é o mesmo que a outra"""
         if not isinstance(other, Janela): return False
         return self.elemento.handle == other.elemento.handle
+    
     def __repr__ (self) -> str:
         """Representação da classe"""
         return f"<Janela '{self.titulo}'>"
