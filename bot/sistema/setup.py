@@ -2,6 +2,8 @@
 from __future__ import annotations
 import os, typing, shutil, pathlib, subprocess, subprocess
 from datetime import datetime as Datetime
+# externo
+import pyperclip
 
 class Caminho:
     """Classe para representação de caminhos, em sua versão absoluta, 
@@ -182,7 +184,6 @@ class Caminho:
             if filtro(caminho := Caminho(str(path)))
         ]
 
-# caminho para QRes no pacote do bot
 CAMINHO_QRES = Caminho(__file__).parente / "QRes.exe"
 
 def executar (*argumentos: str,
@@ -253,9 +254,22 @@ def alterar_resolucao (largura: int, altura: int) -> None:
     if sucesso in resultado: informar(f"Resolução da tela alterada")
     else: alertar(f"Resolução da tela não foi alterada corretamente\n\t{" ".join(resultado.split("\n")[3:])}")
 
+def copiar_texto (texto: str) -> None:
+    """Substituir o texto copiado da área de transferência pelo `texto`"""
+    pyperclip.copy(texto)
+
+def texto_copiado (apagar=False) -> str:
+    """Obter o texto copiado da área de transferência
+    - `apagar` determina se o texto será apagado após ser obtido"""
+    texto = pyperclip.paste()
+    if apagar: copiar_texto("")
+    return texto
+
 __all__ = [
     "Caminho",
     "executar",
+    "copiar_texto",
+    "texto_copiado",
     "abrir_programa",
     "alterar_resolucao",
     "informacoes_resolucao"
