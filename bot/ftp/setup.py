@@ -19,7 +19,7 @@ class FTP:
             - `timeout` Opcional `Default: 5.0`"""
         # instanciar e conectar
         self.__ftp = ftplib.FTP()
-        host = configfile.obter_opcoes("FTP", ["host"])[0]
+        host = configfile.obter_opcoes_obrigatorias("FTP", "host")[0]
         logger.informar(f"Conectando ao servidor FTP '{host}'")
         self.__ftp.connect(host=host,
                            port=configfile.obter_opcao_ou("FTP", "port", 21),
