@@ -20,10 +20,8 @@ def posicao_atual () -> tuple[int, int]:
 
 def posicao_central () -> tuple[int, int]:
     """Obter a posição `(x, y)` central da tela"""
-    return tuple(
-        n + 1
-        for n in Coordenada.tela().transformar()
-    )
+    x, y = Coordenada.tela().transformar()
+    return (x + 1, y + 1)
 
 def transformar_posicao (coordenada: tuple[int, int] | Coordenada | None) -> tuple[int, int]:
     """Transformar a `coordenada` para posicao `(x, y)`"""
@@ -56,7 +54,7 @@ def mover_mouse_deslizando (coordenada: tuple[int, int] | Coordenada) -> None:
 
 def clicar_mouse (botao: tipagem.BOTOES_MOUSE = "left",
                   quantidade=1,
-                  coordenada: Coordenada | tuple[int, int] = None,
+                  coordenada: Coordenada | tuple[int, int] | None = None,
                   delay=0.1) -> None:
     """Clicar com o `botão` do mouse `quantidade` vezes na `coordenada` ou posição atual"""
     if coordenada: mover_mouse(coordenada) # mover mouse se requisitado
@@ -67,7 +65,7 @@ def clicar_mouse (botao: tipagem.BOTOES_MOUSE = "left",
 
 def scroll_vertical (quantidade=1,
                      direcao: tipagem.DIRECOES_SCROLL = "baixo",
-                     coordenada: Coordenada | tuple[int, int] = None,
+                     coordenada: Coordenada | tuple[int, int] | None = None,
                      delay=0.05) -> None:
     """Realizar o scroll vertical `quantidade` vezes para a `direcao` na `coordenada` ou posição atual"""
     quantidade = max(1, quantidade)
