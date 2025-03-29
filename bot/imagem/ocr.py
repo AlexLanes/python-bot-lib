@@ -10,7 +10,7 @@ class LeitorOCR:
     """Classe de abstração do EasyOCR para ler/detectar textos em imagens
     - Caso possua GPU da NVIDIA, instalar o `CUDA Toolkit` e instalar as bibliotecas indicadas pelo pytorch https://pytorch.org/get-started/locally/"""
 
-    def __init__ (self):
+    def __init__ (self) -> None:
         try: from easyocr import Reader
         except ImportError: raise ImportError("Pacote opcional [ocr] necessário. Realize `pip install bot[ocr]` para utulizar o LeitorOCR")
         self.__reader = Reader(["en"])
@@ -38,7 +38,7 @@ class LeitorOCR:
     def __ler (self, imagem: Imagem) -> list[tuple[str, Coordenada, float]]:
         """Receber a imagem e extrair os dados"""
         return [
-            (texto, Coordenada.from_box((box[0][0], box[0][1], box[1][0], box[2][1])), confianca)
+            (texto, Coordenada.from_box((box[0][0], box[0][1], box[1][0], box[2][1])), confianca) # type: ignore
             for box, texto, confianca in self.__reader
                 .readtext(imagem.pixels, mag_ratio=2, min_size=3, slope_ths=0.25, width_ths=0.4)
         ]
@@ -64,9 +64,9 @@ class LeitorOCR:
     def __detectar (self, imagem: Imagem) -> list[Coordenada]:
         """Receber a imagem e detectar as coordenadas"""
         boxes, _ = self.__reader.detect(imagem.pixels, mag_ratio=2, min_size=3, slope_ths=0.25, width_ths=0.4)
-        boxes: list[tuple[np.int32, ...]] = np.concatenate(boxes)
+        boxes: list[tuple[np.int32, ...]] = np.concatenate(boxes) # type: ignore
         return [
-            Coordenada.from_box((x1, y1, x2, y2))
+            Coordenada.from_box((x1, y1, x2, y2)) # type: ignore
             for x1, x2, y1, y2 in boxes
         ]
 

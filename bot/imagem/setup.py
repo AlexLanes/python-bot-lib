@@ -13,7 +13,7 @@ def cor_similar (cor1: tipagem.rgb, cor2: tipagem.rgb, tolerancia=20) -> bool:
     """Comparar se as cores `rgb` são similares com base na `tolerancia`
     - `tolerancia mínima` 0 (Cores são idênticas)
     - `tolerancia máxima` 441 (Branco x Preto)"""
-    return np.linalg.norm(np.array(cor1) - np.array(cor2)) < tolerancia
+    return bool(np.linalg.norm(np.array(cor1) - np.array(cor2)) < tolerancia)
 
 class Imagem:
     """Classe para manipulação de imagem"""
@@ -71,14 +71,14 @@ class Imagem:
     def from_bytes (cls, conteudo: bytes) -> Imagem:
         """Criar uma imagem a partir de bytes do `conteúdo`"""
         imagem = super().__new__(cls)
-        conteudo = np.frombuffer(conteudo, np.uint8)
-        imagem.pixels = cv2.imdecode(conteudo, cv2.IMREAD_COLOR)
+        conteudo = np.frombuffer(conteudo, np.uint8) # type: ignore
+        imagem.pixels = cv2.imdecode(conteudo, cv2.IMREAD_COLOR) # type: ignore
         return imagem
 
     @property
     def png (self) -> bytes:
         """Codificar a imagem para `png`"""
-        return cv2.imencode(".png", self.pixels)[1]
+        return cv2.imencode(".png", self.pixels)[1] # type: ignore
 
     @property
     def png_base64 (self) -> str:
@@ -177,13 +177,13 @@ class Imagem:
         while not confianca_coordenadas:
             np_referencia = (referencia or Imagem.capturar_tela(regiao, cinza)).pixels
             resultado = cv2.matchTemplate(np_imagem, np_referencia, cv2.TM_CCOEFF_NORMED)
-            posicoes_confianca = np.where(resultado >= confianca)
+            posicoes_confianca = np.where(resultado >= confianca) # type: ignore
 
             # criar as coordenadas e filtrar possíveis coordenadas com o centro dentro de outra
             for y, x, *_ in zip(*posicoes_confianca):
                 coordenada = Coordenada(x + x_offset, y + y_offset, largura, altura)
                 if any(c in coordenada for _, c in confianca_coordenadas): continue
-                confianca = resultado[y, x]
+                confianca = float(resultado[y, x])
                 confianca_coordenadas.add((confianca, coordenada))
 
             if segundos and not confianca_coordenadas: time.sleep(delay)
