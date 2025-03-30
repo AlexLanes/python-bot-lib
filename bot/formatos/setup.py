@@ -1,7 +1,7 @@
 # std
 from __future__ import annotations
 from types import UnionType, NoneType
-from typing import Any, Generator, Self, get_args, get_origin
+from typing import Any, Generator, Literal, Self, get_args, get_origin
 from json import (
     JSONDecodeError,
     dumps as json_dumps, 
@@ -338,10 +338,16 @@ class ElementoXML:
         return register_namespace(prefixo, namespace) or namespace
 
 class UnmarshalError (Exception):
-    def __init__ (self, path: str, expected: type, value: Any) -> None:
+    def __init__ (self, path: str, expected: Any, value: Any) -> None:
         super().__init__(
             f"Erro ao processar '{path}'; Esperado({expected}); Recebido '{value}' ({type(value).__name__})"
         )
+
+    @classmethod
+    def from_message (cls, message: str) -> UnmarshalError:
+        obj = cls.__new__(cls)
+        super(UnmarshalError, obj).__init__(message)
+        return obj
 
 class Unmarshaller[T]:
     """Classe para validação e parse de um `dict` para uma classe customizada
@@ -378,13 +384,12 @@ class Unmarshaller[T]:
     def parse (self, dados: dict[str, Any], **kwargs: str) -> tuple[T, None | str]:
         """Realizar o parse dos `dados` conforme a classe informada
         - retorno `(instancia preenchida corretamente, None) ou (instancia vazia, mensagem de erro)`"""
-        erro = None
+        erro: str | None = None
         path = kwargs.get("path", "")
         obj = object.__new__(self.__cls)
-        annotations_of_cls = self.__collect_annotations()
 
         try:
-            for name, t in annotations_of_cls.items():
+            for name, t in self.__collect_annotations().items():
                 current_path = f"{path}.{name}" if path else name
                 if name not in dados and not self.__is_optional_type(t):
                     raise UnmarshalError(current_path, t, "")
@@ -397,8 +402,17 @@ class Unmarshaller[T]:
         return obj, erro
 
     def __validate (self, expected: type | Any, value: Any, path: str) -> Any:
+        origin = get_origin(expected)
+
         # any
         if expected is Any: return value
+
+        # literal
+        if origin is Literal:
+            expected_values = get_args(expected)
+            if expected_values and value not in expected_values:
+                raise UnmarshalError(path, Literal[expected_values], value)
+            return value
 
         # primitive
         if any(t in self.__primitives and isinstance(value, t)
@@ -410,10 +424,8 @@ class Unmarshaller[T]:
             if not isinstance(value, dict):
                 raise UnmarshalError(path, dict, value)
             value, nok = Unmarshaller(expected).parse(value, path=path)
-            if nok: raise UnmarshalError(path, dict, value)
+            if nok: raise UnmarshalError.from_message(nok)
             return value
-
-        origin = get_origin(expected)
 
         # list
         if expected is list or origin is list:
