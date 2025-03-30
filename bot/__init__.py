@@ -1,4 +1,4 @@
-"""Pacote com funcionalidades gerais para criação de Bots"""
+"""Biblioteca com funcionalidades gerais para criação de Bots"""
 
 from . import argumentos
 from . import configfile

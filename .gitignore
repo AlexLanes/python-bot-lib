@@ -7,7 +7,7 @@
 **.ini
 **.sqlite
 
-# pyinstaller / setuptools / build.py
+# pyinstaller / setuptools / build
 /build
 /dist
 **.spec
