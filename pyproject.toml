@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "bot"
 version = "2.5"
-description = "Pacote com funcionalidades gerais para criação de automações para o Windows"
+description = "Biblioteca com funcionalidades gerais para criação de automações para o Windows"
 authors = [
   { name = "Alex Lanes Angelo", email = "alex_lanes@hotmail.com" }
 ]

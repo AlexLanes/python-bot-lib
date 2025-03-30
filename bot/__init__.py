@@ -1,4 +1,4 @@
-"""Biblioteca com funcionalidades gerais para criação de Bots"""
+"""Biblioteca com funcionalidades gerais para criação de automações para o Windows"""
 
 from . import argumentos
 from . import configfile
