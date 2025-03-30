@@ -340,7 +340,7 @@ class ElementoXML:
 class UnmarshalError (Exception):
     def __init__ (self, path: str, expected: Any, value: Any) -> None:
         super().__init__(
-            f"Erro ao processar '{path}'; Esperado({expected}); Recebido '{value}' ({type(value).__name__})"
+            f"Erro ao processar '{path}'; Esperado {expected}; Encontrado {value}"
         )
 
     @classmethod
@@ -389,14 +389,14 @@ class Unmarshaller[T]:
         """Realizar o parse dos `dados` conforme a classe informada
         - retorno `(instancia preenchida corretamente, None) ou (instancia vazia, mensagem de erro)`"""
         erro: str | None = None
-        path = kwargs.get("path", "")
         obj = object.__new__(self.__cls)        
+        path = kwargs.get("path", "") or self.__cls.__name__
 
         try:
             for name, t in self.__collect_annotations().items():
                 current_path = f"{path}.{name}" if path else name
                 if name not in dados and not self.__is_optional_type(t):
-                    raise UnmarshalError(current_path, t, "")
+                    raise UnmarshalError(current_path, t, None)
                 value = self.__validate(t, dados[name], current_path)
                 setattr(obj, name, value)
 
