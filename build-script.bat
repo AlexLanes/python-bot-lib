@@ -1,9 +1,9 @@
 @echo off
-echo Criando ambiente virtual com uv...
+echo Criando ambiente virtual com uv
 uv venv
 
 echo.
-echo Ativando ambiente...
+echo Ativando ambiente
 call .venv\Scripts\activate.bat
 
 echo.
@@ -17,6 +17,10 @@ uv pip install -e .
 echo.
 echo Instalando dependencias extras
 uv pip install ".[ocr]"
+
+echo Limpando arquivos de build
+rmdir /s /q build
+rmdir /s /q bot.egg-info
 
 echo.
 echo Gerando lockfile com uv
