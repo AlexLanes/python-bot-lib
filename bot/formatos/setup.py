@@ -380,13 +380,17 @@ class Unmarshaller[T]:
 
     def __init__(self, cls: type[T]) -> None:
         self.__cls = cls
+        cls.__repr__ = lambda self: str(self.__dict__)
+
+    def __repr__ (self) -> str:
+        return f"<Unmarshaller[{self.__cls.__name__}]>"
 
     def parse (self, dados: dict[str, Any], **kwargs: str) -> tuple[T, None | str]:
         """Realizar o parse dos `dados` conforme a classe informada
         - retorno `(instancia preenchida corretamente, None) ou (instancia vazia, mensagem de erro)`"""
         erro: str | None = None
         path = kwargs.get("path", "")
-        obj = object.__new__(self.__cls)
+        obj = object.__new__(self.__cls)        
 
         try:
             for name, t in self.__collect_annotations().items():
