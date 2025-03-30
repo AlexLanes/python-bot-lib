@@ -17,7 +17,7 @@ FORMATTER = logging.Formatter(FORMATO_MENSAGEM_LOG, FORMATO_DATA_LOG)
 
 CAMINHO_PACOTE = sistema.Caminho(__file__).parente.string.removesuffix(r"\logger")
 DIRETORIO_EXECUCAO = sistema.Caminho.diretorio_execucao()
-CAMINHO_LOG_ATUAL = DIRETORIO_EXECUCAO / ".log"
+CAMINHO_LOG_RAIZ = DIRETORIO_EXECUCAO / ".log"
 CAMINHO_DIRETORIO_PERSISTENCIA = DIRETORIO_EXECUCAO / "logs"
 CAMINHO_LOG_PERSISTENCIA = CAMINHO_DIRETORIO_PERSISTENCIA / INICIALIZADO_EM.strftime(FORMATO_NOME_LOG_PERSISTENCIA)
 
@@ -27,9 +27,9 @@ ROOT_LOGGER, BOT_LOGGER = logging.getLogger(), logging.getLogger("BOT")
 def inicializar_logger (diretorio = DIRETORIO_EXECUCAO) -> None:
     """Inicializar o logger
     - Utiliza o `configfile`"""
-    global DIRETORIO_EXECUCAO, CAMINHO_LOG_ATUAL, CAMINHO_DIRETORIO_PERSISTENCIA, CAMINHO_LOG_PERSISTENCIA
+    global DIRETORIO_EXECUCAO, CAMINHO_LOG_RAIZ, CAMINHO_DIRETORIO_PERSISTENCIA, CAMINHO_LOG_PERSISTENCIA
     DIRETORIO_EXECUCAO = diretorio.criar_diretorios()
-    CAMINHO_LOG_ATUAL = DIRETORIO_EXECUCAO / ".log"
+    CAMINHO_LOG_RAIZ = DIRETORIO_EXECUCAO / ".log"
     CAMINHO_DIRETORIO_PERSISTENCIA = DIRETORIO_EXECUCAO / "logs"
     CAMINHO_LOG_PERSISTENCIA = CAMINHO_DIRETORIO_PERSISTENCIA / INICIALIZADO_EM.strftime(FORMATO_NOME_LOG_PERSISTENCIA)
 
@@ -39,7 +39,7 @@ def inicializar_logger (diretorio = DIRETORIO_EXECUCAO) -> None:
         datefmt = FORMATO_DATA_LOG,
         format = FORMATO_MENSAGEM_LOG,
         level = logging.DEBUG if configfile.obter_opcao_ou("logger", "flag_debug", False) else logging.INFO,
-        handlers = [logging.FileHandler(CAMINHO_LOG_ATUAL.string, "w", "utf-8"), logging.StreamHandler(sys.stdout)]
+        handlers = [logging.FileHandler(CAMINHO_LOG_RAIZ.string, "w", "utf-8"), logging.StreamHandler(sys.stdout)]
     )
 
     # adicionar a persistência do log se requisitado
@@ -52,12 +52,12 @@ def inicializar_logger (diretorio = DIRETORIO_EXECUCAO) -> None:
     global INICIALIZADO
     INICIALIZADO = True
 
-def caminho_log_atual () -> sistema.Caminho:
-    """Caminho para o arquivo log que é criado na raiz do projeto e que pode ser limpo pelo `limpar_log()`"""
-    return CAMINHO_LOG_ATUAL
+def caminho_log_raiz () -> sistema.Caminho:
+    """Caminho para o arquivo log que é criado na raiz do projeto"""
+    return CAMINHO_LOG_RAIZ
 
 def caminho_log_persistencia () -> sistema.Caminho:
-    """Caminho para o arquivo log que é criado na inicialização do bot, se requisitado, para persistência na pasta `/logs`"""
+    """Caminho para o arquivo log que é criado na inicialização do bot, caso requisitado, para persistência na pasta `/logs`"""
     return CAMINHO_LOG_PERSISTENCIA
 
 def criar_mensagem_padrao (mensagem: str) -> str:
@@ -88,12 +88,19 @@ def erro (mensagem: str, excecao: Exception | None = None) -> None:
         exc_info = excecao or sys.exc_info()
     )
 
-def limpar_log () -> None:
-    """Limpar o `CAMINHO_LOG_ATUAL`
-    - Não afeta o `CAMINHO_LOG_PERSISTENCIA`"""
+def linha_horizontal () -> None:
+    """Adicionar uma linha horizontal para separar visualmente"""
+    for handler in ROOT_LOGGER.handlers:
+        if isinstance(handler, (logging.FileHandler, logging.StreamHandler)):
+            handler.stream.write("\n------------------- |\n\n")
+            handler.flush()
+
+def limpar_log_raiz () -> None:
+    """Limpar o `caminho_log_raiz()`
+    - Não afeta o `caminho_log_persistencia()`"""
     if not INICIALIZADO: return
     ROOT_LOGGER.handlers[0].close()
-    handler = logging.FileHandler(CAMINHO_LOG_ATUAL.string, "w", "utf-8")
+    handler = logging.FileHandler(CAMINHO_LOG_RAIZ.string, "w", "utf-8")
     handler.setFormatter(FORMATTER)
     ROOT_LOGGER.handlers[0] = handler
 
@@ -118,7 +125,8 @@ __all__ = [
     "debug", 
     "alertar",
     "informar",
-    "limpar_log",
-    "caminho_log_atual",
+    "limpar_log_raiz",
+    "linha_horizontal",
+    "caminho_log_raiz",
     "caminho_log_persistencia"
 ]
