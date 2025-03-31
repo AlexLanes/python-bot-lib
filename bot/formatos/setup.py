@@ -340,7 +340,7 @@ class ElementoXML:
 class UnmarshalError (Exception):
     def __init__ (self, path: str, expected: Any, value: Any) -> None:
         super().__init__(
-            f"Erro ao processar '{path}'; Esperado {expected}; Encontrado {value}"
+            f"Erro ao processar '{path}'; Esperado {expected}; Encontrado {type(value)} {value}"
         )
 
     @classmethod
