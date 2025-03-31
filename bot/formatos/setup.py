@@ -381,6 +381,11 @@ class Unmarshaller[T]:
     def __init__(self, cls: type[T]) -> None:
         self.__cls = cls
         cls.__repr__ = lambda self: str(self.__dict__)
+        # class attr escondido
+        # gambiarra devido a classes como str: list["Classe"]
+        # TODO talvez o python 3.14 resolva devido a alterações em tipagem futura
+        if getattr(Unmarshaller, "cls_seen", None) == None:
+            setattr(Unmarshaller, "cls_seen", {})
 
     def __repr__ (self) -> str:
         return f"<Unmarshaller[{self.__cls.__name__}]>"
@@ -406,6 +411,9 @@ class Unmarshaller[T]:
         return obj, erro
 
     def __validate (self, expected: type | Any, value: Any, path: str) -> Any:
+        if isinstance(expected, str):
+            expected = Unmarshaller.cls_seen.get(expected, expected)
+
         origin = get_origin(expected)
 
         # any
@@ -427,6 +435,8 @@ class Unmarshaller[T]:
         if hasattr(expected, '__annotations__'):
             if not isinstance(value, dict):
                 raise UnmarshalError(path, dict, value)
+            if expected.__name__ not in Unmarshaller.cls_seen:
+                Unmarshaller.cls_seen[expected.__name__] = expected
             value, nok = Unmarshaller(expected).parse(value, path=path)
             if nok: raise UnmarshalError.from_message(nok)
             return value
