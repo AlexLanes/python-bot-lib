@@ -1,7 +1,6 @@
 import bot
 
-USUARIO, REPOSITORIO = "AlexLanes", "python-bot-lib"
-HOST, TOKEN = bot.configfile.obter_opcoes_obrigatorias("github", "host", "token")
+HOST, USUARIO, REPOSITORIO, TOKEN = bot.configfile.obter_opcoes_obrigatorias("github", "host", "usuario", "repositorio", "token")
 
 def apagar_release (id_release: int) -> None:
     response = bot.http.request(
@@ -86,12 +85,8 @@ def obter_ultima_build () -> bot.sistema.Caminho:
     )[0]
 
 def main () -> None:
-    """
-    - Gerar build na versão especificada no `setup.py`
-    - Fazer o upload para o GitHub do release com a tag da versão
-    """
     sucesso, _ = bot.sistema.executar("build-script.bat")
-    assert sucesso
+    assert sucesso, "Falha ao executar o script de buid"
     caminho = obter_ultima_build()
     print(f"\n### Build gerada com sucesso: {caminho} ###")
 
