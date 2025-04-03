@@ -75,7 +75,8 @@ def upload_asset (id_release: int, caminho_build: bot.sistema.Caminho) -> str:
     return response.json()["browser_download_url"]
 
 def versao_build (caminho: bot.sistema.Caminho) -> str:
-    return "v" + caminho.nome.removeprefix("bot-").removesuffix("-py3-none-any.whl")
+    versão = caminho.nome.split("-")[1]
+    return f"v{versão}"
 
 def obter_ultima_build () -> bot.sistema.Caminho:
     return sorted(
