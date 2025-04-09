@@ -7,6 +7,7 @@ import bot
 import psutil
 import win32gui, win32con, win32process # pywin32
 import comtypes.client
+comtypes.client.GetModule('UIAutomationCore.dll')
 from comtypes.gen import UIAutomationClient as uiaclient
 
 class Dialogo [T: ElementoW32 | ElementoUIA]:
@@ -210,7 +211,7 @@ class ElementoUIA (ElementoW32):
     uiaelement: uiaclient.IUIAutomationElement
 
     UIA = comtypes.client.CreateObject(
-        progid = comtypes.client.GUID("{FF48DBA4-60EF-4201-AA87-54103EEF594E}"),
+        progid = comtypes.GUID("{FF48DBA4-60EF-4201-AA87-54103EEF594E}"),
         interface = uiaclient.IUIAutomation
     ).QueryInterface(uiaclient.IUIAutomation)
 
