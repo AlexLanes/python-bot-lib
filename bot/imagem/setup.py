@@ -15,6 +15,37 @@ def cor_similar (cor1: tipagem.rgb, cor2: tipagem.rgb, tolerancia=20) -> bool:
     - `tolerancia máxima` 441 (Branco x Preto)"""
     return bool(np.linalg.norm(np.array(cor1) - np.array(cor2)) < tolerancia)
 
+def capturar_tela (regiao: Coordenada | None = None, cinza=False) -> Imagem:
+    imagem = object().__new__(Imagem)
+    x, y, largura, altura = regiao or Coordenada.tela()
+
+    # criar um dispositivo de contexto (DC) compatível e capturar a tela
+    desktop = win32gui.GetDesktopWindow()
+    desktop_dc = win32gui.GetWindowDC(desktop)
+    img_dc = win32ui.CreateDCFromHandle(desktop_dc)
+    mem_dc = img_dc.CreateCompatibleDC()
+    # criar um objeto bitmap
+    screenshot = win32ui.CreateBitmap()
+    screenshot.CreateCompatibleBitmap(img_dc, largura, altura)
+    mem_dc.SelectObject(screenshot)
+    # copiar a tela para o DC da memória
+    mem_dc.BitBlt((0, 0), (largura, altura), img_dc, (x, y), win32con.SRCCOPY)
+    # obter os dados do bitmap
+    bmpstr = screenshot.GetBitmapBits(True)
+
+    # dealocar
+    mem_dc.DeleteDC()
+    win32gui.DeleteObject(screenshot.GetHandle())
+    img_dc.DeleteDC()
+    win32gui.ReleaseDC(desktop, desktop_dc)
+
+    # transformar para numpy e converter cor
+    imagem.pixels = np.frombuffer(bmpstr, dtype=np.uint8)
+    imagem.pixels.shape = (altura, largura, 4)
+    cor = cv2.COLOR_BGRA2GRAY if cinza else cv2.COLOR_BGRA2BGR
+    imagem.pixels = cv2.cvtColor(imagem.pixels, cor)
+    return imagem
+
 class Imagem:
     """Classe para manipulação de imagem"""
 
@@ -33,39 +64,6 @@ class Imagem:
 
     def __eq__ (self, other: object) -> bool:
         return np.array_equal(self.pixels, other.pixels) if isinstance(other, Imagem) else False
-
-    @classmethod
-    def capturar_tela (cls, regiao: Coordenada | None = None,
-                            cinza=False) -> Imagem:
-        imagem = super().__new__(cls)
-        x, y, largura, altura = regiao or Coordenada.tela()
-
-        # criar um dispositivo de contexto (DC) compatível e capturar a tela
-        desktop = win32gui.GetDesktopWindow()
-        desktop_dc = win32gui.GetWindowDC(desktop)
-        img_dc = win32ui.CreateDCFromHandle(desktop_dc)
-        mem_dc = img_dc.CreateCompatibleDC()
-        # criar um objeto bitmap
-        screenshot = win32ui.CreateBitmap()
-        screenshot.CreateCompatibleBitmap(img_dc, largura, altura)
-        mem_dc.SelectObject(screenshot)
-        # copiar a tela para o DC da memória
-        mem_dc.BitBlt((0, 0), (largura, altura), img_dc, (x, y), win32con.SRCCOPY)
-        # obter os dados do bitmap
-        bmpstr = screenshot.GetBitmapBits(True)
-
-        # dealocar
-        mem_dc.DeleteDC()
-        win32gui.DeleteObject(screenshot.GetHandle())
-        img_dc.DeleteDC()
-        win32gui.ReleaseDC(desktop, desktop_dc)
-
-        # transformar para numpy e converter cor
-        imagem.pixels = np.frombuffer(bmpstr, dtype=np.uint8)
-        imagem.pixels.shape = (altura, largura, 4)
-        cor = cv2.COLOR_BGRA2GRAY if cinza else cv2.COLOR_BGRA2BGR
-        imagem.pixels = cv2.cvtColor(imagem.pixels, cor)
-        return imagem
 
     @classmethod
     def from_bytes (cls, conteudo: bytes) -> Imagem:
@@ -175,7 +173,7 @@ class Imagem:
         cronometro = util.cronometro()
         confianca_coordenadas = filas.PriorityQueue[tuple[float, Coordenada]](comparador=lambda item: item[0])
         while not confianca_coordenadas:
-            np_referencia = (referencia or Imagem.capturar_tela(regiao, cinza)).pixels
+            np_referencia = (referencia or capturar_tela(regiao, cinza)).pixels
             resultado = cv2.matchTemplate(np_imagem, np_referencia, cv2.TM_CCOEFF_NORMED)
             posicoes_confianca = np.where(resultado >= confianca) # type: ignore
 
@@ -207,5 +205,6 @@ class Imagem:
 __all__ = [
     "Imagem",
     "Coordenada",
-    "cor_similar"
+    "cor_similar",
+    "capturar_tela"
 ]

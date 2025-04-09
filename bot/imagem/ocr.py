@@ -2,7 +2,7 @@
 import typing, functools
 # interno
 from .. import util
-from . import Coordenada, Imagem
+from . import Coordenada, Imagem, capturar_tela
 # externo
 import numpy as np
 
@@ -19,7 +19,7 @@ class LeitorOCR:
         """Extrair informações da tela
         - `regiao` para limitar a área de extração
         - `for texto, coordenada, confianca in leitor.ler_tela()`"""
-        imagem = Imagem.capturar_tela(regiao, True)
+        imagem = capturar_tela(regiao, True)
         extracoes = self.__ler(imagem)
 
         # corrigir offset com a regiao informada
@@ -46,7 +46,7 @@ class LeitorOCR:
     def detectar_tela (self, regiao: Coordenada | None = None) -> list[Coordenada]:
         """Extrair coordenadas de textos da tela
         - `regiao` para limitar a área de extração"""
-        imagem = Imagem.capturar_tela(regiao, True)
+        imagem = capturar_tela(regiao, True)
         coordenadas = self.__detectar(imagem)
 
         # corrigir offset com a regiao informada
