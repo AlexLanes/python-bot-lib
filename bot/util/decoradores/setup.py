@@ -66,7 +66,8 @@ def perfil_execucao (func: typing.Callable):
         cwd = f"{cwd[0].lower()}{cwd[1:]}"
 
         # Executar função com o profile ativo e gerar o report
-        with cProfile.Profile() as profile: resultado = func(*args, **kwargs)
+        with cProfile.Profile() as profile:
+            resultado = func(*args, **kwargs)
         stats = pstats.Stats(profile).sort_stats(2).get_stats_profile()
         tempo = stats.total_tt
         stats = stats.func_profiles
@@ -83,7 +84,7 @@ def perfil_execucao (func: typing.Callable):
                 "tempo_execucao": (stats[funcao].tottime for funcao in stats),
                 "chamadas": (stats[funcao].ncalls for funcao in stats)
             })
-            .filter(database.polars.col("tempo_acumulado") >= 0.01)
+            .filter(database.polars.col("tempo_acumulado") >= 0.001)
         )
         logger.informar("\n" * 2 + 
             f"1 - Nome da função: {func.__name__}\n" +
