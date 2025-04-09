@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bot"
-version = "2.5"
+version = "3.0"
 description = "Biblioteca com funcionalidades gerais para criação de automações para o Windows"
 authors = [
   { name = "Alex Lanes Angelo", email = "alex_lanes@hotmail.com" }
@@ -22,10 +22,10 @@ dependencies = [
 
   # formatos
   "pyyaml",
+  "jsonschema",
 
   # http
   "httpx",
-  "jsonschema",
 
   # imagem
   "pynput",
@@ -43,8 +43,10 @@ dependencies = [
   "undetected-chromedriver",
 
   # sistema
+  "psutil",
+  "pywin32",
+  "comtypes",
   "pyperclip",
-  "pywinauto",
 ]
 
 [project.optional-dependencies]
