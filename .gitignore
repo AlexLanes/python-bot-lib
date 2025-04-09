@@ -7,11 +7,14 @@
 **.ini
 **.sqlite
 
-# pyinstaller / setuptools / build
+# pyinstaller / build
 /build
 /dist
-**.spec
 **.egg-info
+
+# uv
+.python-version
+uv.lock
 
 # venv
 *venv
