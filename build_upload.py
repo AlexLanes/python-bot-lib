@@ -79,15 +79,15 @@ def versao_build (caminho: bot.sistema.Caminho) -> str:
     return f"v{versão}"
 
 def obter_ultima_build () -> bot.sistema.Caminho:
-    return sorted(
-        (c for c in bot.sistema.Caminho(".", "dist") if c.arquivo()),
-        key = lambda c: c.nome,
-        reverse = True
-    )[0]
+    arquivos_whl = [c for c in bot.sistema.Caminho(".", "dist")
+                    if c.arquivo() and c.nome.endswith(".whl")]
+    assert arquivos_whl, "Nenhuma build '.whl' encontrada em './dist'"
+    return sorted(arquivos_whl, key=lambda c: c.nome, reverse=True)[0]
 
 def main () -> None:
-    sucesso, _ = bot.sistema.executar("build-script.bat")
-    assert sucesso, "Falha ao executar o script de buid"
+    sucesso, erro = bot.sistema.executar("build.bat")
+    assert sucesso, f"Falha ao executar o script de buid\n{erro}"
+
     caminho = obter_ultima_build()
     print(f"\n### Build gerada com sucesso: {caminho} ###")
 
