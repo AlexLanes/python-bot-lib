@@ -1,9 +1,11 @@
 # std
 from __future__ import annotations
-import os, typing, shutil, pathlib, subprocess, subprocess
+import os, subprocess
+import typing, getpass
+import shutil, pathlib
 from datetime import datetime as Datetime
 # externo
-import pyperclip
+import pyperclip, psutil
 
 class Caminho:
     """Classe para representação de caminhos, em sua versão absoluta, 
@@ -265,6 +267,29 @@ def texto_copiado (apagar=False) -> str:
     if apagar: copiar_texto("")
     return texto
 
+def encerrar_processos_usuario (*nome_processo: str) -> int:
+    """Encerrar os processos do usuário atual que comecem com algum nome em `nome_processo`
+    - `.exe` não necessário de ser informado
+    - Retorna a quantidade de processos encerrados"""
+    encerrados = 0
+    atributos = ["name", "username"]
+    usuario = getpass.getuser().lower()
+    nome_processo = tuple(nome.lower() for nome in nome_processo)
+
+    for processo in psutil.process_iter(atributos):
+        name, username = (
+            str(processo.info.get(attr, "")).lower()
+            for attr in atributos
+        )
+        if not username.endswith(usuario): continue
+        if not any(name.startswith(nome) for nome in nome_processo): continue
+
+        processo.kill()
+        processo.wait(5)
+        encerrados += 1
+
+    return encerrados
+
 __all__ = [
     "Caminho",
     "executar",
@@ -272,5 +297,6 @@ __all__ = [
     "texto_copiado",
     "abrir_programa",
     "alterar_resolucao",
-    "informacoes_resolucao"
+    "informacoes_resolucao",
+    "encerrar_processos_usuario"
 ]
