@@ -30,8 +30,6 @@ ESTRATEGIAS_WEBELEMENT = Literal["id", "xpath", "link text", "name", "tag name",
 """Estratégias para a localização de WebElements no `Selenium`"""
 BOTOES_TECLADO = Literal["alt", "alt_l", "alt_r", "alt_gr", "backspace", "caps_lock", "cmd", "cmd_r", "ctrl", "ctrl_l", "ctrl_r", "delete", "down", "end", "enter", "esc", "f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9", "f10", "f11", "f12", "f13", "f14", "f15", "f16", "f17", "f18", "f19", "f20", "f21", "f22", "f23", "f24", "home", "left", "page_down", "page_up", "right", "shift", "shift_r", "space", "tab", "up", "media_play_pause", "media_volume_mute", "media_volume_down", "media_volume_up", "media_previous", "media_next", "insert", "menu", "num_lock", "pause", "print_screen", "scroll_lock"]
 """Botões especiais aceitos pelo `pynput`"""
-BACKENDS_JANELA = Literal["win32", "uia"]
-"""Backends aceitos pelo `pywinauto`"""
 
 __all__ = [
     "url",
@@ -46,6 +44,5 @@ __all__ = [
     "PORCENTAGENS",
     "BOTOES_TECLADO",
     "DIRECOES_SCROLL",
-    "BACKENDS_JANELA",
     "ESTRATEGIAS_WEBELEMENT"
 ]
