@@ -5,10 +5,16 @@ import time, typing, functools
 import bot
 # externo
 import psutil
-import win32gui, win32con, win32process # pywin32
+import win32gui, win32con, win32api, win32process # pywin32
 import comtypes.client
 comtypes.client.GetModule('UIAutomationCore.dll')
 from comtypes.gen import UIAutomationClient as uiaclient
+
+BOTOES_VIRTUAIS_MOUSE = {
+    "left":   (win32con.WM_LBUTTONDOWN, win32con.WM_LBUTTONUP, win32con.MK_LBUTTON),
+    "middle": (win32con.WM_MBUTTONDOWN, win32con.WM_MBUTTONUP, win32con.MK_MBUTTON),
+    "right":  (win32con.WM_RBUTTONDOWN, win32con.WM_RBUTTONUP, win32con.MK_RBUTTON),
+}
 
 class Dialogo [T: ElementoW32 | ElementoUIA]:
     """Diálogo do windows para confirmação"""
@@ -54,7 +60,7 @@ class ElementoW32:
                         janela: JanelaW32,
                         parente: ElementoW32 | None = None,
                         profundidade: int = 0) -> None:
-        self.hwnd = hwnd or 0
+        self.hwnd = int(hwnd or 0)
         self.janela = janela
         self.parente = parente
         self.profundidade = profundidade
@@ -143,13 +149,12 @@ class ElementoW32:
 
     def aguardar (self, timeout: float = 120.0) -> typing.Self:
         """Aguarda `timeout` segundos até que a thread da GUI fique ociosa"""
-        if self.janela.fechada: return self
+        if self.janela.fechada or self.hwnd == 0:
+            return self
 
+        if self is not self.janela.elemento: self.janela.aguardar()
         try: win32gui.SendMessageTimeout(self.hwnd, win32con.WM_NULL, None, None, win32con.SMTO_ABORTIFHUNG, int(timeout * 1000))
-        except: raise TimeoutError(f"O elemento não respondeu após '{timeout}' segundos esperando") from None
-
-        if self is not self.janela.elemento:
-            self.janela.aguardar()
+        except : raise TimeoutError(f"O elemento não respondeu após '{timeout}' segundos esperando") from None
         return self
 
     def focar (self) -> typing.Self:
@@ -160,9 +165,32 @@ class ElementoW32:
         except: pass
         return self.aguardar()
 
-    def clicar (self, botao: bot.tipagem.BOTOES_MOUSE = "left", quantidade: int = 1) -> typing.Self:
+    def clicar (self, botao: bot.tipagem.BOTOES_MOUSE = "left",
+                      virtual: bool = True) -> typing.Self:
+        """Clicar com o `botão` no centro do elemento
+        - `virtual` indica se o click deve ser simulado ou feito com o mouse de fato
+        - Apenas alguns elementos aceitam clicks virtuais"""
         self.focar()
-        bot.mouse.clicar_mouse(botao, quantidade, self.coordenada, delay=0.2)
+        coordenada = self.coordenada
+
+        if virtual:
+            lparam = win32api.MAKELONG(coordenada.largura // 2, coordenada.altura // 2)
+            down, up, wparam = BOTOES_VIRTUAIS_MOUSE[botao]
+            win32gui.SendMessage(self.hwnd, down, wparam, lparam)
+            win32gui.SendMessage(self.hwnd, up, 0, lparam)
+        else:
+            bot.mouse.clicar_mouse(botao, coordenada=coordenada)
+
+        return self.aguardar()
+
+    def digitar (self, texto: str, virtual: bool = True) -> typing.Self:
+        """Digitar o `texto` no elemento
+        - `virtual` indica se deve ser simulado ou feito com o teclado de fato
+        - `virtual` substitui o texto atual pelo `texto`
+        - Apenas alguns elementos aceitam o `virtual`"""
+        self.focar()
+        if virtual: win32gui.SendMessage(self.hwnd, win32con.WM_SETTEXT, 0, texto) # type: ignore
+        else: bot.teclado.digitar_teclado(texto)
         return self.aguardar()
 
     def scroll (self, quantidade: int = 1, direcao: bot.tipagem.DIRECOES_SCROLL = "baixo") -> typing.Self:
@@ -173,15 +201,10 @@ class ElementoW32:
             self.aguardar()
         return self
 
-    def digitar (self, texto: str) -> typing.Self:
-        self.focar()
-        bot.teclado.digitar_teclado(texto)
-        return self.aguardar()
-
     def apertar (self, *teclas: bot.tipagem.char | bot.tipagem.BOTOES_TECLADO) -> typing.Self:
         self.focar()
         for tecla in teclas:
-            bot.teclado.apertar_tecla(tecla, delay=0.2)
+            bot.teclado.apertar_tecla(tecla)
             self.aguardar()
         return self
 
@@ -348,6 +371,28 @@ class ElementoUIA (ElementoW32):
         self.uiaelement.SetFocus()
         return self.aguardar()
 
+    def clicar (self, botao: bot.tipagem.BOTOES_MOUSE = "left",
+                      virtual: bool = True) -> typing.Self:
+        """Clicar com o `botão` no centro do elemento
+        - `virtual` indica se o click deve ser simulado ou feito com o mouse de fato
+        - Apenas alguns elementos aceitam clicks virtuais"""
+        self.focar()
+        invocavel = self.invocavel
+
+        if virtual and invocavel and botao == "left": invocavel.Invoke()
+        else: super().clicar(botao, virtual)
+
+        return self.aguardar()
+
+    def digitar (self, texto: str, virtual: bool = True) -> typing.Self:
+        self.focar()
+        value = self.query_interface(uiaclient.UIA_ValuePatternId, uiaclient.IUIAutomationValuePattern)
+
+        if virtual and value: value.SetValue(texto)
+        else: super().digitar(texto, virtual)
+
+        return self.aguardar()
+
     def selecionar (self, texto: str) -> None:
         """Selecionar a opção que possua o `texto`
         - Elemento deve ser `expansivel` e conter `item_selecionavel`"""
@@ -435,8 +480,9 @@ class JanelaW32:
         if not encontrados: raise Exception(f"Janela não encontrada para o filtro informado")
         self.hwnd = (
             encontrados if len(encontrados) == 1
-            else sorted(encontrados, key=lambda j: len(j.elemento.filhos()), reverse=True)
-        )[0].hwnd
+            else sorted(encontrados, key = lambda j: (1 if win32gui.GetParent(j.hwnd) == 0 else 0,
+                                                      len(j.elemento.filhos())))
+        )[-1].hwnd
 
     @classmethod
     def from_hwnd (cls, hwnd: int) -> JanelaW32:
