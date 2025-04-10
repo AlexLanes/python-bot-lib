@@ -723,16 +723,14 @@ class JanelaUIA (JanelaW32):
         """Selecionar as `opções` nos menus
         - Procurado por elementos `barra_menu` com `item_barra_menu`"""
         self.focar()
-        barras_menu_maior_profundidade = lambda: sorted(
-            self.elemento.descendentes(lambda e: e.barra_menu),
-            key = lambda e: e.profundidade,
-            reverse = True,
-        )
+        barras_menu_usadas = set[ElementoUIA]()
+        barras_menu_nao_usadas = lambda: self.elemento.descendentes(lambda e: e.barra_menu and e not in barras_menu_usadas)
 
-        for opcao in map(str.lower, opcoes):
+        for index, opcao in enumerate(map(str.lower, opcoes)):
             opcao_encontrada = False
+            if index > 0: bot.util.aguardar_condicao(lambda: bool(barras_menu_nao_usadas()), 2)
 
-            for barra_menu in barras_menu_maior_profundidade():
+            for barra_menu in barras_menu_nao_usadas():
                 finder: uiaclient.IUIAutomationElementArray = barra_menu.uiaelement.FindAll(
                     # SubTree pega todos os itens da barra que o Children não consegue
                     uiaclient.TreeScope_Subtree,
@@ -754,6 +752,7 @@ class JanelaUIA (JanelaW32):
 
                 if opcao_encontrada:
                     self.aguardar()
+                    barras_menu_usadas.add(barra_menu)
                     break
 
             assert opcao_encontrada, f"Opção '{opcao}' não encontrada nas barras de menu"
