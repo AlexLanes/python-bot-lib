@@ -158,8 +158,6 @@ class ElementoW32:
 
         try: win32gui.SetForegroundWindow(self.hwnd)
         except: pass
-
-        time.sleep(0.2)
         return self.aguardar()
 
     def clicar (self, botao: bot.tipagem.BOTOES_MOUSE = "left", quantidade: int = 1) -> typing.Self:
@@ -263,12 +261,12 @@ class ElementoUIA (ElementoW32):
     @property
     def tipo (self) -> str:
         """Nome localizado do tipo do elemento"""
-        try: return str(self.uiaelement.CurrentLocalizedControlType) or ""
+        try: return str(self.uiaelement.CurrentLocalizedControlType or "")
         except: return ""
 
     @property
     def automation_id (self) -> str:
-        try: return str(self.uiaelement.CurrentAutomationId) or ""
+        try: return str(self.uiaelement.CurrentAutomationId or "")
         except: return ""
 
     @property
@@ -345,8 +343,9 @@ class ElementoUIA (ElementoW32):
         raise AssertionError("Nenhum elemento descendente encontrado para o filtro")
 
     def focar (self) -> typing.Self:
+        if not self.janela.focada:
+            self.janela.focar()
         self.uiaelement.SetFocus()
-        time.sleep(0.2)
         return self.aguardar()
 
     def selecionar (self, texto: str) -> None:
@@ -424,17 +423,20 @@ class JanelaW32:
     hwnd: int
 
     def __init__ (self, filtro: typing.Callable[[typing.Self], bool]) -> None:
-        encontrados = []
+        encontrados: list[JanelaW32] = []
         def callback (hwnd: int, _) -> bool:
             j = JanelaW32.from_hwnd(hwnd)
-            if filtro(j): encontrados.append(hwnd) # type: ignore
-            return len(encontrados) == 0
+            if filtro(j): encontrados.append(j) # type: ignore
+            return True
 
         try: win32gui.EnumWindows(callback, None)
         except: pass
 
         if not encontrados: raise Exception(f"Janela não encontrada para o filtro informado")
-        self.hwnd = encontrados[0]
+        self.hwnd = (
+            encontrados if len(encontrados) == 1
+            else sorted(encontrados, key=lambda j: len(j.elemento.filhos()), reverse=True)
+        )[0].hwnd
 
     @classmethod
     def from_hwnd (cls, hwnd: int) -> JanelaW32:
@@ -645,22 +647,13 @@ class JanelaUIA (JanelaW32):
     @property
     def minimizada (self) -> bool:
         pattern = self.elemento.query_interface(uiaclient.UIA_WindowPatternId, uiaclient.IUIAutomationWindowPattern)
-        if not pattern: return True
+        if not pattern: return not self.fechada
         return pattern.CurrentWindowVisualState == uiaclient.WindowVisualState_Minimized
     def minimizar (self) -> typing.Self:
         pattern = self.elemento.query_interface(uiaclient.UIA_WindowPatternId, uiaclient.IUIAutomationWindowPattern)
         if pattern: pattern.SetWindowVisualState(uiaclient.WindowVisualState_Minimized)
         else: super().minimizar()
         return self
-
-    def focar (self) -> typing.Self:
-        if self.aguardar().minimizada:
-            pattern = self.elemento.query_interface(uiaclient.UIA_WindowPatternId, uiaclient.IUIAutomationWindowPattern)
-            if pattern: pattern.SetWindowVisualState(uiaclient.WindowVisualState_Normal)
-            else: super().focar()
-        self.elemento.focar()
-        time.sleep(0.2)
-        return self.aguardar()
 
     def popup (self, class_name="#32768") -> Popup[ElementoUIA] | None: # type: ignore
         for filho in self.elemento.filhos():
@@ -680,19 +673,21 @@ class JanelaUIA (JanelaW32):
             if janela.class_name == class_name:
                 return Dialogo(janela.elemento)
 
-    def menu (self, *opcoes: str) -> None:
+    def menu (self, *opcoes: str) -> typing.Self:
         """Selecionar as `opções` nos menus
         - Procurado por elementos `barra_menu` com `item_barra_menu`"""
         self.focar()
-        utilizados: list[ElementoUIA] = []
-        filtro_barra_menu_nao_utilizada: typing.Callable[[ElementoUIA], bool] = lambda e: e.barra_menu and e not in utilizados
+        barras_menu_maior_profundidade = lambda: sorted(
+            self.elemento.descendentes(lambda e: e.barra_menu),
+            key = lambda e: e.profundidade,
+            reverse = True,
+        )
 
-        for opcao in opcoes:
-            opcao = opcao.lower()
+        for opcao in map(str.lower, opcoes):
             opcao_encontrada = False
 
-            for menu in self.elemento.descendentes(filtro_barra_menu_nao_utilizada):
-                finder: uiaclient.IUIAutomationElementArray = menu.uiaelement.FindAll(
+            for barra_menu in barras_menu_maior_profundidade():
+                finder: uiaclient.IUIAutomationElementArray = barra_menu.uiaelement.FindAll(
                     # SubTree pega todos os itens da barra que o Children não consegue
                     uiaclient.TreeScope_Subtree,
                     ElementoUIA.UIA.CreateTrueCondition()
@@ -700,20 +695,24 @@ class JanelaUIA (JanelaW32):
 
                 for i in range(finder.Length):
                     filho: uiaclient.IUIAutomationElement = finder.GetElement(i)
-                    e = ElementoUIA(filho.CurrentNativeWindowHandle, self, menu, filho, menu.profundidade + 1)
+                    e = ElementoUIA(filho.CurrentNativeWindowHandle, self, barra_menu, filho, barra_menu.profundidade + 1)
                     if not e.item_barra_menu or opcao != e.texto.lower():
                         continue
 
-                    opcao_encontrada = utilizados.append(menu) or True
-                    if invocavel := e.invocavel: invocavel.Invoke()
-                    elif expansivel := e.expansivel: expansivel.Expand()
+                    if expansivel := e.expansivel: expansivel.Expand()
+                    elif invocavel := e.invocavel: invocavel.Invoke()
                     else: e.clicar()
+
+                    opcao_encontrada = True
+                    break
 
                 if opcao_encontrada:
                     self.aguardar()
                     break
 
-        assert len(opcoes) == len(utilizados), f"Opções {list(opcoes[len(utilizados) : ])} não encontradas"
+            assert opcao_encontrada, f"Opção '{opcao}' não encontrada nas barras de menu"
+
+        return self
 
     def janelas_processo (self, filtro: typing.Callable[[JanelaUIA], bool] | None = None) -> list[JanelaUIA]: # type: ignore
         encontrados: list[JanelaUIA] = []
