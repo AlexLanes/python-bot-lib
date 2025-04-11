@@ -194,6 +194,7 @@ class ElementoW32:
         return self.aguardar()
 
     def scroll (self, quantidade: int = 1, direcao: bot.tipagem.DIRECOES_SCROLL = "baixo") -> typing.Self:
+        """Realizar scroll no elemento `quantidade` vezes na `direção`"""
         self.focar()
         quantidade = max(1, quantidade)
         for _ in range(quantidade):
@@ -202,13 +203,15 @@ class ElementoW32:
         return self
 
     def apertar (self, *teclas: bot.tipagem.char | bot.tipagem.BOTOES_TECLADO) -> typing.Self:
+        """Apertar e soltar as `teclas` uma por vez"""
         self.focar()
         for tecla in teclas:
             bot.teclado.apertar_tecla(tecla)
             self.aguardar()
         return self
 
-    def atalho (self, teclas: list[bot.tipagem.char | bot.tipagem.BOTOES_TECLADO]) -> typing.Self:
+    def atalho (self, *teclas: bot.tipagem.char | bot.tipagem.BOTOES_TECLADO) -> typing.Self:
+        """Apertar as `teclas` sequencialmente e depois soltá-las em ordem reversa"""
         self.focar()
         bot.teclado.atalho_teclado(teclas)
         return self.aguardar()
@@ -241,7 +244,7 @@ class ElementoUIA (ElementoW32):
                         parente: ElementoUIA | None = None,
                         uiaelement: uiaclient.IUIAutomationElement | None = None,
                         profundidade: int = 0) -> None:
-        self.hwnd = hwnd or 0
+        self.hwnd = int(hwnd or 0)
         self.janela = janela # type: ignore
         self.parente = parente # type: ignore
         self.profundidade = profundidade
@@ -297,7 +300,7 @@ class ElementoUIA (ElementoW32):
         """Nome localizado do tipo do elemento"""
         try: return [
             tecla.lower()
-            for tecla in str(self.uiaelement.CurrentAccessKey).split("+")
+            for tecla in map(str.strip, str(self.uiaelement.CurrentAccessKey).replace(",", "+").split("+"))
             if tecla
         ]
         except: return []
@@ -319,6 +322,14 @@ class ElementoUIA (ElementoW32):
         """Obter a interface para invocar o elemento, semelhante a um click
         - `None` caso o elemento não seja um item invocável"""
         return self.query_interface(uiaclient.UIA_InvokePatternId, uiaclient.IUIAutomationInvokePattern)
+
+    @property
+    def botao (self) -> bool:
+        return self.uiaelement.CurrentControlType == uiaclient.UIA_ButtonControlTypeId
+
+    @property
+    def editavel (self) -> bool:
+        return self.query_interface(uiaclient.UIA_ValuePatternId, uiaclient.IUIAutomationValuePattern) != None
 
     @property
     def barra_menu (self) -> bool:
@@ -630,6 +641,34 @@ class JanelaW32:
         except: pass
 
         return encontrados
+
+    @staticmethod
+    def ordernar_elementos_coordenada[T: ElementoW32 | ElementoUIA] (elementos: list[T], margem=5) -> list[T]:
+        """Ordenar os `elementos` pela posição Y e X
+        - Agrupa o Y com a `margem` de pixels
+        - Alteração `In-place`, retornado a mesma lista de `elementos`"""
+        y_atual: int | None = None
+        grupo_linhas: list[list[T]] = []
+
+        def nova_linha (y: int) -> bool:
+            return y_atual == None or y > y_atual + margem
+
+        # agrupar por linhas
+        for elemento in sorted(elementos, key=lambda e: e.coordenada.y):
+            y = elemento.coordenada.y
+            if nova_linha(y): y_atual = y; grupo_linhas.append([elemento])
+            else: grupo_linhas[-1].append(elemento)
+
+        # ordenar os grupos pelo x
+        for grupo in grupo_linhas:
+            grupo.sort(key = lambda e: e.coordenada.x)
+
+        # alterar in-place
+        elementos.clear()
+        for grupo in grupo_linhas:
+            elementos.extend(grupo)
+
+        return elementos
 
 class JanelaUIA (JanelaW32):
     """Classe para manipulação de janelas e elementos para o backend UIA
