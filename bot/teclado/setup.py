@@ -1,7 +1,7 @@
 # std
 from time import sleep
 from atexit import register
-from typing import Any, Callable
+from typing import Any, Callable, Iterable
 # interno
 from .. import tipagem
 # externo
@@ -18,7 +18,7 @@ def apertar_tecla (tecla: tipagem.BOTOES_TECLADO | tipagem.char, quantidade=1, d
         TECLADO.tap(t)
         sleep(delay)
 
-def atalho_teclado (teclas: list[tipagem.BOTOES_TECLADO | tipagem.char], delay=0.5) -> None:
+def atalho_teclado (teclas: Iterable[tipagem.BOTOES_TECLADO | tipagem.char], delay=0.5) -> None:
     """Apertar as `teclas` sequencialmente e depois soltá-las em ordem reversa
     - `tecla` pode ser do `BOTOES_TECLADO` ou um `char`"""
     t = [
