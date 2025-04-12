@@ -149,10 +149,11 @@ class ElementoW32:
 
     def aguardar (self, timeout: float = 120.0) -> typing.Self:
         """Aguarda `timeout` segundos até que a thread da GUI fique ociosa"""
+        if self is not self.janela.elemento:
+            self.janela.aguardar()
         if self.janela.fechada or self.hwnd == 0:
             return self
 
-        if self is not self.janela.elemento: self.janela.aguardar()
         try: win32gui.SendMessageTimeout(self.hwnd, win32con.WM_NULL, None, None, win32con.SMTO_ABORTIFHUNG, int(timeout * 1000))
         except : raise TimeoutError(f"O elemento não respondeu após '{timeout}' segundos esperando") from None
         return self
@@ -576,7 +577,9 @@ class JanelaW32:
 
     def aguardar (self, timeout: float = 120.0) -> typing.Self:
         """Aguarda `timeout` segundos até que a thread da GUI fique ociosa"""
-        if self.fechada: return self
+        if self.fechada or self.hwnd == 0:
+            return self
+
         try: win32gui.SendMessageTimeout(self.hwnd, win32con.WM_NULL, None, None, win32con.SMTO_ABORTIFHUNG, int(timeout * 1000))
         except: raise TimeoutError(f"A janela não respondeu após '{timeout}' segundos esperando") from None
         return self
