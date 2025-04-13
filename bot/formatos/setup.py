@@ -351,27 +351,45 @@ class UnmarshalError (Exception):
 
 class Unmarshaller[T]:
     """Classe para validação e parse de um `dict` para uma classe customizada
+    - `__repr__` da classe alterada caso não tenha sido implementada
+    - Propriedades são validadas como obrigatórios caso não possuam `Union` com `None` ou sem um default
+    - Classes deve ter as propriedades e tipos devidamente anotados
+    - Classes podem herdam propriedades de outras classes
+    - Tipos Esperados:
+        - Primitivos
+        - Literal
+        - Union |
+        - dict
+        - list
+        - class
 
     ```
     # Classes de exemplo
-    # tipos primitivos, dict, list e classes
     class Endereco:
         rua: str
         numero: int | None
+    class EnderecoComComplemento (Endereco):
+        complemento: str
     class Pessoa:
         nome: str
         idade: int
-        endereco: Endereco
-        documentos: dict[str, str | None]
+        sexo: Literal["M", "F"]
+        opcional: str | None
+        opcional_com_default: str = "default"
+        informado_com_default: int | str = "10"
+        documentos: dict[str, str | int | None]
+        enderecos: list[Endereco | EnderecoComComplemento]
 
-    # validar sucesso
     item, erro = Unmarshaller(Pessoa).parse({
-        "nome": "João",
-        "idade": 42,
-        "endereco": {"rua": "Avenida", "numero": None, "pais": "Brasil"},
-        "documentos": {"cpf": "123", "rg": None }
+        "nome": "Alex",
+        "idade": 27,
+        "sexo": "M",
+        "informado_com_default": 20,
+        "documentos": {"cpf": "123", "rg": None, "cnpj": 1234567 },
+        "enderecos": [{ "rua": "rua 1", "numero": 1 }, { "rua": "rua 2", "complemento": "próximo ao x" }],
     })
     assert not erro, f"Falha no unmarshal: {erro}"
+    print(item)
     ```
     """
 
@@ -380,7 +398,9 @@ class Unmarshaller[T]:
 
     def __init__(self, cls: type[T]) -> None:
         self.__cls = cls
-        cls.__repr__ = lambda self: str(self.__dict__)
+        if cls.__repr__ is object.__repr__:
+            cls.__repr__ = lambda self: str(self.__dict__)
+
         # class attr escondido
         # gambiarra devido a classes como str: list["Classe"]
         # TODO talvez o python 3.14 resolva devido a alterações em tipagem futura
@@ -390,9 +410,10 @@ class Unmarshaller[T]:
     def __repr__ (self) -> str:
         return f"<Unmarshaller[{self.__cls.__name__}]>"
 
-    def parse (self, dados: dict[str, Any], **kwargs: str) -> tuple[T, None | str]:
+    def parse (self, item: dict[str, Any], **kwargs: str) -> tuple[T, str | None]:
         """Realizar o parse dos `dados` conforme a classe informada
-        - retorno `(instancia preenchida corretamente, None) ou (instancia vazia, mensagem de erro)`"""
+        - `(instancia preenchida corretamente, None)`
+        - `(instancia incompleta, mensagem de erro)`"""
         erro: str | None = None
         obj = object.__new__(self.__cls)        
         path = kwargs.get("path", "") or self.__cls.__name__
@@ -400,24 +421,45 @@ class Unmarshaller[T]:
         try:
             for name, t in self.__collect_annotations().items():
                 current_path = f"{path}.{name}" if path else name
-                if name not in dados and not self.__is_optional_type(t):
-                    raise UnmarshalError(current_path, t, None)
-                value = self.__validate(t, dados[name], current_path)
-                setattr(obj, name, value)
+                default = getattr(obj, name, None)
+                value = item.get(name, default)
+                setattr(obj, name, self.__validate(t, value, current_path))
 
         except UnmarshalError as e:
             erro = str(e)
 
         return obj, erro
 
+    def __collect_annotations (self) -> dict[str, type]:
+        base_and_parent_annotations = {}
+        for cls in reversed(self.__cls.__mro__):
+            base_and_parent_annotations.update(getattr(cls, '__annotations__', {}))
+        return base_and_parent_annotations
+
     def __validate (self, expected: type | Any, value: Any, path: str) -> Any:
         if isinstance(expected, str):
-            expected = Unmarshaller.cls_seen.get(expected, expected)
+            expected = Unmarshaller.cls_seen.get(expected, expected) # type: ignore
 
         origin = get_origin(expected)
 
         # any
-        if expected is Any: return value
+        if expected is Any:
+            return value
+
+        # primitivo
+        if any(expected is t and isinstance(value, t)
+               for t in self.__primitives):
+            return value
+
+        # class
+        if hasattr(expected, '__annotations__'):
+            if not isinstance(value, dict):
+                raise UnmarshalError(path, dict, value)
+            if expected.__name__ not in Unmarshaller.cls_seen: # type: ignore
+                Unmarshaller.cls_seen[expected.__name__] = expected # type: ignore
+            value, nok = Unmarshaller(expected).parse(value, path=path)
+            if nok: raise UnmarshalError.from_message(nok)
+            return value
 
         # literal
         if origin is Literal:
@@ -426,20 +468,11 @@ class Unmarshaller[T]:
                 raise UnmarshalError(path, Literal[expected_values], value)
             return value
 
-        # primitive
-        if any(t in self.__primitives and isinstance(value, t)
-               for t in self.__expand_if_union(expected)):
-            return value
-
-        # class
-        if hasattr(expected, '__annotations__'):
-            if not isinstance(value, dict):
-                raise UnmarshalError(path, dict, value)
-            if expected.__name__ not in Unmarshaller.cls_seen:
-                Unmarshaller.cls_seen[expected.__name__] = expected
-            value, nok = Unmarshaller(expected).parse(value, path=path)
-            if nok: raise UnmarshalError.from_message(nok)
-            return value
+        # union
+        if origin is UnionType:
+            for t in get_args(expected):
+                try: return self.__validate(t, value, path)
+                except: pass
 
         # list
         if expected is list or origin is list:
@@ -464,22 +497,6 @@ class Unmarshaller[T]:
             }
 
         raise UnmarshalError(path, expected, value)
-
-    def __collect_annotations (self) -> dict[str, type]:
-        base_and_parent_annotations = {}
-        for cls in reversed(self.__cls.__mro__):
-            base_and_parent_annotations.update(getattr(cls, '__annotations__', {}))
-        return base_and_parent_annotations
-
-    def __is_optional_type (self, t: type) -> bool:
-        return (
-            get_origin(t) is UnionType
-            and NoneType in get_args(t)
-            and len(get_args(t)) > 1
-        )
-
-    def __expand_if_union (self, t: type) -> tuple[type]:
-        return get_args(t) if get_origin(t) is UnionType else (t, )
 
 __all__ = [
     "Json",
