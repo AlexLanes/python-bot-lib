@@ -1,6 +1,6 @@
 # std
 from __future__ import annotations
-import time, typing, functools
+import typing, functools
 # interno
 import bot
 # externo
@@ -143,7 +143,7 @@ class ElementoW32:
         """Textos dos descendentes concatenados pelo `separador`"""
         return separador.join(
             d.texto
-            for d in self.descendentes()
+            for d in self.descendentes(lambda e: True)
             if d.texto
         )
 
@@ -219,11 +219,11 @@ class ElementoW32:
 
     def print_arvore (self) -> None:
         """Realizar o `print()` da árvore de elementos"""
-        def print_nivel (elemento: ElementoW32, nivel=0, prefixo="") -> None:
-            prefixo += "|   " if nivel > 0 else ""
+        def print_nivel (elemento: ElementoW32, prefixo="") -> None:
+            prefixo += "|   " if elemento.profundidade > 0 else ""
             print(f"{prefixo}{elemento}")
             for filho in elemento.filhos(lambda e: True):
-                print_nivel(filho, nivel + 1, prefixo)
+                print_nivel(filho, prefixo)
 
         print_nivel(self)
 
@@ -337,7 +337,7 @@ class ElementoUIA (ElementoW32):
         """Checar se o elemento é uma barra de menu"""
         menu_controls = (uiaclient.UIA_MenuBarControlTypeId, uiaclient.UIA_MenuControlTypeId)
         return self.uiaelement.CurrentControlType in menu_controls\
-            or "xaml_windowedpopupclass" in self.class_name.lower()
+            or "windowedpopupclass" in self.class_name.lower()
 
     @property
     def item_barra_menu (self) -> bool:
@@ -568,7 +568,6 @@ class JanelaW32:
     def focar (self) -> typing.Self:
         if self.aguardar().minimizada: win32gui.ShowWindow(self.hwnd, win32con.SW_RESTORE)
         win32gui.SetForegroundWindow(self.hwnd)
-        time.sleep(0.2)
         return self.aguardar()
 
     @property
