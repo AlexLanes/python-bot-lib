@@ -222,7 +222,7 @@ class ElementoW32:
         def print_nivel (elemento: ElementoW32, nivel=0, prefixo="") -> None:
             prefixo += "|   " if nivel > 0 else ""
             print(f"{prefixo}{elemento}")
-            for filho in elemento.filhos():
+            for filho in elemento.filhos(lambda e: True):
                 print_nivel(filho, nivel + 1, prefixo)
 
         print_nivel(self)
@@ -343,6 +343,16 @@ class ElementoUIA (ElementoW32):
     def item_barra_menu (self) -> bool:
         """Checar se o elemento é um item da barra de menu"""
         return self.uiaelement.CurrentControlType == uiaclient.UIA_MenuItemControlTypeId
+
+    @property
+    def aba (self) -> bool:
+        """Checar se o elemento é uma aba"""
+        return self.uiaelement.CurrentControlType == uiaclient.UIA_TabControlTypeId
+
+    @property
+    def item_aba (self) -> bool:
+        """Checar se o elemento é um item de uma aba"""
+        return self.uiaelement.CurrentControlType == uiaclient.UIA_TabItemControlTypeId
 
     def filhos (self, filtro: typing.Callable[[ElementoUIA], bool] | None = None) -> list[ElementoUIA]: # type: ignore
         filhos = []
