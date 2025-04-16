@@ -1,8 +1,6 @@
 @echo off
 echo Criando ambiente virtual com uv
 pip install uv
-uv venv
-call .venv\Scripts\activate.bat
 uv sync
 
 echo.
