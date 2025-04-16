@@ -1,5 +1,7 @@
 ## Biblioteca com funcionalidades gerais para criação de automações para o Windows
 
+⚠️ <span style="color: red;"><strong>Python</strong> <code>&gt;=3.12</code></span> ⚠️
+
 Instalação via url do release no github:  
 **pip install** https://github.com/AlexLanes/python-bot-lib/releases/download/v3.0/bot-3.0-py3-none-any.whl
 
