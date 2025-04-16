@@ -9,11 +9,11 @@ import pyperclip, psutil
 
 class Caminho:
     """Classe para representação de caminhos, em sua versão absoluta, 
-    do sistema operacional e manipulação de arquivos/pastas
+    do sistema operacional e manipulação de arquivos/diretórios
 
     - Criação: `Caminho("caminho_completo")`, `Caminho(".", "pasta", "arquivo.txt")` ou `Caminho.diretorio_execucao()`
     - Acesso: `Caminho().string` ou `str(Caminho())`
-    - Concatenação: `Caminho() + "pasta" + "arquivo"` ou `Caminho() / "pasta" / "arquivo"`
+    - Concatenação: `Caminho() / "pasta" / "arquivo.txt"` ou `Caminho() + "pasta" + "arquivo.txt"`
     - Iteração sobre diretório: `for caminho in Caminho(): ...`
     - Demais métodos/atributos estão comentados"""
 
@@ -191,7 +191,7 @@ CAMINHO_QRES = Caminho(__file__).parente / "QRes.exe"
 def executar (*argumentos: str,
               powershell = False,
               timeout: float | None = None) -> tuple[bool, str]:
-    """Executar um comando com os `argumentos` no `prompt` e aguarda finalizar
+    """Executar um comando com os `argumentos` no `prompt` e aguardar finalizar
     - `powershell` para executar o comando no powershell ao invés do prompt
     - `timeout` define o tempo limite em segundos para `TimeoutError`
     - Retorno `(sucesso, mensagem)`"""

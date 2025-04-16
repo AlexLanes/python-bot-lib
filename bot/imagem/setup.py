@@ -16,6 +16,7 @@ def cor_similar (cor1: tipagem.rgb, cor2: tipagem.rgb, tolerancia=20) -> bool:
     return bool(np.linalg.norm(np.array(cor1) - np.array(cor2)) < tolerancia)
 
 def capturar_tela (regiao: Coordenada | None = None, cinza=False) -> Imagem:
+    """Capturar imagem da tela na `regiao` informada e transformar para `cinza` se requisitado"""
     imagem = object().__new__(Imagem)
     x, y, largura, altura = regiao or Coordenada.tela()
 
@@ -47,7 +48,7 @@ def capturar_tela (regiao: Coordenada | None = None, cinza=False) -> Imagem:
     return imagem
 
 class Imagem:
-    """Classe para manipulação de imagem"""
+    """Classe para manipulação e procura de imagem"""
 
     pixels: np.ndarray
     """Pixels da imagem BGR ou Cinza"""

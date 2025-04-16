@@ -5,7 +5,7 @@ from .. import util, sistema, tipagem, estruturas
 
 INICIALIZADO = False
 DIRETORIO_EXECUCAO = sistema.Caminho.diretorio_execucao()
-DADOS: estruturas.LowerDict[estruturas.LowerDict[str]] = estruturas.LowerDict()
+DADOS = estruturas.LowerDict[estruturas.LowerDict[str]]()
 """`{ secao: { opcao: valor } }`"""
 
 def inicializar_configfile (diretorio = DIRETORIO_EXECUCAO) -> None:

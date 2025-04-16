@@ -1,4 +1,4 @@
-"""Módulo para inicialização de variáveis a partir de arquivo de configuração
+"""Pacote para inicialização de variáveis a partir de arquivo de configuração `.ini`
 - Para concatenação de valores, utilizar a sintaxe `${opção} ou ${seção:opção}`
 - `$` é reservado, utilizar `$$` para contornar
 - `#` comenta a linha apenas se tiver no começo

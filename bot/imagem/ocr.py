@@ -7,7 +7,7 @@ from . import Coordenada, Imagem, capturar_tela
 import numpy as np
 
 class LeitorOCR:
-    """Classe de abstração do EasyOCR para ler/detectar textos em imagens
+    """Classe de abstração do pacote `EasyOCR` para ler/detectar textos em imagens
     - Caso possua GPU da NVIDIA, instalar o `CUDA Toolkit` e instalar as bibliotecas indicadas pelo pytorch https://pytorch.org/get-started/locally/"""
 
     def __init__ (self) -> None:

@@ -24,7 +24,7 @@ def posicional_existe (index: int) -> bool:
     except IndexError: return False
 
 def nomeado_existe (nome: str) -> bool:
-    """Checar se o argumento posicional existe"""
+    """Checar se o argumento nomeado existe"""
     return nome.strip().lower() in NOMEADOS
 
 def posicional_ou[T: tipagem.primitivo] (index: int, default: T = "") -> T:

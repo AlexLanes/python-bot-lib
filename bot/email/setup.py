@@ -94,8 +94,8 @@ def enviar_email (destinatarios: typing.Iterable[tipagem.email],
         logger.alertar(f"Erro ao enviar e-mail\n\t{type(erro).__name__}\n\t{erro}")
 
 def obter_emails (limite: int | slice | None = None,
-                  query="ALL",
-                  visualizar=False) -> typing.Generator[Email, None, None]:
+                  query = "ALL",
+                  visualizar = False) -> typing.Generator[Email, None, None]:
     """Obter e-mails de uma `Inbox`
     - Abstração `imaplib`
     - Variáveis .ini `[email.obter] -> user, password, host`

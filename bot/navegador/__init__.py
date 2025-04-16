@@ -1,4 +1,4 @@
-"""Módulo para navegadores Web
+"""Pacote para navegadores Web
 
 # Navegadores
 Edge, Chrome e Explorer

@@ -1,3 +1,3 @@
-"""Módulo para realizar ações com o teclado e área de transferência"""
+"""Pacote para realizar ações com o teclado"""
 
 from bot.teclado.setup import *

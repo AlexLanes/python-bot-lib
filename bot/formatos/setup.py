@@ -153,7 +153,7 @@ class Json [T]:
         )
 
 class ElementoXML:
-    """Classe de manipulação do XML
+    """Classe de manipulação de XML
     - Abstração do módulo `xml.etree.ElementTree`"""
 
     __elemento: Element
@@ -411,7 +411,7 @@ class Unmarshaller[T]:
         return f"<Unmarshaller[{self.__cls.__name__}]>"
 
     def parse (self, item: dict[str, Any], **kwargs: str) -> tuple[T, str | None]:
-        """Realizar o parse dos `dados` conforme a classe informada
+        """Realizar o parse do `item` conforme a classe informada
         - `(instancia preenchida corretamente, None)`
         - `(instancia incompleta, mensagem de erro)`"""
         erro: str | None = None

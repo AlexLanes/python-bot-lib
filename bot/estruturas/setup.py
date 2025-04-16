@@ -60,7 +60,7 @@ class Coordenada:
         ))
 
     def __hash__ (self) -> int:
-        return hash(str(tuple(self)))
+        return hash(tuple(self))
 
     def transformar (self, xOffset=0.5, yOffset=0.5) -> tuple[int, int]:
         """Transformar as cordenadas para a posição (X, Y) de acordo com a porcentagem `xOffset` e `yOffset`
@@ -220,6 +220,9 @@ class LowerDict [T]:
                 for chave in self
             )
         )
+
+    def get (self, chave: str, default: T = None) -> T:
+        return self.__d.get(chave.lower().strip(), default)
 
     def to_dict (self) -> dict[str, T]:
         return self.__d

@@ -47,7 +47,7 @@ def formatar_dataframe (df: polars.DataFrame,
         return str(df)
 
 def criar_excel (caminho: sistema.Caminho, planilhas: dict[str, polars.DataFrame]) -> sistema.Caminho:
-    """Criar um arquivo excel com os dados informados
+    """Criar um arquivo excel em `caminho` com os dados informados em `planilhas`
     - `planilhas` Dicionário sendo a `key` o nome da planilha e `value` um `polars.Dataframe` com os dados
     - `caminho` deve terminar em `.xlsx`"""
     assert caminho.nome.endswith(".xlsx"), "Caminho deve terminar em '.xlsx'"
