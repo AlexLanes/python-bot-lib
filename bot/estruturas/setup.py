@@ -221,7 +221,7 @@ class LowerDict [T]:
             )
         )
 
-    def get (self, chave: str, default: T = None) -> T:
+    def get[K] (self, chave: str, default: T | K = None) -> T | K:
         return self.__d.get(chave.lower().strip(), default)
 
     def to_dict (self) -> dict[str, T]:
