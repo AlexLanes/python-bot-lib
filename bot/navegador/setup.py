@@ -195,7 +195,7 @@ class Navegador:
         return self.focar_aba(aba_com_titulo)
 
     def aguardar_staleness (self, elemento: WebElement, timeout=60) -> typing.Self:
-        """Aguardar a condição staleness_of do `elemento` por `timeout` segundos
+        """Aguardar condição staleness_of do `elemento` por `timeout` segundos
         - Exceção `TimeoutError` caso não finalize no tempo estipulado"""
         try: Wait(self.driver, timeout).until(ec.staleness_of(elemento))
         except TimeoutException:
@@ -215,6 +215,14 @@ class Navegador:
             mensagem_erro = f"A espera pela visibilidade do Elemento não aconteceu após {timeout} segundos"
             raise TimeoutError(mensagem_erro)
         finally: self.alterar_timeout()
+        return self
+
+    def aguardar_invisibilidade (self, elemento: WebElement, timeout=60) -> typing.Self:
+        """Aguardar condição invisibility_of_element do `elemento` por `timeout` segundos
+        - Exceção `TimeoutError` caso não finalize no tempo estipulado"""
+        try: Wait(self.driver, timeout).until(ec.invisibility_of_element(elemento))
+        except TimeoutException:
+            raise TimeoutError(f"A espera pela invisibilidade do Elemento não aconteceu após {timeout} segundos")
         return self
 
     def aguardar_download (self, *termos: str, timeout=60) -> sistema.Caminho:
