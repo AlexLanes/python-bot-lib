@@ -81,12 +81,12 @@ class Coordenada:
         return (x, y, largura + x, altura + y)
 
 class Resultado [T]:
-    """Classe para capturar o resultado ou `Exception` de alguma chamada
+    """Classe para capturar o `return | Exception` das chamadas
 
     ```
     # informar a função, os argumentos posicionais e os argumentos nomeados
     # a função será automaticamente chamada após
-    resultado = Resultado(funcao, "nome", "idade", key=value)
+    resultado = Resultado(funcao, "argumento1", "argumento2", argumento=valor)
     # pode se utilizar como decorador em uma função e obter Resultado como retorno
     @Resultado.decorador
 
@@ -94,55 +94,50 @@ class Resultado [T]:
     repr(resultado)
 
     # checar sucesso na chamada
-    bool(resultado) | if resultado: ...
+    if resultado: ...
+    if resultado.ok()
 
     # acessando
     valor, erro = resultado.unwrap()
-    valor = resultado.valor() # erro caso a função tenha apresentado erro
+    valor, erro = resultado.valor, resultado.erro
     valor = resultado.valor_ou(default) # valor ou default caso a função tenha apresentado erro
     ```"""
 
-    __valor: T | None
-    __erro: Exception | None
+    valor: T | None
+    erro: Exception | None
 
-    def __init__ (self, funcao: typing.Callable[..., T],
-                        *args: typing.Any,
-                        **kwargs: typing.Any) -> None:
-        self.__valor = self.__erro = None
-        try: self.__valor = funcao(*args, **kwargs)
-        except Exception as erro: self.__erro = erro
+    def __init__(self, funcao: typing.Callable[..., T], *args, **kwargs) -> None:
+        self.valor = self.erro = None
+        try: self.valor = funcao(*args, **kwargs)
+        except Exception as erro: self.erro = erro
 
     @staticmethod
-    def decorador[D] (func: typing.Callable[P, D]) -> typing.Callable[P, Resultado[D]]: # type: ignore
+    def decorador[K] (func: typing.Callable[P, K]) -> typing.Callable[P, Resultado[K]]: # type: ignore
         """Permite que a classe seja utilizada como um decorador
         - Função"""
-        def decorador (*args: P.args, **kwargs: P.kwargs) -> Resultado[D]: # type: ignore
+        def decorador (*args: P.args, **kwargs: P.kwargs) -> Resultado[K]: # type: ignore
             return Resultado(func, *args, **kwargs)
         return decorador
 
     def __bool__ (self) -> bool:
         """Indicação de sucesso"""
-        return self.__erro == None
+        return self.erro == None
 
     def __repr__ (self) -> str:
         """Representação da classe"""
         return f"<Resultado[T] {"sucesso" if self else "erro"}>"
 
-    def unwrap (self) -> tuple[T, None] | tuple[None, Exception]:
-        """Realizar unwrap do `valor, erro = resultado.unwrap()`"""
-        return self.__valor, self.__erro # type: ignore
+    def ok (self) -> bool:
+        """Indicação de sucesso"""
+        return bool(self)
 
-    def valor (self) -> T:
-        """Obter o valor do resultado
-        - `raise Exception` caso tenha apresentado erro"""
-        if self.__erro != None:
-            self.__erro.add_note("Valor não presente no resultado")
-            raise self.__erro
-        return self.__valor # type: ignore
+    def unwrap (self) -> tuple[T, None] | tuple[None, Exception]:
+        """Obter `valor, erro` do resultado"""
+        return self.valor, self.erro # type: ignore
 
     def valor_ou[K] (self, default: K) -> T | K:
         """Obter o valor do resultado ou `default` caso tenha apresentado erro"""
-        return self.__valor if self else default # type: ignore
+        return self.valor if self else default # type: ignore
 
 class InfoStack:
     """Informações do `Stack` de execução"""
