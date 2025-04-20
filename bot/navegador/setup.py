@@ -215,19 +215,19 @@ class Navegador:
         return self
 
     def aguardar_visibilidade (self, elemento: typing.Callable[[], WebElement],
-                                     timeout=60) -> typing.Self:
-        """Aguardar o `elemento` existir e estar visível por `timeout` segundos
+                                     timeout=60) -> WebElement:
+        """Aguardar o `elemento` existir e estar visível por `timeout` segundos e retornar o `WebElement` após visível
         - `elemento` deve ser uma função que retorne o `WebElement`
         - Exceção `TimeoutError` caso não finalize no tempo estipulado"""
         try:
             self.alterar_timeout(1)
             condicao = lambda: elemento().is_displayed()
             assert util.aguardar_condicao(condicao, timeout, 0.5)
+            return elemento()
         except AssertionError:
             mensagem_erro = f"A espera pela visibilidade do Elemento não aconteceu após {timeout} segundos"
             raise TimeoutError(mensagem_erro)
         finally: self.alterar_timeout()
-        return self
 
     def aguardar_invisibilidade (self, elemento: WebElement, timeout=60) -> typing.Self:
         """Aguardar condição invisibility_of_element do `elemento` por `timeout` segundos
