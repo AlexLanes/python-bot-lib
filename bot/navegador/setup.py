@@ -175,6 +175,18 @@ class Navegador:
         wd.ActionChains(self.driver).move_to_element(elemento).perform()
         return self
 
+    def aguardar_estado (self, timeout=60) -> typing.Self:
+        """Aguardar o `document.readyState` ser igual a `complete`
+        - Útil para aguardar após clicks e send_keys
+        - Exceção `TimeoutError` caso não finalize no tempo estipulado"""
+        estado = "complete"
+        if util.aguardar_condicao(
+            lambda: str(self.driver.execute_script("document.readyState")).strip().lower() == estado,
+            timeout = timeout
+        ): return self
+
+        raise TimeoutError(f"Estado '{estado}' do documento não aconteceu após {timeout} segundos")
+
     def aguardar_titulo (self, titulo: str, timeout=30) -> typing.Self:
         """Aguardar alguma aba conter o `título` e alterar o foco para ela
         - Exceção `TimeoutError` caso não finalize no tempo estipulado"""
