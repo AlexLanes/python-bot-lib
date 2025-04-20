@@ -223,6 +223,7 @@ class LowerDict [T]:
         return self.__d
 
 __all__ = [
+    "Caminho",
     "LowerDict",
     "InfoStack",
     "Resultado",
