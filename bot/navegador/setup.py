@@ -160,7 +160,7 @@ class Navegador:
         - `None` para retornar ao default_content (raiz)"""
         s = self.driver.switch_to
         s.frame(frame) if frame else s.default_content()
-        return self
+        return self.aguardar_estado()
 
     def alterar_timeout (self, timeout: float | None = None) -> typing.Self:
         """Alterar o tempo de `timeout` para ações realizadas pelo navegador
@@ -177,11 +177,11 @@ class Navegador:
 
     def aguardar_estado (self, timeout=60) -> typing.Self:
         """Aguardar o `document.readyState` ser igual a `complete`
-        - Útil para aguardar após clicks e send_keys
+        - Útil para aguardar após clicks, send_keys e alteração de frame
         - Exceção `TimeoutError` caso não finalize no tempo estipulado"""
         estado = "complete"
         if util.aguardar_condicao(
-            lambda: str(self.driver.execute_script("document.readyState")).strip().lower() == estado,
+            lambda: str(self.driver.execute_script("return document.readyState")).strip().lower() == estado,
             timeout = timeout
         ): return self
 
