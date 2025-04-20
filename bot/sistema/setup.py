@@ -36,6 +36,12 @@ class Caminho:
         caminho.path = pathlib.Path.home().resolve()
         return caminho
 
+    @classmethod
+    def from_path (cls, path: pathlib.Path) -> Caminho:
+        caminho = object.__new__(cls)
+        caminho.path = path.resolve()
+        return caminho
+
     def __repr__ (self) -> str:
         return f"<Caminho '{self.path}'>"
 
@@ -52,7 +58,7 @@ class Caminho:
         if not self.diretorio():
             return
         for p in self.path.iterdir():
-            yield Caminho(str(p))
+            yield Caminho.from_path(p)
 
     def __eq__ (self, value: object) -> bool:
         caminho = value.string if isinstance(value, Caminho) else str(value)
@@ -70,7 +76,7 @@ class Caminho:
     @property
     def parente (self) -> Caminho:
         """Obter o caminho para o parente do caminho atual"""
-        return Caminho(str(self.path.parent))
+        return Caminho.from_path(self.path.parent)
 
     @property
     def nome (self) -> str:
@@ -175,6 +181,12 @@ class Caminho:
             self.path.rmdir()
         return self.parente
 
+    def limpar_diretorio (self) -> typing.Self:
+        """Limpar os arquivos e diretórios do diretório atual"""
+        for filho in self:
+            filho.apagar_diretorio() if filho.diretorio() else filho.apagar_arquivo()
+        return self
+
     def procurar (self, filtro: typing.Callable[[Caminho], bool], recursivo=False) -> list[Caminho]:
         """Procurar caminhos de acordo com o `filtro`
         - `recursivo` indicador para percorrer os diretórios filhos
@@ -183,7 +195,7 @@ class Caminho:
         return [
             caminho
             for path in glob("*")
-            if filtro(caminho := Caminho(str(path)))
+            if filtro(caminho := Caminho.from_path(path))
         ]
 
 CAMINHO_QRES = Caminho(__file__).parente / "QRes.exe"
