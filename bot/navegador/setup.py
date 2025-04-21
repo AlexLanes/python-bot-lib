@@ -140,19 +140,28 @@ class Navegador:
         logger.informar(f"O navegador focou na aba '{self.titulo}'")
         return self
 
-    def encontrar_elemento (self, estrategia: tipagem.ESTRATEGIAS_WEBELEMENT, localizador: str | enum.Enum) -> WebElement:
+    def encontrar_elemento (self, estrategia: tipagem.ESTRATEGIAS_WEBELEMENT,
+                                  localizador: str | enum.Enum,
+                                  parente: WebElement | None = None) -> WebElement:
         """Encontrar elemento na aba atual com base em um `localizador` para a `estrategia` selecionada
+        - `parente` para usar um elemento como a raiz da busca
         - Exceção `ElementoNaoEncontrado` caso não seja encontrado"""
-        return self.driver.find_element(
+        p = parente or self.driver
+        return p.find_element(
             estrategia,
             localizador if isinstance(localizador, str) else str(localizador.value)
         )
 
-    def encontrar_elementos (self, estrategia: tipagem.ESTRATEGIAS_WEBELEMENT, localizador: str | enum.Enum) -> list[WebElement]:
-        """Encontrar elemento(s) na aba atual com base em um `localizador` para a `estrategia` selecionada"""
-        localizador = localizador if isinstance(localizador, str) else str(localizador.value)
-        elementos = self.driver.find_elements(estrategia, localizador)
-        return elementos
+    def encontrar_elementos (self, estrategia: tipagem.ESTRATEGIAS_WEBELEMENT,
+                                   localizador: str | enum.Enum,
+                                   parente: WebElement | None = None) -> list[WebElement]:
+        """Encontrar elemento(s) na aba atual com base em um `localizador` para a `estrategia` selecionada
+        - `parente` para usar um elemento como a raiz da busca"""
+        p = parente or self.driver
+        return p.find_elements(
+            estrategia,
+            localizador if isinstance(localizador, str) else str(localizador.value)
+        )
 
     def alterar_frame (self, frame: str | WebElement | None = None) -> typing.Self:
         """Alterar o frame atual do DOM da página para o `frame` contendo `@name, @id ou WebElement`
