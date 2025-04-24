@@ -12,8 +12,8 @@ import selenium.webdriver as wd
 import undetected_chromedriver as uc
 from selenium.webdriver.common.keys import Keys as Teclas
 from selenium.webdriver.remote.webelement import WebElement
-from selenium.webdriver.support.ui import WebDriverWait as Wait
 from selenium.webdriver.support import expected_conditions as ec
+from selenium.webdriver.support.ui import WebDriverWait as Wait, Select
 from selenium.common.exceptions import (
     TimeoutException,
     WebDriverException as ErroNavegador,
@@ -162,6 +162,12 @@ class Navegador:
             estrategia,
             localizador if isinstance(localizador, str) else str(localizador.value)
         )
+
+    def select (self, elemento: WebElement | None = None) -> Select:
+        """Obter a classe de tratamento do elemento `<select>`
+        - `elemento` deve ser um `<select>` ou `None` para procurar o primeiro"""
+        elemento = elemento or self.encontrar_elemento("tag name", "select")
+        return Select(elemento)
 
     def alterar_frame (self, frame: str | WebElement | None = None) -> typing.Self:
         """Alterar o frame atual do DOM da página para o `frame` contendo `@name, @id ou WebElement`
