@@ -10,6 +10,8 @@ requires-python = ">=3.12"
 license = { text = "MIT" }
 urls = { Homepage = "https://github.com/AlexLanes/python-bot-lib" }
 dependencies = [
+  "uv>=0.6.16",
+
   # database
   "pyodbc",
   "fastexcel",

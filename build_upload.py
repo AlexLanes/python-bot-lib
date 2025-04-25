@@ -85,7 +85,6 @@ def obter_ultima_build () -> bot.sistema.Caminho:
     return sorted(arquivos_whl, key=lambda c: c.nome, reverse=True)[0]
 
 def main () -> None:
-    bot.sistema.executar("pip", "install",  "uv")
     sucesso, erro = bot.sistema.executar("uv", "build",  "--wheel")
     assert sucesso, f"Falha ao executar o script de buid\n{erro}"
 
