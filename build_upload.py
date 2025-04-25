@@ -86,7 +86,7 @@ def obter_ultima_build () -> bot.sistema.Caminho:
 
 def main () -> None:
     sucesso, erro = bot.sistema.executar("uv", "build",  "--wheel")
-    assert sucesso, f"Falha ao executar o script de buid\n{erro}"
+    assert sucesso, f"Falha ao executar o script de build\n{erro}"
 
     caminho = obter_ultima_build()
     print(f"\n### Build gerada com sucesso: {caminho} ###")
