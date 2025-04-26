@@ -178,7 +178,15 @@ class ElementoWEB:
     def clicar (self) -> typing.Self:
         """Realizar a ação de click no elemento
         - Aguardado estar clicável"""
-        self.aguardar_clicavel().elemento.click()
+        assert (driver := self.__driver()), "Navegador encerrado"
+
+        elemento = self.aguardar_clicavel().elemento
+        clicado = util.aguardar_condicao(lambda: elemento.click() == None, 5, 0.5)
+        if not clicado: wd.ActionChains(driver).scroll_to_element(elemento)\
+                                               .move_to_element(elemento)\
+                                               .click(elemento)\
+                                               .perform()
+
         return self.sleep()
 
     def encontrar (self, localizador: str | enum.Enum) -> ElementoWEB:
