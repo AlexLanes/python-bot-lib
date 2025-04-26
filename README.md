@@ -250,10 +250,8 @@ titulos() -> list[str]
 pesquisar(url: str) -> Self
 nova_aba () -> Self
 fechar_aba () -> Self
-encontrar_elemento (
-    estrategia: tipagem.ESTRATEGIAS_WEBELEMENT,
-    localizador: str | enum.Enum
-) -> WebElement:
+encontrar (localizador: str | enum.Enum) -> ElementoWEB:
+procurar (localizador: str | enum.Enum) -> list[ElementoWEB]:
 ```
 
 ### `sistema`

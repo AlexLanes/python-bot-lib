@@ -1,21 +1,24 @@
 # std
-import time, enum, typing, base64, collections
+from __future__ import annotations
+import time, enum, typing, collections, weakref, contextlib
 from datetime import (
     datetime as Datetime,
     timedelta as Timedelta
 )
 # interno
 from .mensagem import Mensagem
-from .. import util, tipagem, logger, sistema, formatos, imagem, estruturas
+from .. import util, tipagem, logger, sistema, formatos, imagem
 # externo
 import selenium.webdriver as wd
 import undetected_chromedriver as uc
 from selenium.webdriver.common.keys import Keys as Teclas
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support import expected_conditions as ec
+from selenium.webdriver.chromium.webdriver import ChromiumDriver
 from selenium.webdriver.support.ui import WebDriverWait as Wait, Select
 from selenium.common.exceptions import (
     TimeoutException,
+    StaleElementReferenceException,
     WebDriverException as ErroNavegador,
     NoSuchElementException as ElementoNaoEncontrado
 )
@@ -41,10 +44,219 @@ ARGUMENTOS_DEFAULT = [
     "--disable-session-crashed-bubble", "--disable-search-engine-choice-screen"
 ]
 
+class ElementoWEB:
+
+    __elemento: WebElement
+    __localizador: str
+    __driver: weakref.ReferenceType[ChromiumDriver]
+    __parente: ElementoWEB | None
+
+    def __init__ (self, elemento: WebElement,
+                        localizador: str,
+                        driver: weakref.ReferenceType[ChromiumDriver],
+                        parente: ElementoWEB | None = None) -> None:
+        self.__elemento, self.__parente = elemento, parente
+        self.__localizador, self.__driver = localizador, driver
+
+    def __repr__ (self) -> str:
+        return f"<ElementoWEB {self.elemento}>"
+
+    def __eq__ (self, value: object) -> bool:
+        return isinstance(value, ElementoWEB) and self.elemento == value.elemento
+
+    @property
+    def elemento (self) -> WebElement:
+        """Elemento original do `selenium`
+        - Tentado refazer o elemento caso `StaleElementReferenceException`"""
+        elemento = self.__elemento
+        try: elemento.is_enabled(); return elemento
+        except StaleElementReferenceException: pass
+
+        assert (driver := self.__driver()), "Navegador encerrado"
+        find = self.__parente.elemento.find_element if self.__parente else driver.find_element
+        estrategia = "xpath" if self.__localizador.startswith(("/", "(", "./")) else "css selector"
+        try: self.__elemento = find(estrategia, self.__localizador)
+        except ElementoNaoEncontrado:
+            raise StaleElementReferenceException("Elemento stale encontrado, tentado recriar sem êxito")
+
+        return self.__elemento
+
+    @property
+    def texto (self) -> str:
+        """Texto do elemento com `strip()`"""
+        return self.elemento.text.strip()
+
+    @property
+    def nome (self) -> str:
+        """Nome da `<tag>` do elemento"""
+        return self.elemento.tag_name
+
+    @property
+    def visivel (self) -> bool:
+        """Indicador se o elemento está visível"""
+        return self.elemento.is_displayed()
+
+    @property
+    def ativo (self) -> bool:
+        """Indicador se o elemento está habilitado para interação"""
+        return self.elemento.is_enabled()
+
+    @property
+    def selecionado (self) -> bool:
+        """Indicador se o elemento está selecionado
+        - Geralmente utilizado em checkbox, opções <select> e botões radio"""
+        return self.elemento.is_selected()
+
+    @property
+    def select (self) -> Select:
+        """Obter a classe de tratamento do elemento `<select>`"""
+        return Select(self.elemento)
+
+    @property
+    def imagem (self) -> imagem.Imagem:
+        """Capturar a imagem do elemento
+        - Feito scroll do elemento"""
+        assert (driver := self.__driver()), "Navegador encerrado"
+        wd.ActionChains(driver).scroll_to_element(self.elemento).perform()
+        png = self.sleep(2).elemento.screenshot_as_png
+        return imagem.Imagem.from_bytes(png)
+
+    def sleep (self, segundos: int | float = 0.2) -> typing.Self:
+        """Aguardar por `segundos` até continuar a execução"""
+        time.sleep(segundos)
+        return self
+
+    def obter_atributo (self, nome: str) -> str | bool | None:
+        """Obter no elemento o valor do atributo `@nome`"""
+        return self.elemento.get_attribute(nome)
+
+    def limpar (self) -> typing.Self:
+        """Limpar o texto do elemento, caso suportado
+        - Aguardado estar ativo e atualizar valor"""
+        util.aguardar_condicao(lambda: self.ativo, 30, 0.5)
+
+        value = self.obter_atributo("value")
+        possui_value = value != None
+        texto_inicial = value if possui_value else self.texto
+
+        self.elemento.clear()
+        if texto_inicial: util.aguardar_condicao(
+            lambda: (self.obter_atributo("value") if possui_value else self.texto) != texto_inicial,
+            timeout = 5,
+            delay = 0.5
+        )
+
+        return self.sleep()
+
+    def digitar (self, *texto: str) -> typing.Self:
+        """Digitar o texto no elemento
+        - Pode ser combinado com as `Teclas`
+        - Clicado no elemento, aguardado estar ativo e atualizar valor"""
+        try: self.clicar()
+        except Exception: pass
+        util.aguardar_condicao(lambda: self.ativo, 5, 0.5)
+
+        value = self.obter_atributo("value")
+        possui_value = value != None
+        texto_inicial = value if possui_value else self.texto
+
+        self.elemento.send_keys(*texto)
+        util.aguardar_condicao(
+            lambda: (self.obter_atributo("value") if possui_value else self.texto) != texto_inicial,
+            timeout = 5,
+            delay = 0.5
+        )
+
+        return self.sleep()
+
+    def hover (self) -> typing.Self:
+        """Realizar a ação de hover no elemento"""
+        assert (driver := self.__driver()), "Navegador encerrado"
+        wd.ActionChains(driver).move_to_element(self.elemento).perform()
+        return self.sleep()
+
+    def clicar (self) -> typing.Self:
+        """Realizar a ação de click no elemento
+        - Aguardado estar clicável"""
+        self.aguardar_clicavel().elemento.click()
+        return self.sleep()
+
+    def encontrar (self, localizador: str | enum.Enum) -> ElementoWEB:
+        """Encontrar o primeiro elemento descendente do `elemento` atual com base no `localizador`
+        - Exceção `ElementoNaoEncontrado` caso não seja encontrado
+        - Estratégias suportadas:
+            - `xpath` se começar com `"/", "(" ou "./"`
+            - `css selector` caso contrário"""
+        assert self.__driver(), "Navegador encerrado"
+        localizador = (localizador if isinstance(localizador, str) else str(localizador.value)).strip()
+        estrategia = "xpath" if localizador.startswith(("/", "(", "./")) else "css selector"
+        elemento = self.elemento.find_element(estrategia, localizador)
+        return ElementoWEB(elemento, localizador, self.__driver, self)
+
+    def procurar (self, localizador: str | enum.Enum) -> list[ElementoWEB]:
+        """Procurar elemento(s) descendente(s) do `elemento` atual com base no `localizador`
+        - Estratégias suportadas:
+            - `xpath` se começar com `"/", "(" ou "./"`
+            - `css selector` caso contrário"""
+        assert self.__driver(), "Navegador encerrado"
+        localizador = (localizador if isinstance(localizador, str) else str(localizador.value)).strip()
+        estrategia = "xpath" if localizador.startswith(("/", "(", "./")) else "css selector"
+        return [
+            ElementoWEB(elemento, localizador, self.__driver, self)
+            for elemento in self.elemento.find_elements(estrategia, localizador)
+        ]
+
+    def aguardar_clicavel (self, timeout=60) -> typing.Self:
+        """Aguardar condição `element_to_be_clickable` do `elemento` por `timeout` segundos
+        - Exceção `TimeoutError` caso não finalize no tempo estipulado"""
+        assert (driver := self.__driver()), "Navegador encerrado"
+        try: Wait(driver, timeout).until(ec.element_to_be_clickable(self.elemento))
+        except TimeoutException:
+            raise TimeoutError(f"A espera pelo elemento ser clicável não aconteceu após {timeout} segundos")
+        return self
+
+    def aguardar_visibilidade (self, timeout=60) -> typing.Self:
+        """Aguardar condição `visibility_of` do `elemento` por `timeout` segundos
+        - Exceção `TimeoutError` caso não finalize no tempo estipulado"""
+        assert (driver := self.__driver()), "Navegador encerrado"
+        try: Wait(driver, timeout).until(ec.visibility_of(self.elemento))
+        except TimeoutException:
+            raise TimeoutError(f"A espera pela visibilidade do elemento não aconteceu após {timeout} segundos")
+        return self
+
+    @contextlib.contextmanager
+    def aguardar_staleness (self, timeout=60) -> typing.Generator[typing.Self, None, None]:
+        """Aguardar condição `staleness_of` do `elemento` por `timeout` segundos
+        - Exceção `TimeoutError` caso não finalize no tempo estipulado
+        - Utilizar com o `with` e realizar uma ação que tornará o elemento stale
+            - `with elemento.aguardar_staleness() as elemento: ...`"""
+        assert (driver := self.__driver()), "Navegador encerrado"
+        try:
+            elemento = self.__elemento
+            yield self
+            Wait(driver, timeout).until(ec.staleness_of(elemento))
+        except StaleElementReferenceException: pass
+        except TimeoutException:
+            raise TimeoutError(f"A espera pelo staleness do elemento não aconteceu após {timeout} segundos")
+
+    @contextlib.contextmanager
+    def aguardar_invisibilidade (self, timeout=60) -> typing.Generator[typing.Self, None, None]:
+        """Aguardar condição `invisibility_of_element` do `elemento` por `timeout` segundos
+        - Exceção `TimeoutError` caso não finalize no tempo estipulado
+        - Utilizar com o `with` e realizar uma ação que tornará o elemento invisível
+            - `with elemento.aguardar_invisibilidade() as elemento: ...`"""
+        assert (driver := self.__driver()), "Navegador encerrado"
+        try:
+            elemento = self.__elemento
+            yield self
+            Wait(driver, timeout).until(ec.invisibility_of_element(elemento))
+        except TimeoutException:
+            raise TimeoutError(f"A espera pela invisibilidade do elemento não aconteceu após {timeout} segundos")
+
 class Navegador:
     """Classe do navegador `selenium` que deve ser herdada"""
 
-    driver: wd.Edge
+    driver: ChromiumDriver
     """Driver do `Selenium`"""
     timeout_inicial: float
     """Timeout informado na inicialização do navegador"""
@@ -95,15 +307,26 @@ class Navegador:
         - Usar `for aba in navegador` para focar nas abas e retornar a original ao fim"""
         return self.driver.window_handles
 
+    def sleep (self, segundos: int | float = 5.0) -> typing.Self:
+        """Aguardar por `segundos` até continuar a execução"""
+        time.sleep(segundos)
+        return self
+
     def titulos (self) -> list[str]:
         """Títulos das abas abertas"""
         return [self.titulo for _ in self]
 
     def pesquisar (self, url: str) -> typing.Self:
         """Pesquisar o url na aba focada"""
-        logger.informar(f"Pesquisado o url '{url}'")
+        logger.informar(f"Pesquisando o url '{url}'")
         self.driver.get(url)
         return self
+
+    def atualizar (self) -> typing.Self:
+        """Atualizar a aba focada"""
+        logger.informar(f"Atualizando aba '{self.titulo}'")
+        self.driver.refresh()
+        return self.sleep(2)
 
     def nova_aba (self) -> typing.Self:
         """Abrir uma nova aba e alterar o foco para ela"""
@@ -140,42 +363,38 @@ class Navegador:
         logger.informar(f"O navegador focou na aba '{self.titulo}'")
         return self
 
-    def encontrar_elemento (self, estrategia: tipagem.ESTRATEGIAS_WEBELEMENT,
-                                  localizador: str | enum.Enum,
-                                  parente: WebElement | None = None) -> WebElement:
-        """Encontrar elemento na aba atual com base em um `localizador` para a `estrategia` selecionada
-        - `parente` para usar um elemento como a raiz da busca
-        - Exceção `ElementoNaoEncontrado` caso não seja encontrado"""
-        p = parente or self.driver
-        return p.find_element(
-            estrategia,
-            localizador if isinstance(localizador, str) else str(localizador.value)
-        )
+    def encontrar (self, localizador: str | enum.Enum) -> ElementoWEB:
+        """Encontrar o primeiro elemento na aba atual com base no `localizador`
+        - Exceção `ElementoNaoEncontrado` caso não seja encontrado
+        - Estratégias suportadas:
+            - `xpath` se começar com `"/", "(" ou "./"`
+            - `css selector` caso contrário"""
+        localizador = (localizador if isinstance(localizador, str) else str(localizador.value)).strip()
+        estrategia = "xpath" if localizador.startswith(("/", "(", "./")) else "css selector"
+        elemento = self.driver.find_element(estrategia, localizador)
+        return ElementoWEB(elemento, localizador, weakref.ref(self.driver))
 
-    def encontrar_elementos (self, estrategia: tipagem.ESTRATEGIAS_WEBELEMENT,
-                                   localizador: str | enum.Enum,
-                                   parente: WebElement | None = None) -> list[WebElement]:
-        """Encontrar elemento(s) na aba atual com base em um `localizador` para a `estrategia` selecionada
-        - `parente` para usar um elemento como a raiz da busca"""
-        p = parente or self.driver
-        return p.find_elements(
-            estrategia,
-            localizador if isinstance(localizador, str) else str(localizador.value)
-        )
+    def procurar (self, localizador: str | enum.Enum) -> list[ElementoWEB]:
+        """Procurar elemento(s) na aba atual com base no `localizador`
+        - Estratégias suportadas:
+            - `xpath` se começar com `"/", "(" ou "./"`
+            - `css selector` caso contrário"""
+        localizador = (localizador if isinstance(localizador, str) else str(localizador.value)).strip()
+        estrategia = "xpath" if localizador.startswith(("/", "(", "./")) else "css selector"
+        ref = weakref.ref(self.driver)
+        return [
+            ElementoWEB(elemento, localizador, ref)
+            for elemento in self.driver.find_elements(estrategia, localizador)
+        ]
 
-    def select (self, elemento: WebElement | None = None) -> Select:
-        """Obter a classe de tratamento do elemento `<select>`
-        - `elemento` deve ser um `<select>` ou `None` para procurar o primeiro"""
-        elemento = elemento or self.encontrar_elemento("tag name", "select")
-        return Select(elemento)
-
-    def alterar_frame (self, frame: str | WebElement | None = None) -> typing.Self:
-        """Alterar o frame atual do DOM da página para o `frame` contendo `@name, @id ou WebElement`
-        - Necessário para encontrar e interagir com `WebElements` dentro de `<iframes>`
+    def alterar_frame (self, frame: str | ElementoWEB | None = None) -> typing.Self:
+        """Alterar o frame atual do DOM da página para o `frame` contendo `@name, @id ou ElementoWEB`
+        - Necessário para encontrar e interagir com elementos dentro de `<iframes>`
         - `None` para retornar ao default_content (raiz)"""
         s = self.driver.switch_to
-        s.frame(frame) if frame else s.default_content()
-        return self.aguardar_estado()
+        if frame == None: s.default_content()
+        else: s.frame(frame if isinstance(frame, str) else frame.elemento)
+        return self
 
     def alterar_timeout (self, timeout: float | None = None) -> typing.Self:
         """Alterar o tempo de `timeout` para ações realizadas pelo navegador
@@ -183,24 +402,6 @@ class Navegador:
         timeout = timeout if timeout != None else self.timeout_inicial
         self.driver.implicitly_wait(timeout)
         return self
-
-    def hover_elemento (self, elemento: WebElement) -> typing.Self:
-        """Realizar a ação de hover no `elemento`"""
-        logger.debug(f"Realizando ação de hover no elemento '{elemento}'")
-        wd.ActionChains(self.driver).move_to_element(elemento).perform()
-        return self
-
-    def aguardar_estado (self, timeout=60) -> typing.Self:
-        """Aguardar o `document.readyState` ser igual a `complete`
-        - Útil para aguardar após clicks, send_keys e alteração de frame
-        - Exceção `TimeoutError` caso não finalize no tempo estipulado"""
-        estado = "complete"
-        if util.aguardar_condicao(
-            lambda: str(self.driver.execute_script("return document.readyState")).strip().lower() == estado,
-            timeout = timeout
-        ): return self
-
-        raise TimeoutError(f"Estado '{estado}' do documento não aconteceu após {timeout} segundos")
 
     def aguardar_titulo (self, titulo: str, timeout=30) -> typing.Self:
         """Aguardar alguma aba conter o `título` e alterar o foco para ela
@@ -220,37 +421,6 @@ class Navegador:
             raise TimeoutError(f"Aba contendo o título '{titulo}' não foi encontrada após {timeout} segundos")
 
         return self.focar_aba(aba_com_titulo)
-
-    def aguardar_staleness (self, elemento: WebElement, timeout=60) -> typing.Self:
-        """Aguardar condição staleness_of do `elemento` por `timeout` segundos
-        - Exceção `TimeoutError` caso não finalize no tempo estipulado"""
-        try: Wait(self.driver, timeout).until(ec.staleness_of(elemento))
-        except TimeoutException:
-            raise TimeoutError(f"A espera pelo staleness do Elemento não aconteceu após {timeout} segundos")
-        return self
-
-    def aguardar_visibilidade (self, elemento: typing.Callable[[], WebElement],
-                                     timeout=60) -> WebElement:
-        """Aguardar o `elemento` existir e estar visível por `timeout` segundos e retornar o `WebElement` após visível
-        - `elemento` deve ser uma função que retorne o `WebElement`
-        - Exceção `TimeoutError` caso não finalize no tempo estipulado"""
-        try:
-            self.alterar_timeout(1)
-            condicao = lambda: elemento().is_displayed()
-            assert util.aguardar_condicao(condicao, timeout, 0.5)
-            return elemento()
-        except AssertionError:
-            mensagem_erro = f"A espera pela visibilidade do Elemento não aconteceu após {timeout} segundos"
-            raise TimeoutError(mensagem_erro)
-        finally: self.alterar_timeout()
-
-    def aguardar_invisibilidade (self, elemento: WebElement, timeout=60) -> typing.Self:
-        """Aguardar condição invisibility_of_element do `elemento` por `timeout` segundos
-        - Exceção `TimeoutError` caso não finalize no tempo estipulado"""
-        try: Wait(self.driver, timeout).until(ec.invisibility_of_element(elemento))
-        except TimeoutException:
-            raise TimeoutError(f"A espera pela invisibilidade do Elemento não aconteceu após {timeout} segundos")
-        return self
 
     def aguardar_download (self, *termos: str, timeout=60) -> sistema.Caminho:
         """Aguardar um novo arquivo, com nome contendo algum dos `termos`, no diretório de download por `timeout` segundos
@@ -291,39 +461,11 @@ class Navegador:
         self.driver.execute_script("window.print();")
         return self.aguardar_download(".pdf", timeout=20)
 
-    def screenshot (self, elemento: WebElement | None = None) -> bytes:
-        """Realizar uma captura do navegador, no formato `png`, com o comando `CDP Page.captureScreenshot`
-        - `elemento` para restringir a área de captura
-        - Scroll do `elemento` para o centro da tela"""
-        parametros = { "format": "png" }
-        if elemento:
-            self.driver.execute_script(
-                """
-                arguments[0].scrollIntoView({ block: "center" });
-                await new Promise(_ => setTimeout(_, 1000));
-                """,
-                elemento
-            )
-            parametros["clip"] = { **elemento.rect, "scale": 1 } # type: ignore
-        imagem = self.driver.execute_cdp_cmd("Page.captureScreenshot", parametros)["data"]
-        return base64.b64decode(imagem)
-
-    def coordenada_elemento (self, elemento: WebElement) -> estruturas.Coordenada:
-        """Obter a coordenada do `elemento` referente a tela
-        - Scroll do `elemento` para o centro da tela"""
-        screenshot = imagem.Imagem.from_bytes(self.screenshot(elemento))
-        coordenada = screenshot.procurar_imagem(segundos=2)
-        assert coordenada, "Imagem do elemento na tela não foi encontrada"
-        return coordenada
-
 class Edge (Navegador):
     """Navegador Edge baseado no `selenium`
     - `timeout` utilizado na espera por elementos
     - `download` diretório para download de arquivos
     - O Edge é o mais provável de estar disponível para utilização"""
-
-    driver: wd.Edge
-    """Driver Edge"""
 
     def __init__ (self, timeout=30.0,
                         download: str | sistema.Caminho = "./downloads") -> None:
@@ -371,9 +513,6 @@ class Chrome (Navegador):
     - `perfil` caminho para o perfil que será utilizado na abertura do navegador
     - Utilizada a biblioteca `undetected_chromedriver` para evitar detecção (Modo anônimo ocasiona a detecção)
     - Possível de capturar as mensagens de rede pelo método `mensagens_rede`"""
-
-    driver: uc.Chrome
-    """Driver Chrome"""
 
     def __init__ (self, timeout=30.0,
                         download: str | sistema.Caminho = "./downloads",
@@ -465,9 +604,6 @@ class Explorer (Navegador):
     - Necessário desativar o Protected Mode em `Internet Options -> Security` para todas as zonas
     - Caso não apareça a opção, alterar pelo registro do windows `Software\Microsoft\Windows\CurrentVersion\Internet Settings\Zones` em todas as zonas(0..4) setando o `REG_DWORD` nome `2500` valor `3`
     - https://www.lifewire.com/how-to-disable-protected-mode-in-internet-explorer-2624507"""
-
-    driver: wd.Ie
-    """Driver Internet Explorer"""
 
     def __init__ (self, timeout=30.0) -> None:
         options = wd.IeOptions()
