@@ -250,6 +250,7 @@ class ElementoWEB:
     @contextlib.contextmanager
     def aguardar_invisibilidade (self, timeout=60) -> typing.Generator[typing.Self, None, None]:
         """Aguardar condição `invisibility_of_element` do `elemento` por `timeout` segundos
+        - Checado por staleness do elemento
         - Exceção `TimeoutError` caso não finalize no tempo estipulado
         - Utilizar com o `with` e realizar uma ação que tornará o elemento invisível
             - `with elemento.aguardar_invisibilidade() as elemento: ...`"""
@@ -260,6 +261,25 @@ class ElementoWEB:
             Wait(driver, timeout).until(ec.invisibility_of_element(elemento))
         except TimeoutException:
             raise TimeoutError(f"A espera pela invisibilidade do elemento não aconteceu após {timeout} segundos")
+
+    @contextlib.contextmanager
+    def aguardar_update (self, timeout=60) -> typing.Generator[typing.Self, None, None]:
+        """Aguardar update no `outerHTML` do `elemento` por `timeout` segundos
+        - Checado por staleness do elemento
+        - Exceção `TimeoutError` caso não finalize no tempo estipulado
+        - Utilizar com o `with` e realizar uma ação que alterará o elemento
+            - `with elemento.aguardar_update() as elemento: ...`"""
+        outer = self.obter_atributo("outerHTML")
+        elemento = self.__elemento
+        yield self
+
+        def condicao () -> bool:
+            try: elemento.is_enabled()
+            except StaleElementReferenceException: return True
+            return outer != self.obter_atributo("outerHTML")
+
+        if not util.aguardar_condicao(condicao, timeout, 0.5):
+            raise TimeoutError(f"A espera pelo update do elemento não aconteceu após {timeout} segundos")
 
 class Navegador:
     """Classe do navegador `selenium` que deve ser herdada"""
