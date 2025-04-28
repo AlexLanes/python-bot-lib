@@ -18,20 +18,13 @@ for atual, proximo in itertools.pairwise(itertools.chain(ARGUMENTOS, [""])):
     if not atual.startswith("--"): continue
     NOMEADOS[atual.lstrip("-").lower()] = proximo if not proximo.startswith("--") else ""
 
-def posicional_existe (index: int) -> bool:
-    """Checar se o argumento posicional existe"""
-    try: return POSICIONAIS[index] != None
-    except IndexError: return False
+def posicionais () -> list[str]:
+    """Obter os argumentos posicionais"""
+    return POSICIONAIS.copy()
 
 def nomeado_existe (nome: str) -> bool:
     """Checar se o argumento nomeado existe"""
     return nome.strip().lower() in NOMEADOS
-
-def posicional_ou[T: tipagem.primitivo] (index: int, default: T = "") -> T:
-    """Obter o valor do argumento no `index` ou `default`
-    - Transforma o tipo do argumento para o mesmo tipo do `default` informado"""
-    return default if not posicional_existe(index) else \
-        util.transformar_tipo(POSICIONAIS[index], type(default))
 
 def nomeado_ou[T: tipagem.primitivo] (nome: str, default: T = "") -> T:
     """Obter o valor do argumento `nome` ou `default` caso não exista
@@ -42,7 +35,6 @@ def nomeado_ou[T: tipagem.primitivo] (nome: str, default: T = "") -> T:
 
 __all__ = [
     "nomeado_ou",
-    "posicional_ou",
+    "posicionais",
     "nomeado_existe",
-    "posicional_existe"
 ]

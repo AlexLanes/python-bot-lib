@@ -3,6 +3,6 @@
 - Argumentos nomeados: `--nome valor`
 - Cobrir argumentos com aspas, caso possua espaço
 
-Exemplo: `python main.py posicional0 posicional1 --nome "Alex Lanes"`"""
+Exemplo: `python main.py posicional_1 "posicional 2" --nome "Alex Lanes"`"""
 
 from bot.argumentos.setup import *
