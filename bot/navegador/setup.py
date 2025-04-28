@@ -180,11 +180,11 @@ class ElementoWEB:
         - Aguardado estar clicável"""
         assert (driver := self.__driver()), "Navegador encerrado"
 
-        elemento = self.aguardar_clicavel().elemento
-        clicado = util.aguardar_condicao(lambda: elemento.click() == None, 5, 0.5)
-        if not clicado: wd.ActionChains(driver).scroll_to_element(elemento)\
-                                               .move_to_element(elemento)\
-                                               .click(elemento)\
+        self.aguardar_clicavel()
+        clicado = util.aguardar_condicao(lambda: self.elemento.click() == None, 5, 0.5)
+        if not clicado: wd.ActionChains(driver).scroll_to_element(self.elemento)\
+                                               .move_to_element(self.elemento)\
+                                               .click(self.elemento)\
                                                .perform()
 
         return self.sleep()
@@ -221,6 +221,8 @@ class ElementoWEB:
         try: Wait(driver, timeout).until(ec.element_to_be_clickable(self.elemento))
         except TimeoutException:
             raise TimeoutError(f"A espera pelo elemento ser clicável não aconteceu após {timeout} segundos")
+        except StaleElementReferenceException:
+            Wait(driver, timeout).until(ec.element_to_be_clickable(self.elemento))
         return self
 
     def aguardar_visibilidade (self, timeout=60) -> typing.Self:
@@ -230,6 +232,8 @@ class ElementoWEB:
         try: Wait(driver, timeout).until(ec.visibility_of(self.elemento))
         except TimeoutException:
             raise TimeoutError(f"A espera pela visibilidade do elemento não aconteceu após {timeout} segundos")
+        except StaleElementReferenceException:
+            Wait(driver, timeout).until(ec.visibility_of(self.elemento))
         return self
 
     @contextlib.contextmanager
