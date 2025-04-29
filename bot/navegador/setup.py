@@ -7,7 +7,7 @@ from datetime import (
 )
 # interno
 from .mensagem import Mensagem
-from .. import util, tipagem, logger, sistema, formatos, imagem
+from .. import util, tipagem, logger, sistema, formatos, imagem, estruturas
 # externo
 import selenium.webdriver as wd
 import undetected_chromedriver as uc
@@ -121,53 +121,25 @@ class ElementoWEB:
         png = self.sleep(2).elemento.screenshot_as_png
         return imagem.Imagem.from_bytes(png)
 
+    @property
+    def atributos (self) -> estruturas.LowerDict[str]:
+        """Obter os atributos do elemento"""
+        assert (driver := self.__driver()), "Navegador encerrado"
+        return estruturas.LowerDict(
+            driver.execute_script("""
+                let atributos = {}, elemento = arguments[0]
+                for (let attr of elemento.attributes) {
+                    let valor = elemento[attr.name]
+                    atributos[attr.name] = (typeof valor === "string") ? valor : attr.value
+                }
+                return atributos
+            """, self.elemento)
+        )
+
     def sleep (self, segundos: int | float = 0.2) -> typing.Self:
         """Aguardar por `segundos` até continuar a execução"""
         time.sleep(segundos)
         return self
-
-    def obter_atributo (self, nome: str) -> str | bool | None:
-        """Obter no elemento o valor do atributo `@nome`"""
-        return self.elemento.get_attribute(nome)
-
-    def limpar (self) -> typing.Self:
-        """Limpar o texto do elemento, caso suportado
-        - Aguardado estar ativo e atualizar valor"""
-        util.aguardar_condicao(lambda: self.ativo, 30, 0.5)
-
-        value = self.obter_atributo("value")
-        possui_value = value != None
-        texto_inicial = value if possui_value else self.texto
-
-        self.elemento.clear()
-        if texto_inicial: util.aguardar_condicao(
-            lambda: (self.obter_atributo("value") if possui_value else self.texto) != texto_inicial,
-            timeout = 5,
-            delay = 0.5
-        )
-
-        return self.sleep()
-
-    def digitar (self, *texto: str) -> typing.Self:
-        """Digitar o texto no elemento
-        - Pode ser combinado com as `Teclas`
-        - Clicado no elemento, aguardado estar ativo e atualizar valor"""
-        try: self.clicar()
-        except Exception: pass
-        util.aguardar_condicao(lambda: self.ativo, 5, 0.5)
-
-        value = self.obter_atributo("value")
-        possui_value = value != None
-        texto_inicial = value if possui_value else self.texto
-
-        self.elemento.send_keys(*texto)
-        util.aguardar_condicao(
-            lambda: (self.obter_atributo("value") if possui_value else self.texto) != texto_inicial,
-            timeout = 5,
-            delay = 0.5
-        )
-
-        return self.sleep()
 
     def hover (self) -> typing.Self:
         """Realizar a ação de hover no elemento"""
@@ -181,12 +153,38 @@ class ElementoWEB:
         assert (driver := self.__driver()), "Navegador encerrado"
 
         self.aguardar_clicavel()
-        clicado = util.aguardar_condicao(lambda: self.elemento.click() == None, 5, 0.5)
+        clicado = util.aguardar_condicao(lambda: self.elemento.click() == None, 10, 0.5)
         if not clicado: wd.ActionChains(driver).scroll_to_element(self.elemento)\
                                                .move_to_element(self.elemento)\
                                                .click(self.elemento)\
                                                .perform()
 
+        return self.sleep()
+
+    def limpar (self) -> typing.Self:
+        """Limpar o texto do elemento, caso suportado
+        - Aguardado estar ativo e atualizar valor"""
+        util.aguardar_condicao(lambda: self.ativo, 10, 0.5)
+
+        obter_valor = lambda: self.atributos.get("value", None) or self.texto
+        valor = obter_valor()
+        self.elemento.clear()
+
+        if valor: util.aguardar_condicao(lambda: valor != obter_valor(), 10, 0.5)
+        return self.sleep()
+
+    def digitar (self, *texto: str) -> typing.Self:
+        """Digitar o texto no elemento
+        - Pode ser combinado com as `Teclas`
+        - Clicado no elemento, aguardado estar ativo e atualizar valor"""
+        try: self.clicar()
+        except Exception: pass
+
+        util.aguardar_condicao(lambda: self.ativo, 10, 0.5)
+        try:
+            with self.aguardar_update(5):
+                self.elemento.send_keys(*texto)
+        except TimeoutError: pass
         return self.sleep()
 
     def encontrar (self, localizador: str | enum.Enum) -> ElementoWEB:
@@ -273,14 +271,15 @@ class ElementoWEB:
         - Exceção `TimeoutError` caso não finalize no tempo estipulado
         - Utilizar com o `with` e realizar uma ação que alterará o elemento
             - `with elemento.aguardar_update() as elemento: ...`"""
-        outer = self.obter_atributo("outerHTML")
+        atributos = self.atributos
         elemento = self.__elemento
+        outer = elemento.get_attribute("outerHTML")
         yield self
 
         def condicao () -> bool:
             try: elemento.is_enabled()
             except StaleElementReferenceException: return True
-            return outer != self.obter_atributo("outerHTML")
+            return outer != elemento.get_attribute("outerHTML") or atributos != self.atributos
 
         if not util.aguardar_condicao(condicao, timeout, 0.5):
             raise TimeoutError(f"A espera pelo update do elemento não aconteceu após {timeout} segundos")
