@@ -176,8 +176,8 @@ class ElementoWEB:
     def digitar (self, *texto: str) -> typing.Self:
         """Digitar o texto no elemento
         - Pode ser combinado com as `Teclas`
-        - Clicado no elemento, aguardado estar ativo e atualizar valor"""
-        try: self.clicar()
+        - Hover no elemento, aguardado estar ativo e atualizar valor"""
+        try: self.hover()
         except Exception: pass
 
         util.aguardar_condicao(lambda: self.ativo, 10, 0.5)
