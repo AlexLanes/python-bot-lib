@@ -1,6 +1,6 @@
 # std
-from typing import Literal, Iterable
 from datetime import datetime, date, time
+from typing import Literal, Iterable, Protocol
 
 type url = str
 """String formato url"""
@@ -29,6 +29,10 @@ PORCENTAGENS = Literal["0.9", "0.8", "0.7", "0.6", "0.5", "0.4", "0.3", "0.2", "
 BOTOES_TECLADO = Literal["alt", "alt_l", "alt_r", "alt_gr", "backspace", "caps_lock", "cmd", "cmd_r", "ctrl", "ctrl_l", "ctrl_r", "delete", "down", "end", "enter", "esc", "f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9", "f10", "f11", "f12", "f13", "f14", "f15", "f16", "f17", "f18", "f19", "f20", "f21", "f22", "f23", "f24", "home", "left", "page_down", "page_up", "right", "shift", "shift_r", "space", "tab", "up", "media_play_pause", "media_volume_mute", "media_volume_down", "media_volume_up", "media_previous", "media_next", "insert", "menu", "num_lock", "pause", "print_screen", "scroll_lock"]
 """Botões especiais aceitos pelo `pynput`"""
 
+class SupportsBool (Protocol):
+    """Qualquer objeto que suporta bool(objeto)"""
+    def __bool__ (self) -> bool: ...
+
 __all__ = [
     "url",
     "rgb",
@@ -40,6 +44,7 @@ __all__ = [
     "posicional",
     "BOTOES_MOUSE",
     "PORCENTAGENS",
+    "SupportsBool",
     "BOTOES_TECLADO",
     "DIRECOES_SCROLL",
 ]
