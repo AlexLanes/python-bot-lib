@@ -197,7 +197,7 @@ class DatabaseODBC:
         """Fechar a conexão quando sair do escopo"""
         logger.informar(f"Encerrando conexão com o database")
         try: self.conexao.close()
-        except: pass
+        except Exception: pass
 
     def __repr__ (self) -> str:
         return f"<Database ODBC>"
@@ -293,7 +293,7 @@ class Sqlite:
         """Fechar a conexão quando sair do escopo"""
         logger.informar(f"Encerrando conexão com o database")
         try: self.__conexao.close()
-        except: pass
+        except Exception: pass
 
     def __repr__ (self) -> str:
         return f"<Database Sqlite>"

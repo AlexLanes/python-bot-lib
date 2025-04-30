@@ -14,7 +14,7 @@ def aguardar_condicao (condicao: typing.Callable[[], bool],
     while tempo() < timeout:
         try:
             if condicao(): return True
-        except: pass
+        except Exception: pass
         time.sleep(delay)
 
     return False

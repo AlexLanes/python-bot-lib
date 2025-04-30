@@ -301,7 +301,7 @@ class Navegador:
             self.driver.quit()
             logger.informar("Navegador fechado")
             del self.driver
-        except: pass
+        except Exception: pass
 
     def __setattr__ (self, nome: str, valor: typing.Any) -> None:
         if getattr(self, nome, None) != None:
@@ -596,7 +596,7 @@ class Chrome (Navegador):
         logger.informar("Navegador fechado")
         try: getattr(self.driver, "quit", lambda: "")()
         # usado TASKKILL ao fim da execução caso tenha ocorrido erro
-        except: sistema.executar("TASKKILL", "/F", "/IM", "chrome.exe", timeout=5)
+        except Exception: sistema.executar("TASKKILL", "/F", "/IM", "chrome.exe", timeout=5)
 
     def mensagens_rede (self, filtro: typing.Callable[[Mensagem], bool] | None = None) -> list[Mensagem]:
         """Consultar as mensagens de rede produzidas pelas abas

@@ -472,7 +472,7 @@ class Unmarshaller[T]:
         if origin is UnionType:
             for t in get_args(expected):
                 try: return self.__validate(t, value, path)
-                except: pass
+                except Exception: pass
 
         # list
         if expected is list or origin is list:

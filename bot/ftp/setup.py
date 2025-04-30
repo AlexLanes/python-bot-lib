@@ -6,17 +6,16 @@ from io import BytesIO
 from .. import configfile, logger
 
 class FTP:
-    """Classe de abstração do `ftplib`"""
+    """Classe de abstração do `ftplib`
+    - Variáveis .ini `[FTP] -> host, user, password, timeout, port`
+        - `host` Obrigatório
+        - `user, password` Opcionais
+        - `port` Opcional `Default: 21`
+        - `timeout` Opcional `Default: 5.0`"""
 
     __ftp: ftplib.FTP
 
     def __init__ (self) -> None:
-        """Iniciar conexão com o FTP de acordo com as variáveis de ambiente .ini documentadas no módulo
-        - Variáveis .ini `[FTP] -> host, user, password, timeout, port`
-            - `host` Obrigatório
-            - `user, password` Opcionais
-            - `port` Opcional `Default: 21`
-            - `timeout` Opcional `Default: 5.0`"""
         # instanciar e conectar
         self.__ftp = ftplib.FTP()
         host = configfile.obter_opcoes_obrigatorias("FTP", "host")[0]
@@ -35,7 +34,7 @@ class FTP:
         """Encerrar conexão ao sair do escopo"""
         logger.informar("Encerrando conexão FTP")
         try: self.__ftp.quit()
-        except: pass
+        except Exception: pass
 
     def __repr__ (self) -> str:
         return f"<FTP conexão com o host '{self.__ftp.host}'>"

@@ -135,7 +135,7 @@ def obter_emails (limite: int | slice | None = None,
             data = parsedate_to_datetime(datetime)
             assert isinstance(data, Datetime)
             return data.astimezone(brt)
-        except:
+        except Exception:
             logger.alertar(f"Extração do datetime '{datetime}' do email resultou em falha")
             return Datetime.now(brt)
 

@@ -111,7 +111,7 @@ class ElementoW32:
             return True
 
         try: win32gui.EnumChildWindows(self.hwnd, callback, None)
-        except: pass
+        except Exception: pass
 
         return filhos
 
@@ -163,7 +163,7 @@ class ElementoW32:
             self.janela.focar()
 
         try: win32gui.SetForegroundWindow(self.hwnd)
-        except: pass
+        except Exception: pass
         return self.aguardar()
 
     def clicar (self, botao: bot.tipagem.BOTOES_MOUSE = "left",
@@ -283,18 +283,18 @@ class ElementoUIA (ElementoW32):
         try:
             value = self.query_interface(uiaclient.UIA_ValuePatternId, uiaclient.IUIAutomationValuePattern)
             return str(value.CurrentValue) if value else ""
-        except: return ""
+        except Exception: return ""
 
     @property
     def tipo (self) -> str:
         """Nome localizado do tipo do elemento"""
         try: return str(self.uiaelement.CurrentLocalizedControlType or "")
-        except: return ""
+        except Exception: return ""
 
     @property
     def automation_id (self) -> str:
         try: return str(self.uiaelement.CurrentAutomationId or "")
-        except: return ""
+        except Exception: return ""
 
     @property
     def teclas_atalho (self) -> list[str]:
@@ -304,7 +304,7 @@ class ElementoUIA (ElementoW32):
             for tecla in map(str.strip, str(self.uiaelement.CurrentAccessKey).replace(",", "+").split("+"))
             if tecla
         ]
-        except: return []
+        except Exception: return []
 
     @property
     def expansivel (self) -> uiaclient.IUIAutomationExpandCollapsePattern | None:
@@ -439,7 +439,7 @@ class ElementoUIA (ElementoW32):
         try: return self.uiaelement\
                         .GetCurrentPattern(pattern_id)\
                         .QueryInterface(interface)
-        except: return None
+        except Exception: return None
 
     def listar_patterns (self) -> list[str]:
         """Lista os nomes dos patterns suportados pelo elemento"""
@@ -452,7 +452,7 @@ class ElementoUIA (ElementoW32):
                 pattern_id = getattr(uiaclient, nome)
                 if bool(self.uiaelement.GetCurrentPattern(pattern_id)):
                     patterns.append(nome)
-            except: pass
+            except Exception: pass
 
         return patterns
 
@@ -497,7 +497,7 @@ class JanelaW32:
             return True
 
         try: win32gui.EnumWindows(callback, None)
-        except: pass
+        except Exception: pass
 
         if not encontrados: raise Exception(f"Janela não encontrada para o filtro informado")
         self.hwnd = (
@@ -590,7 +590,7 @@ class JanelaW32:
             return self
 
         try: win32gui.SendMessageTimeout(self.hwnd, win32con.WM_NULL, None, None, win32con.SMTO_ABORTIFHUNG, int(timeout * 1000))
-        except: raise TimeoutError(f"A janela não respondeu após '{timeout}' segundos esperando") from None
+        except Exception: raise TimeoutError(f"A janela não respondeu após '{timeout}' segundos esperando") from None
         return self
 
     def janelas_processo (self, filtro: typing.Callable[[JanelaW32], bool] | None = None) -> list[JanelaW32]:
@@ -608,7 +608,7 @@ class JanelaW32:
             return True
 
         try: win32gui.EnumWindows(callback, None)
-        except: pass
+        except Exception: pass
 
         return encontrados
 
@@ -650,7 +650,7 @@ class JanelaW32:
             return True
 
         try: win32gui.EnumWindows(callback, None)
-        except: pass
+        except Exception: pass
 
         return encontrados
 
@@ -823,7 +823,7 @@ class JanelaUIA (JanelaW32):
             return True
 
         try: win32gui.EnumWindows(callback, None)
-        except: pass
+        except Exception: pass
 
         return encontrados
 
