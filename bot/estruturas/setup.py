@@ -321,6 +321,7 @@ class Decimal:
             case _:             return NotImplemented
         exponent = decimal.Decimal(".".ljust(self.precisao + 1, "0"))
         obj.d = obj.d.quantize(exponent, decimal.ROUND_FLOOR)
+        obj.precisao = self.precisao
         return obj
     def __add__  (self, other: object) -> Decimal: return self.__aplicar(other, operator.add)
     def __iadd__ (self, other: object) -> Decimal: return self.__aplicar(other, operator.iadd)
