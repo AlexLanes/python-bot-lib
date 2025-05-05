@@ -290,12 +290,23 @@ class ElementoXML:
             for elemento in self.__elemento
         ]
 
-    def encontrar (self, xpath: str, namespaces: dict[str, tipagem.url] | None = None) -> list[ElementoXML]:
-        """Encontrar elementos que resultem no `xpath` informado
+    def encontrar (self, xpath: str, namespaces: dict[str, tipagem.url] | None = None) -> ElementoXML | None:
+        """Encontrar elemento que resulte no `xpath` informado ou `None` caso não seja encontrado
+        - `xpath` deve retornar no elemento apenas, não em texto ou atributo
+        - `namespaces` para utilizar prefixos no `xpath`, informar um dicionario `{ ns: url } ou registrar_prefixo()`"""
+        p = self.__prefixos
+        namespaces = { **namespaces, **p } if namespaces else p
+        xpath = xpath if xpath.startswith(".") else f".{xpath}"
+        elemento = self.__elemento.find(xpath, namespaces)
+        return ElementoXML.__from_element(elemento) if elemento != None else None
+
+    def procurar (self, xpath: str, namespaces: dict[str, tipagem.url] | None = None) -> list[ElementoXML]:
+        """Procurar elementos que resultem no `xpath` informado
         - `xpath` deve retornar em elementos apenas, não em texto ou atributo
-        - `namespaces` para utilizar prefixos no `xpath`, informar um dicionario { ns: url } ou registrar_prefixo()"""
-        namespaces = namespaces.copy() if namespaces else {}
-        namespaces.update(self.__prefixos)
+        - `namespaces` para utilizar prefixos no `xpath`, informar um dicionario `{ ns: url } ou registrar_prefixo()`"""
+        p = self.__prefixos
+        namespaces = { **namespaces, **p } if namespaces else p
+        xpath = xpath if xpath.startswith(".") else f".{xpath}"
         return [
             ElementoXML.__from_element(element)
             for element in self.__elemento.findall(xpath, namespaces)
