@@ -321,9 +321,9 @@ Pacote interno `decoradores` para decorar funções
 
 # Realizar `tentativas` de se chamar uma função e, em caso de erro, aguardar `segundos` e tentar novamente
 @retry (
-    *erro: Exception,
+    *erro: type[Exception],
     tentativas = 3,
     segundos = 5,
-    ignorar: tuple[Exception, ...] = (NotImplementedError,)
+    ignorar: tuple[type[Exception], ...] = (NotImplementedError,)
 )
 ```
