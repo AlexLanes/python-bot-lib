@@ -18,9 +18,9 @@ def timeout (segundos: float):
         return timeout
     return timeout
 
-def retry (*erro: Exception,
+def retry (*erro: type[Exception],
            tentativas=3, segundos=5,
-           ignorar: tuple[Exception, ...] = (NotImplementedError,)):
+           ignorar: tuple[type[Exception], ...] = (NotImplementedError,)):
     """Realizar `tentativas` de se chamar uma função e, em caso de erro, aguardar `segundos` e tentar novamente
     - `erro` especificar as exceções permitidas para retry. `(Default: Exception)`
     - `ignorar` exceções para não se aplicar o retry. `(Default: RuntimeError)`
