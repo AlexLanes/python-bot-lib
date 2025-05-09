@@ -266,10 +266,12 @@ class Decimal:
 
     d: decimal.Decimal
     precisao: int
+    separador_decimal: str
 
     def __init__ (self, valor: str,
                         precisao: int = 2,
                         separador_decimal = ".") -> None:
+        self.separador_decimal = separador_decimal
         assert precisao >= 1, "A precisão decimal deve ser >= 1"
         self.precisao = precisao
 
@@ -283,7 +285,8 @@ class Decimal:
         except Exception: self.d = decimal.Decimal("NaN")
 
     def __repr__ (self) -> str:
-        return f"<{type(self).__name__} '{self.d}'>"
+        valor = str(self).replace(".", self.separador_decimal)
+        return f"{type(self).__name__}(valor='{valor}', precisao={self.precisao}, separador_decimal={self.separador_decimal!r})>"
 
     def __str__ (self) -> str:
         return str(self.d)
@@ -303,7 +306,7 @@ class Decimal:
 
     def __comparar (self, other: object, operator: typing.Callable) -> bool:
         match other:
-            case str() | int(): return operator(self.d, Decimal(str(other), self.precisao).d)
+            case str() | int(): return operator(self.d, Decimal(str(other), self.precisao, self.separador_decimal).d)
             case Decimal():     return operator(self.d, other.d)
             case _:             return NotImplemented
     def __eq__ (self, other: object) -> bool: return self.__comparar(other, operator.eq)
@@ -316,12 +319,15 @@ class Decimal:
     def __aplicar (self, other: object, operator: typing.Callable) -> Decimal:
         obj = object.__new__(Decimal)
         match other:
-            case str() | int(): obj.d = operator(self.d, Decimal(str(other), self.precisao).d)
+            case str() | int(): obj.d = operator(self.d, Decimal(str(other), self.precisao, self.separador_decimal).d)
             case Decimal():     obj.d = operator(self.d, other.d)
             case _:             return NotImplemented
+
         exponent = decimal.Decimal(".".ljust(self.precisao + 1, "0"))
         obj.d = obj.d.quantize(exponent, decimal.ROUND_FLOOR)
         obj.precisao = self.precisao
+        obj.separador_decimal = self.separador_decimal
+
         return obj
     def __add__  (self, other: object) -> Decimal: return self.__aplicar(other, operator.add)
     def __iadd__ (self, other: object) -> Decimal: return self.__aplicar(other, operator.iadd)
