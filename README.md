@@ -324,6 +324,7 @@ Pacote interno `decoradores` para decorar funções
     *erro: type[Exception],
     tentativas = 3,
     segundos = 5,
-    ignorar: tuple[type[Exception], ...] = (NotImplementedError,)
+    ignorar: tuple[type[Exception], ...] = (NotImplementedError,),
+    on_error: lambda args, kwargs: ..., = None
 )
 ```
