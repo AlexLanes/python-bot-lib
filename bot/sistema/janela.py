@@ -10,6 +10,7 @@ import comtypes.client
 comtypes.client.GetModule('UIAutomationCore.dll')
 from comtypes.gen import UIAutomationClient as uiaclient
 
+ESTILOS_CHECKBOX = (win32con.BS_CHECKBOX, win32con.BS_AUTOCHECKBOX)
 BOTOES_VIRTUAIS_MOUSE = {
     "left":   (win32con.WM_LBUTTONDOWN, win32con.WM_LBUTTONUP, win32con.MK_LBUTTON),
     "middle": (win32con.WM_MBUTTONDOWN, win32con.WM_MBUTTONUP, win32con.MK_MBUTTON),
@@ -48,6 +49,30 @@ class Dialogo [T: ElementoW32 | ElementoUIA]:
 class Popup[T: ElementoW32 | ElementoUIA] (Dialogo[T]):
     """Popup do windows"""
 
+class CaixaSelecaoW32:
+    """Classe para tratar a caixa de seleção do W32"""
+
+    hwnd: int
+
+    def __init__(self, hwnd: int) -> None:
+        self.hwnd = hwnd
+
+    def __repr__ (self) -> str:
+        return f"<{type(self).__name__} hwnd='{self.hwnd}'>"
+
+    @property
+    def selecionado (self) -> bool:
+        """Checar se está selecionado"""
+        estado = win32gui.SendMessage(self.hwnd, win32con.BM_GETCHECK, 0, 0)
+        return estado == 1
+
+    def selecionar (self) -> None:
+        """Alterar o estado da seleção"""
+        estado = 0 if self.selecionado else 1
+        win32gui.SendMessage(self.hwnd, win32con.BM_SETCHECK, estado, 0)
+        # win32api.PostMessage(self.hwnd, win32con.WM_LBUTTONDOWN, 0, 0)
+        # win32api.PostMessage(self.hwnd, win32con.WM_LBUTTONUP, 0, 0)
+
 class ElementoW32:
     """Elemento para o backend Win32"""
 
@@ -75,11 +100,13 @@ class ElementoW32:
         )
 
     def __hash__ (self) -> int:
-        return hash(self.hwnd)
+        return hash(repr(self))
 
     @property
     def texto (self) -> str:
-        return win32gui.GetWindowText(self.hwnd)
+        """Texto do elemento
+        - Realizado `strip()` e removido o char `&` que pode vir a aparecer"""
+        return win32gui.GetWindowText(self.hwnd).strip().replace("&", "")
 
     @functools.cached_property
     def class_name (self) -> str:
@@ -97,6 +124,15 @@ class ElementoW32:
     @property
     def ativo (self) -> bool:
         return win32gui.IsWindowEnabled(self.hwnd) == 1
+
+    @property
+    def caixa_selecao (self) -> CaixaSelecaoW32 | None:
+        """Obter a interface da caixa de seleção de uma `CheckBox`
+        - `None` caso o elemento não seja uma caixa de seleção"""
+        try:
+            estilo = win32gui.GetWindowLong(self.hwnd, win32con.GWL_STYLE)
+            return CaixaSelecaoW32(self.hwnd) if (estilo & 0x0F) in ESTILOS_CHECKBOX else None
+        except Exception: return None
 
     def filhos (self, filtro: typing.Callable[[ElementoW32], bool] | None = None) -> list[ElementoW32]:
         """Elementos filhos de primeiro nível
@@ -314,9 +350,17 @@ class ElementoUIA (ElementoW32):
 
     @property
     def item_selecionavel (self) -> uiaclient.IUIAutomationSelectionItemPattern | None:
-        """Obter a interface do item selecionável da `Lista ou ComboBox`
+        """Obter a interface do item selecionável de uma `Lista ou ComboBox`
         - `None` caso o elemento não seja um item selecionável"""
         return self.query_interface(uiaclient.UIA_SelectionItemPatternId, uiaclient.IUIAutomationSelectionItemPattern)
+
+    @property
+    def caixa_selecao (self) -> uiaclient.IUIAutomationTogglePattern | None: # type: ignore
+        """Obter a interface da caixa de seleção de uma `CheckBox`
+        - `None` caso o elemento não seja uma caixa de seleção
+        - `CurrentToggleState` para se obter o estado da caixa `desativado == 0` e `ativo == 1`
+        - `Toggle()` para alterar o estado"""
+        return self.query_interface(uiaclient.UIA_TogglePatternId, uiaclient.IUIAutomationTogglePattern)
 
     @property
     def invocavel (self) -> uiaclient.IUIAutomationInvokePattern | None:
@@ -529,7 +573,9 @@ class JanelaW32:
 
     @property
     def titulo (self) -> str:
-        return win32gui.GetWindowText(self.hwnd)
+        """Texto do elemento
+        - Realizado `strip()` e removido o char `&` que pode vir a aparecer"""
+        return win32gui.GetWindowText(self.hwnd).strip().replace("&", "")
     @property
     def class_name (self) -> str:
         return win32gui.GetClassName(self.hwnd) or ""
@@ -645,7 +691,7 @@ class JanelaW32:
         encontrados = set()
         def callback (hwnd: int, _) -> bool:
             if win32gui.IsWindowVisible(hwnd):
-                titulo = win32gui.GetWindowText(hwnd)
+                titulo = win32gui.GetWindowText(hwnd).strip().replace("&", "")
                 if titulo: encontrados.add(titulo)
             return True
 
