@@ -1,6 +1,9 @@
 # std
 import bisect, typing
-from collections import deque as Deque
+from collections import deque
+
+class Deque[T] (deque[T]):
+    """Lista otimizada para inserção/remoção no começo e fim"""
 
 class Stack [T]:
     """Last In First Out"""
