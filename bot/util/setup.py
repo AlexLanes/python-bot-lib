@@ -3,7 +3,7 @@ import re, time, typing, difflib, unicodedata
 # interno
 from .. import tipagem
 
-def aguardar_condicao (condicao: typing.Callable[[], bool | tipagem.SupportsBool],
+def aguardar_condicao (condicao: typing.Callable[[], tipagem.SupportsBool],
                        timeout: int | float,
                        delay = 0.1) -> bool:
     """Repetir a função `condição` por `timeout` segundos até que resulte em `True`
