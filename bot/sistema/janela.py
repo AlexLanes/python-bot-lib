@@ -134,7 +134,7 @@ class ElementoW32:
             return CaixaSelecaoW32(self.hwnd) if (estilo & 0x0F) in ESTILOS_CHECKBOX else None
         except Exception: return None
 
-    def filhos (self, filtro: typing.Callable[[ElementoW32], bool] | None = None) -> list[ElementoW32]:
+    def filhos (self, filtro: typing.Callable[[ElementoW32], bot.tipagem.SupportsBool] | None = None) -> list[ElementoW32]:
         """Elementos filhos de primeiro nível
         - `filtro` para escolher os filhos. `Default: visíveis`"""
         filhos = []
@@ -142,8 +142,10 @@ class ElementoW32:
 
         def callback (hwnd, _) -> bool:
             if win32gui.GetParent(hwnd) == self.hwnd:
-                e = ElementoW32(hwnd, self.janela, self, self.profundidade + 1)
-                if filtro(e): filhos.append(e)
+                try:
+                    e = ElementoW32(hwnd, self.janela, self, self.profundidade + 1)
+                    if filtro(e): filhos.append(e)
+                except Exception: pass
             return True
 
         try: win32gui.EnumChildWindows(self.hwnd, callback, None)
@@ -151,26 +153,30 @@ class ElementoW32:
 
         return filhos
 
-    def descendentes (self, filtro: typing.Callable[[ElementoW32], bool] | None = None) -> list[ElementoW32]:
+    def descendentes (self, filtro: typing.Callable[[ElementoW32], bot.tipagem.SupportsBool] | None = None) -> list[ElementoW32]:
         """Todos os elementos descendente
         - `filtro` para escolher os descendentes. `Default: visíveis`"""
         descendentes = []
         filtro = filtro or (lambda e: e.visivel)
 
         for filho in self.filhos():
-            if filtro(filho): descendentes.append(filho)
+            try:
+                if filtro(filho): descendentes.append(filho)
+            except Exception: pass
             descendentes.extend(filho.descendentes(filtro))
 
         return descendentes
 
-    def encontrar (self, filtro: typing.Callable[[ElementoW32], bool]) -> ElementoW32:
+    def encontrar (self, filtro: typing.Callable[[ElementoW32], bot.tipagem.SupportsBool]) -> ElementoW32:
         """Encontrar o primeiro elemento descendente com a menor profundidade e de acordo com o `filtro`
         - `AssertionError` caso não encontre"""
         elementos = bot.estruturas.Deque(self.filhos())
 
         while elementos:
             elemento = elementos.popleft()
-            if filtro(elemento): return elemento
+            try:
+                if filtro(elemento): return elemento
+            except Exception: pass
             elementos.extend(elemento.filhos())
 
         raise AssertionError("Nenhum elemento descendente encontrado para o filtro")
@@ -398,7 +404,7 @@ class ElementoUIA (ElementoW32):
         """Checar se o elemento é um item de uma aba"""
         return self.uiaelement.CurrentControlType == uiaclient.UIA_TabItemControlTypeId
 
-    def filhos (self, filtro: typing.Callable[[ElementoUIA], bool] | None = None) -> list[ElementoUIA]: # type: ignore
+    def filhos (self, filtro: typing.Callable[[ElementoUIA], bot.tipagem.SupportsBool] | None = None) -> list[ElementoUIA]: # type: ignore
         filhos = []
         filtro = filtro or (lambda e: e.visivel)
         finder: uiaclient.IUIAutomationElementArray = self.uiaelement.FindAll(
@@ -409,24 +415,30 @@ class ElementoUIA (ElementoW32):
         for i in range(finder.Length):
             filho: uiaclient.IUIAutomationElement = finder.GetElement(i)
             e = ElementoUIA(filho.CurrentNativeWindowHandle, self.janela, self, filho, self.profundidade + 1)
-            if filtro(e): filhos.append(e)
+            try:
+                if filtro(e): filhos.append(e)
+            except Exception: pass
 
         return filhos
 
-    def descendentes (self, filtro: typing.Callable[[ElementoUIA], bool] | None = None) -> list[ElementoUIA]: # type: ignore
+    def descendentes (self, filtro: typing.Callable[[ElementoUIA], bot.tipagem.SupportsBool] | None = None) -> list[ElementoUIA]: # type: ignore
         descendentes = []
         filtro = filtro or (lambda e: e.visivel)
         for filho in self.filhos():
-            if filtro(filho): descendentes.append(filho)
+            try:
+                if filtro(filho): descendentes.append(filho)
+            except Exception: pass
             descendentes.extend(filho.descendentes(filtro))
         return descendentes
 
-    def encontrar (self, filtro: typing.Callable[[ElementoUIA], bool]) -> ElementoUIA:
+    def encontrar (self, filtro: typing.Callable[[ElementoUIA], bot.tipagem.SupportsBool]) -> ElementoUIA:
         elementos = bot.estruturas.Deque(self.filhos())
 
         while elementos:
             elemento = elementos.popleft()
-            if filtro(elemento): return elemento
+            try:
+                if filtro(elemento): return elemento
+            except Exception: pass
             elementos.extend(elemento.filhos())
 
         raise AssertionError("Nenhum elemento descendente encontrado para o filtro")
@@ -533,11 +545,13 @@ class JanelaW32:
 
     hwnd: int
 
-    def __init__ (self, filtro: typing.Callable[[typing.Self], bool]) -> None:
+    def __init__ (self, filtro: typing.Callable[[typing.Self], bot.tipagem.SupportsBool]) -> None:
         encontrados: list[JanelaW32] = []
         def callback (hwnd: int, _) -> bool:
             j = JanelaW32.from_hwnd(hwnd)
-            if filtro(j): encontrados.append(j) # type: ignore
+            try:
+                if filtro(j): encontrados.append(j) # type: ignore
+            except Exception: pass
             return True
 
         try: win32gui.EnumWindows(callback, None)
@@ -639,7 +653,7 @@ class JanelaW32:
         except Exception: raise TimeoutError(f"A janela não respondeu após '{timeout}' segundos esperando") from None
         return self
 
-    def janelas_processo (self, filtro: typing.Callable[[JanelaW32], bool] | None = None) -> list[JanelaW32]:
+    def janelas_processo (self, filtro: typing.Callable[[JanelaW32], bot.tipagem.SupportsBool] | None = None) -> list[JanelaW32]:
         """Janelas do mesmo processo da `janela` mas que estão fora de sua árvore
         - `filtro` para escolher as janelas. `Default: visível e ativo`"""
         encontrados: list[JanelaW32] = []
@@ -649,8 +663,12 @@ class JanelaW32:
             if hwnd == self.hwnd:
                 return True
             j = JanelaW32.from_hwnd(hwnd)
-            if j.processo.pid == self.processo.pid and filtro(j):
-                encontrados.append(j)
+            
+            try:
+                if j.processo.pid == self.processo.pid and filtro(j):
+                    encontrados.append(j)
+            except Exception: pass
+
             return True
 
         try: win32gui.EnumWindows(callback, None)
@@ -825,7 +843,7 @@ class JanelaUIA (JanelaW32):
 
         for index, opcao in enumerate(map(str.lower, opcoes)):
             opcao_encontrada = False
-            if index > 0: bot.util.aguardar_condicao(lambda: bool(barras_menu_nao_usadas()), 2)
+            if index > 0: bot.util.aguardar_condicao(lambda: barras_menu_nao_usadas(), 2)
 
             for barra_menu in barras_menu_nao_usadas():
                 finder: uiaclient.IUIAutomationElementArray = barra_menu.uiaelement.FindAll(
@@ -856,7 +874,7 @@ class JanelaUIA (JanelaW32):
 
         return self
 
-    def janelas_processo (self, filtro: typing.Callable[[JanelaUIA], bool] | None = None) -> list[JanelaUIA]: # type: ignore
+    def janelas_processo (self, filtro: typing.Callable[[JanelaUIA], bot.tipagem.SupportsBool] | None = None) -> list[JanelaUIA]: # type: ignore
         encontrados: list[JanelaUIA] = []
         filtro = filtro or (lambda j: j.elemento.visivel and j.elemento.ativo)
 
@@ -864,8 +882,12 @@ class JanelaUIA (JanelaW32):
             if hwnd == self.hwnd:
                 return True
             j = JanelaUIA.from_hwnd(hwnd)
-            if j.processo.pid == self.processo.pid and filtro(j):
-                encontrados.append(j)
+            
+            try:
+                if j.processo.pid == self.processo.pid and filtro(j):
+                    encontrados.append(j)
+            except Exception: pass
+
             return True
 
         try: win32gui.EnumWindows(callback, None)
