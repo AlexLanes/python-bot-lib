@@ -167,10 +167,10 @@ class ElementoWEB:
         util.aguardar_condicao(lambda: self.ativo, 10, 0.5)
 
         obter_valor = lambda: self.atributos.get("value", None) or self.texto
-        valor = obter_valor()
+        valor = obter_valor().strip()
         self.elemento.clear()
 
-        if valor: util.aguardar_condicao(lambda: valor != obter_valor(), 10, 0.5)
+        if valor: util.aguardar_condicao(lambda: valor != obter_valor().strip(), 1, 0.2)
         return self.sleep()
 
     def digitar (self, *texto: str) -> typing.Self:
