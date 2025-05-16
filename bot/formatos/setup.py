@@ -1,5 +1,6 @@
 # std
 from __future__ import annotations
+import copy
 from types import UnionType, NoneType
 from typing import Any, Generator, Literal, Self, get_args, get_origin
 from json import (
@@ -432,7 +433,7 @@ class Unmarshaller[T]:
         try:
             for name, t in self.__collect_annotations().items():
                 current_path = f"{path}.{name}" if path else name
-                default = getattr(obj, name, None)
+                default = copy.deepcopy(getattr(obj, name, None))
                 value = item.get(name, default)
                 setattr(obj, name, self.__validate(t, value, current_path))
 
