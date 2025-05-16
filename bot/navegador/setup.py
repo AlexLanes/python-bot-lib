@@ -1,6 +1,6 @@
 # std
 from __future__ import annotations
-import time, enum, typing, collections, weakref, contextlib
+import time, enum, typing, functools, collections, weakref, contextlib
 from datetime import (
     datetime as Datetime,
     timedelta as Timedelta
@@ -44,6 +44,22 @@ ARGUMENTOS_DEFAULT = [
     "--disable-session-crashed-bubble", "--disable-search-engine-choice-screen"
 ]
 
+P = typing.ParamSpec("P")
+
+def retry_staleness[R] (func: typing.Callable[P, R]) -> typing.Callable[P, R]: # type: ignore
+    @functools.wraps(func)
+    def wrapper (self: "ElementoWEB", *args: P.args, **kwargs: P.kwargs) -> R: # type: ignore
+        try: return func(self, *args, **kwargs) # type: ignore
+        except StaleElementReferenceException: time.sleep(0.5)
+        # stale
+        try: self.tentar_recriar_elemento()
+        except ElementoNaoEncontrado:
+            raise StaleElementReferenceException("Elemento stale encontrado, tentado recriar sem êxito")
+        # tentado a segunda vez
+        return func(self, *args, **kwargs) # type: ignore
+
+    return wrapper
+
 class ElementoWEB:
 
     __elemento: WebElement
@@ -65,59 +81,52 @@ class ElementoWEB:
         return isinstance(value, ElementoWEB) and self.elemento == value.elemento
 
     @property
+    @retry_staleness
     def elemento (self) -> WebElement:
         """Elemento original do `selenium`
         - Tentado refazer o elemento caso `StaleElementReferenceException`"""
-        elemento = self.__elemento
-        try: elemento.is_enabled(); return elemento
-        except StaleElementReferenceException: pass
-
-        assert (driver := self.__driver()), "Navegador encerrado"
-        find = self.__parente.elemento.find_element if self.__parente else driver.find_element
-        estrategia = "xpath" if self.__localizador.startswith(("/", "(", "./")) else "css selector"
-        try: self.__elemento = find(estrategia, self.__localizador)
-        except ElementoNaoEncontrado:
-            raise StaleElementReferenceException("Elemento stale encontrado, tentado recriar sem êxito")
-
+        self.__elemento.is_enabled()
         return self.__elemento
 
     @property
+    @retry_staleness
     def texto (self) -> str:
         """Texto do elemento com `strip()`"""
-        try: return self.elemento.text.strip()
-        except StaleElementReferenceException: return self.elemento.text.strip()
+        return self.elemento.text.strip()
 
     @property
+    @retry_staleness
     def nome (self) -> str:
         """Nome da `<tag>` do elemento"""
-        try: return self.elemento.tag_name
-        except StaleElementReferenceException: return self.elemento.tag_name
+        return self.elemento.tag_name
 
     @property
+    @retry_staleness
     def visivel (self) -> bool:
         """Indicador se o elemento está visível"""
-        try: return self.elemento.is_displayed()
-        except StaleElementReferenceException: return self.elemento.is_displayed()
+        return self.elemento.is_displayed()
 
     @property
+    @retry_staleness
     def ativo (self) -> bool:
         """Indicador se o elemento está habilitado para interação"""
-        try: return self.elemento.is_enabled()
-        except StaleElementReferenceException: return self.elemento.is_enabled()
+        return self.elemento.is_enabled()
 
     @property
+    @retry_staleness
     def selecionado (self) -> bool:
         """Indicador se o elemento está selecionado
         - Geralmente utilizado em checkbox, opções <select> e botões radio"""
-        try: return self.elemento.is_selected()
-        except StaleElementReferenceException: return self.elemento.is_selected()
+        return self.elemento.is_selected()
 
     @property
+    @retry_staleness
     def select (self) -> Select:
         """Obter a classe de tratamento do elemento `<select>`"""
         return Select(self.elemento)
 
     @property
+    @retry_staleness
     def imagem (self) -> imagem.Imagem:
         """Capturar a imagem do elemento
         - Feito scroll do elemento"""
@@ -127,6 +136,7 @@ class ElementoWEB:
         return imagem.Imagem.from_bytes(png)
 
     @property
+    @retry_staleness
     def atributos (self) -> estruturas.LowerDict[str]:
         """Obter os atributos do elemento"""
         assert (driver := self.__driver()), "Navegador encerrado"
@@ -141,17 +151,27 @@ class ElementoWEB:
             """, self.elemento)
         )
 
+    def tentar_recriar_elemento (self) -> None:
+        """Tentar recriar o atributo `__elemento` do selenium com o localizador original
+        - Necessário para a retentativa caso `StaleElementReferenceException`"""
+        assert (driver := self.__driver()), "Navegador encerrado"
+        find_element = (self.__parente.elemento if self.__parente else driver).find_element
+        estrategia = "xpath" if self.__localizador.startswith(("/", "(", "./")) else "css selector"
+        self.__elemento = find_element(estrategia, self.__localizador)
+
     def sleep (self, segundos: int | float = 0.2) -> typing.Self:
         """Aguardar por `segundos` até continuar a execução"""
         time.sleep(segundos)
         return self
 
+    @retry_staleness
     def hover (self) -> typing.Self:
         """Realizar a ação de hover no elemento"""
         assert (driver := self.__driver()), "Navegador encerrado"
         wd.ActionChains(driver).move_to_element(self.elemento).perform()
         return self.sleep()
 
+    @retry_staleness
     def clicar (self) -> typing.Self:
         """Realizar a ação de click no elemento
         - Aguardado estar clicável"""
@@ -163,9 +183,9 @@ class ElementoWEB:
                                                .move_to_element(self.elemento)\
                                                .click(self.elemento)\
                                                .perform()
-
         return self.sleep()
 
+    @retry_staleness
     def limpar (self) -> typing.Self:
         """Limpar o texto do elemento, caso suportado
         - Aguardado estar ativo e atualizar valor"""
@@ -178,6 +198,7 @@ class ElementoWEB:
         if valor: util.aguardar_condicao(lambda: valor != obter_valor().strip(), 1, 0.2)
         return self.sleep()
 
+    @retry_staleness
     def digitar (self, *texto: str) -> typing.Self:
         """Digitar o texto no elemento
         - Pode ser combinado com as `Teclas`
@@ -192,6 +213,7 @@ class ElementoWEB:
         except TimeoutError: pass
         return self.sleep()
 
+    @retry_staleness
     def encontrar (self, localizador: str | enum.Enum) -> ElementoWEB:
         """Encontrar o primeiro elemento descendente do `elemento` atual com base no `localizador`
         - Exceção `ElementoNaoEncontrado` caso não seja encontrado
@@ -204,6 +226,7 @@ class ElementoWEB:
         elemento = self.elemento.find_element(estrategia, localizador)
         return ElementoWEB(elemento, localizador, self.__driver, self)
 
+    @retry_staleness
     def procurar (self, localizador: str | enum.Enum) -> list[ElementoWEB]:
         """Procurar elemento(s) descendente(s) do `elemento` atual com base no `localizador`
         - Estratégias suportadas:
@@ -217,6 +240,7 @@ class ElementoWEB:
             for elemento in self.elemento.find_elements(estrategia, localizador)
         ]
 
+    @retry_staleness
     def aguardar_clicavel (self, timeout=60) -> typing.Self:
         """Aguardar condição `element_to_be_clickable` do `elemento` por `timeout` segundos
         - Exceção `TimeoutError` caso não finalize no tempo estipulado"""
@@ -224,10 +248,9 @@ class ElementoWEB:
         try: Wait(driver, timeout).until(ec.element_to_be_clickable(self.elemento))
         except TimeoutException:
             raise TimeoutError(f"A espera pelo elemento ser clicável não aconteceu após {timeout} segundos")
-        except StaleElementReferenceException:
-            Wait(driver, timeout).until(ec.element_to_be_clickable(self.elemento))
         return self
 
+    @retry_staleness
     def aguardar_visibilidade (self, timeout=60) -> typing.Self:
         """Aguardar condição `visibility_of` do `elemento` por `timeout` segundos
         - Exceção `TimeoutError` caso não finalize no tempo estipulado"""
@@ -235,8 +258,6 @@ class ElementoWEB:
         try: Wait(driver, timeout).until(ec.visibility_of(self.elemento))
         except TimeoutException:
             raise TimeoutError(f"A espera pela visibilidade do elemento não aconteceu após {timeout} segundos")
-        except StaleElementReferenceException:
-            Wait(driver, timeout).until(ec.visibility_of(self.elemento))
         return self
 
     @contextlib.contextmanager
@@ -246,13 +267,18 @@ class ElementoWEB:
         - Utilizar com o `with` e realizar uma ação que tornará o elemento stale
             - `with elemento.aguardar_staleness() as elemento: ...`"""
         assert (driver := self.__driver()), "Navegador encerrado"
+        elemento = self.elemento
+        yield self
+
         try:
-            elemento = self.__elemento
-            yield self
             Wait(driver, timeout).until(ec.staleness_of(elemento))
-        except StaleElementReferenceException: pass
-        except TimeoutException:
-            raise TimeoutError(f"A espera pelo staleness do elemento não aconteceu após {timeout} segundos")
+            return
+        except (StaleElementReferenceException, ElementoNaoEncontrado): return
+        except TimeoutException: pass
+
+        try: elemento.is_enabled()
+        except (StaleElementReferenceException, ElementoNaoEncontrado): return
+        raise TimeoutError(f"A espera pelo staleness do elemento não aconteceu após {timeout} segundos")
 
     @contextlib.contextmanager
     def aguardar_invisibilidade (self, timeout=60) -> typing.Generator[typing.Self, None, None]:
@@ -262,12 +288,18 @@ class ElementoWEB:
         - Utilizar com o `with` e realizar uma ação que tornará o elemento invisível
             - `with elemento.aguardar_invisibilidade() as elemento: ...`"""
         assert (driver := self.__driver()), "Navegador encerrado"
+        elemento = self.elemento
+        yield self
+
         try:
-            elemento = self.__elemento
-            yield self
             Wait(driver, timeout).until(ec.invisibility_of_element(elemento))
-        except TimeoutException:
-            raise TimeoutError(f"A espera pela invisibilidade do elemento não aconteceu após {timeout} segundos")
+            return
+        except (StaleElementReferenceException, ElementoNaoEncontrado): return
+        except TimeoutException: pass
+
+        try: elemento.is_enabled()
+        except (StaleElementReferenceException, ElementoNaoEncontrado): return
+        raise TimeoutError(f"A espera pela invisibilidade do elemento não aconteceu após {timeout} segundos")
 
     @contextlib.contextmanager
     def aguardar_update (self, timeout=60) -> typing.Generator[typing.Self, None, None]:
@@ -277,13 +309,13 @@ class ElementoWEB:
         - Utilizar com o `with` e realizar uma ação que alterará o elemento
             - `with elemento.aguardar_update() as elemento: ...`"""
         atributos = self.atributos
-        elemento = self.__elemento
+        elemento = self.elemento
         outer = elemento.get_attribute("outerHTML")
         yield self
 
         def condicao () -> bool:
             try: elemento.is_enabled()
-            except StaleElementReferenceException: return True
+            except (StaleElementReferenceException, ElementoNaoEncontrado): return True
             return outer != elemento.get_attribute("outerHTML") or atributos != self.atributos
 
         if not util.aguardar_condicao(condicao, timeout, 0.5):
