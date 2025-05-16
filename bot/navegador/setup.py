@@ -84,28 +84,33 @@ class ElementoWEB:
     @property
     def texto (self) -> str:
         """Texto do elemento com `strip()`"""
-        return self.elemento.text.strip()
+        try: return self.elemento.text.strip()
+        except StaleElementReferenceException: return self.elemento.text.strip()
 
     @property
     def nome (self) -> str:
         """Nome da `<tag>` do elemento"""
-        return self.elemento.tag_name
+        try: return self.elemento.tag_name
+        except StaleElementReferenceException: return self.elemento.tag_name
 
     @property
     def visivel (self) -> bool:
         """Indicador se o elemento está visível"""
-        return self.elemento.is_displayed()
+        try: return self.elemento.is_displayed()
+        except StaleElementReferenceException: return self.elemento.is_displayed()
 
     @property
     def ativo (self) -> bool:
         """Indicador se o elemento está habilitado para interação"""
-        return self.elemento.is_enabled()
+        try: return self.elemento.is_enabled()
+        except StaleElementReferenceException: return self.elemento.is_enabled()
 
     @property
     def selecionado (self) -> bool:
         """Indicador se o elemento está selecionado
         - Geralmente utilizado em checkbox, opções <select> e botões radio"""
-        return self.elemento.is_selected()
+        try: return self.elemento.is_selected()
+        except StaleElementReferenceException: return self.elemento.is_selected()
 
     @property
     def select (self) -> Select:
