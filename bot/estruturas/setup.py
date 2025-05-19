@@ -285,11 +285,10 @@ class Decimal:
         except Exception: self.d = decimal.Decimal("NaN")
 
     def __repr__ (self) -> str:
-        valor = str(self).replace(".", self.separador_decimal)
-        return f"{type(self).__name__}(valor='{valor}', precisao={self.precisao}, separador_decimal={self.separador_decimal!r})>"
+        return f"{type(self).__name__}(valor={str(self)!r}, precisao={self.precisao}, separador_decimal={self.separador_decimal!r})>"
 
     def __str__ (self) -> str:
-        return str(self.d)
+        return str(self.d).replace(".", self.separador_decimal)
     def __int__ (self) -> int:
         return int(self.d)
     def __float__ (self) -> float:
