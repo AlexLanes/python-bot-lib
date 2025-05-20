@@ -858,7 +858,9 @@ class JanelaUIA (JanelaW32):
                     if not e.item_barra_menu or opcao != e.texto.lower():
                         continue
 
-                    if expansivel := e.expansivel: expansivel.Expand()
+                    if (expansivel := e.expansivel)\
+                        and expansivel.Expand() != -1\
+                        and expansivel.CurrentExpandCollapseState > 0: pass
                     elif invocavel := e.invocavel: invocavel.Invoke()
                     else: e.clicar()
 
