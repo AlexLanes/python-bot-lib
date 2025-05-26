@@ -219,8 +219,8 @@ class ElementoW32:
         if virtual:
             lparam = win32api.MAKELONG(coordenada.largura // 2, coordenada.altura // 2)
             down, up, wparam = BOTOES_VIRTUAIS_MOUSE[botao]
-            win32gui.SendMessage(self.hwnd, down, wparam, lparam)
-            win32gui.SendMessage(self.hwnd, up, 0, lparam)
+            win32gui.PostMessage(self.hwnd, down, wparam, lparam)
+            win32gui.PostMessage(self.hwnd, up, 0, lparam)
         else:
             bot.mouse.clicar_mouse(botao, coordenada=coordenada)
 
