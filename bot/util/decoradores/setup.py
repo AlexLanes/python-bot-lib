@@ -1,5 +1,5 @@
 # std
-import time, typing
+import time, typing, functools
 import asyncio, cProfile, inspect, pstats
 from multiprocessing.pool import ThreadPool
 from multiprocessing.context import TimeoutError as Timeout
@@ -11,14 +11,16 @@ P = typing.ParamSpec("P")
 def timeout[R] (segundos: float) -> typing.Callable[[typing.Callable[P, R]], typing.Callable[P, R]]: # type: ignore
     """Executar a função por `segundos` até retornar ou `TimeoutError` caso ultrapasse o tempo"""
     def timeout (func: typing.Callable[P, R]) -> typing.Callable[P, R]:
-        def timeout (*args: P.args, **kwargs: P.kwargs) -> R:
+
+        @functools.wraps(func)
+        def wrapper (*args: P.args, **kwargs: P.kwargs) -> R:
 
             mensagem = f"Função({func.__name__}) não finalizou sua execução no tempo configurado de {segundos} segundos e resultou em Timeout"
             try: return ThreadPool(1).apply_async(func, args, kwargs).get(segundos)
             except Timeout: logger.alertar(mensagem)
             raise TimeoutError(mensagem)
 
-        return timeout
+        return wrapper
     return timeout
 
 def retry[R] (
@@ -40,45 +42,66 @@ def retry[R] (
     def retry (func: typing.Callable[P, R]) -> typing.Callable[P, R]:
         nome_funcao = func.__name__
 
-        def retry (*args: P.args, **kwargs: P.kwargs) -> R:
+        @functools.wraps(func)
+        def wrapper (*args: P.args, **kwargs: P.kwargs) -> R:
             for tentativa in range(1, tentativas + 1):
                 try: return func(*args, **kwargs)
 
                 except *ignorar as grupo_ignorado:
                     try: on_error(args, kwargs) if on_error else None
                     except Exception: pass
-                    ultima_excecao = grupo_ignorado.exceptions[-1]
-                    nome_excecao = type(ultima_excecao).__name__
-                    ultima_excecao.add_note(f"Função({nome_funcao}) apresentou erro ao ser executada; Exceção '{nome_excecao}' não permitida a retentativa")
+                    excecao = grupo_ignorado.exceptions[-1]
+                    nome_excecao = type(excecao).__name__
+                    excecao.add_note(f"Função({nome_funcao}) apresentou erro ao ser executada; Exceção '{nome_excecao}' não permitida a retentativa")
                     raise
 
                 except *erros as grupo_excecoes:
                     try: on_error(args, kwargs) if on_error else None
                     except Exception: pass
-                    ultima_excecao = grupo_excecoes.exceptions[-1]
-                    mensagem_erro = type(ultima_excecao).__name__ + f"({ str(ultima_excecao).strip() })"
+                    excecao = grupo_excecoes.exceptions[-1]
+                    mensagem_erro = type(excecao).__name__ + f"({ str(excecao).strip() })"
                     logger.alertar(f"Tentativa {tentativa}/{tentativas} de execução da função({nome_funcao}) resultou em erro\n\t{mensagem_erro}")
                     # sleep() não necessário na última tentativa
                     if tentativa < tentativas: time.sleep(segundos)
                     # lançar a exceção na última tentativa
                     else:
-                        ultima_excecao.add_note(f"Foram realizadas {tentativas} tentativa(s) de execução da função({nome_funcao})")
-                        raise
+                        excecao.add_note(f"Foram realizadas {tentativas} tentativa(s) de execução da função({nome_funcao})")
+                        raise excecao from None
 
             # nunca
             raise
 
-        return retry
+        return wrapper
     return retry
+
+def adicionar_prefixo_erro[R] (
+        prefixo: str | typing.Callable[[tuple[typing.Any, ...], dict[str, typing.Any]], str]
+    ) -> typing.Callable[[typing.Callable[P, R]], typing.Callable[P, R]]: # type: ignore
+    """Adicionar um prefixo no erro caso a função resulte em exceção
+    - Prefixo pode ser um `str` ou um `lambda args, kwargs: ""` para capturar os argumentos da função"""
+    def mensagem_erro (func: typing.Callable[P, R]) -> typing.Callable[P, R]:
+
+        @functools.wraps(func)
+        def wrapper (*args: P.args, **kwargs: P.kwargs) -> R:
+            try: return func(*args, **kwargs)
+            except Exception as e:
+                tipo_excecao = type(e)
+                mensagem = prefixo(args, kwargs) if callable(prefixo) else prefixo
+                excecao = tipo_excecao(f"{mensagem}; {e}")
+                raise excecao.with_traceback(e.__traceback__)
+
+        return wrapper
+    return mensagem_erro
 
 def tempo_execucao[R] (func: typing.Callable[P, R]) -> typing.Callable[P, R]: # type: ignore
     """Loggar o tempo de execução da função"""
-    def tempo_execucao (*args: P.args, **kwargs: P.kwargs) -> R: # type: ignore
+    @functools.wraps(func)
+    def wrapper (*args: P.args, **kwargs: P.kwargs) -> R: # type: ignore
         cronometro, resultado = util.cronometro(), func(*args, **kwargs)
         tempo = util.expandir_tempo(cronometro())
         logger.informar(f"Função({func.__name__}) executada em {tempo}")
         return resultado
-    return tempo_execucao
+    return wrapper # type: ignore
 
 def perfil_execucao (func: typing.Callable):
     """Loggar o perfil de execução da função
@@ -133,4 +156,5 @@ __all__ = [
     "async_run",
     "tempo_execucao",
     "perfil_execucao",
+    "adicionar_prefixo_erro",
 ]
