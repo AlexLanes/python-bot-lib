@@ -1,6 +1,7 @@
 # std
 from __future__ import annotations
-import typing, inspect, dataclasses, decimal, operator
+import typing, functools, dataclasses
+import inspect, decimal, operator
 # interno
 from ..sistema import Caminho
 # externo
@@ -346,6 +347,12 @@ class Decimal:
     def nan (self) -> bool:
         """Checar se o decimal não é um número"""
         return self.d.is_nan()
+
+    @staticmethod
+    def sum (decimais: typing.Iterable[Decimal]) -> Decimal:
+        """Realizar o `sum()` de todos os `decimais`"""
+        return functools.reduce(lambda total, atual: total + atual,
+                                decimais)
 
 __all__ = [
     "Caminho",
