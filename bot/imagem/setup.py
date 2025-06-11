@@ -60,7 +60,7 @@ class Imagem:
     def __repr__ (self) -> str:
         shape = self.pixels.shape
         altura, largura, *_ = shape
-        canais = shape[3] if len(shape) >= 3 else 1
+        canais = shape[2] if len(shape) >= 3 else 1
         return f"<Imagem {largura}x{altura} canais({canais})>"
 
     def __eq__ (self, other: object) -> bool:
