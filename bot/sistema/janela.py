@@ -361,6 +361,24 @@ class ElementoUIA (ElementoW32):
         return self.query_interface(uiaclient.UIA_SelectionItemPatternId, uiaclient.IUIAutomationSelectionItemPattern)
 
     @property
+    def grid (self) -> uiaclient.IUIAutomationGridPattern | None:
+        """Obter a interface `Grid`
+        - `None` caso o elemento não suporte o `Pattern`"""
+        return self.query_interface(
+            uiaclient.UIA_GridPatternId,
+            uiaclient.IUIAutomationGridPattern
+        )
+
+    @property
+    def table (self) -> uiaclient.IUIAutomationTablePattern | None:
+        """Obter a interface `Table`
+        - `None` caso o elemento não suporte o `Pattern`"""
+        return self.query_interface(
+            uiaclient.UIA_TablePatternId,
+            uiaclient.IUIAutomationTablePattern
+        )
+
+    @property
     def caixa_selecao (self) -> uiaclient.IUIAutomationTogglePattern | None: # type: ignore
         """Obter a interface da caixa de seleção de uma `CheckBox`
         - `None` caso o elemento não seja uma caixa de seleção
