@@ -219,11 +219,12 @@ def executar (*argumentos: str,
     except Exception as erro:
         return (False, str(erro))
 
-def abrir_programa (*argumentos: str, shell=False) -> None:
+def abrir_programa (*argumentos: str, shell=False) -> subprocess.Popen:
     """Abrir um programa em um novo processo descolado da `main thread`
     - Levar em consideração o diretório de execução atual
-    - Lança exceção se o comando for inválido"""
-    subprocess.Popen(argumentos, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=shell)
+    - Lança exceção se o comando for inválido
+    - Retorna a classe responsável pelo processo aberto"""
+    return subprocess.Popen(argumentos, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=shell)
 
 def informacoes_resolucao () -> tuple[tuple[int, int], list[tuple[int, int]]]:
     """Obter informações sobre resolução da tela
