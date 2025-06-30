@@ -219,7 +219,7 @@ def executar (*argumentos: str,
     except Exception as erro:
         return (False, str(erro))
 
-def abrir_programa (*argumentos: str, shell=False) -> subprocess.Popen:
+def abrir_programa (*argumentos: str, shell=False) -> subprocess.Popen[bytes]:
     """Abrir um programa em um novo processo descolado da `main thread`
     - Levar em consideração o diretório de execução atual
     - Lança exceção se o comando for inválido
