@@ -603,6 +603,9 @@ class JanelaW32:
     def __hash__ (self) -> int:
         return hash(self.hwnd)
 
+    def __bool__ (self) -> bool:
+        return True
+
     @property
     def titulo (self) -> str:
         """Texto do elemento
