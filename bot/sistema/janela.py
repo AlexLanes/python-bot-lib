@@ -295,7 +295,7 @@ class ElementoUIA (ElementoW32):
 
     @property
     def texto (self) -> str:
-        return str(self.uiaelement.CurrentName or "")
+        return str(self.uiaelement.CurrentName or "").strip().replace("&", "")
 
     @functools.cached_property
     def class_name (self) -> str:
@@ -724,6 +724,10 @@ class JanelaW32:
         for janela in (self, *self.janelas_processo()):
             janela.elemento.print_arvore()
             print()
+
+    def to_uia (self) -> JanelaUIA:
+        """Obter uma instância da `JanelaW32` como `JanelaUIA`"""
+        return JanelaUIA.from_hwnd(self.hwnd)
 
     @staticmethod
     def titulos_janelas_visiveis () -> set[str]:
