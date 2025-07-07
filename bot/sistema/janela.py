@@ -1,6 +1,6 @@
 # std
 from __future__ import annotations
-import typing, functools
+import time, typing, functools
 # interno
 import bot
 # externo
@@ -183,6 +183,11 @@ class ElementoW32:
             for d in self.descendentes(lambda e: True)
             if d.texto
         )
+
+    def sleep (self, segundos: int | float = 1) -> typing.Self:
+        """Aguardar por `segundos` até continuar a execução"""
+        time.sleep(segundos)
+        return self
 
     def aguardar (self, timeout: float = 120.0) -> typing.Self:
         """Aguarda `timeout` segundos até que a thread da GUI fique ociosa"""
