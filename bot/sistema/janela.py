@@ -66,12 +66,10 @@ class CaixaSelecaoW32:
         estado = win32gui.SendMessage(self.hwnd, win32con.BM_GETCHECK, 0, 0)
         return estado == 1
 
-    def selecionar (self) -> None:
+    def alternar (self) -> None:
         """Alterar o estado da seleção"""
         estado = 0 if self.selecionado else 1
         win32gui.SendMessage(self.hwnd, win32con.BM_SETCHECK, estado, 0)
-        # win32api.PostMessage(self.hwnd, win32con.WM_LBUTTONDOWN, 0, 0)
-        # win32api.PostMessage(self.hwnd, win32con.WM_LBUTTONUP, 0, 0)
 
 class ElementoW32:
     """Elemento para o backend Win32"""
@@ -126,13 +124,10 @@ class ElementoW32:
         return win32gui.IsWindowEnabled(self.hwnd) == 1
 
     @property
-    def caixa_selecao (self) -> CaixaSelecaoW32 | None:
+    def caixa_selecao (self) -> CaixaSelecaoW32:
         """Obter a interface da caixa de seleção de uma `CheckBox`
-        - `None` caso o elemento não seja uma caixa de seleção"""
-        try:
-            estilo = win32gui.GetWindowLong(self.hwnd, win32con.GWL_STYLE)
-            return CaixaSelecaoW32(self.hwnd) if (estilo & 0x0F) in ESTILOS_CHECKBOX else None
-        except Exception: return None
+        - O Elemento pode não aceitar caso não seja uma `CheckBox`, necessário teste"""
+        return CaixaSelecaoW32(self.hwnd)
 
     def filhos (self, filtro: typing.Callable[[ElementoW32], bot.tipagem.SupportsBool] | None = None) -> list[ElementoW32]:
         """Elementos filhos de primeiro nível
