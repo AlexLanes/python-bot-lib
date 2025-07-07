@@ -321,10 +321,11 @@ class ElementoUIA (ElementoW32):
 
     @property
     def valor (self) -> str:
-        """Propriedade `value` do elemento. Útil para inputs"""
+        """Propriedade `value` do elemento. Útil para inputs
+        - Feito `strip()`"""
         try:
             value = self.query_interface(uiaclient.UIA_ValuePatternId, uiaclient.IUIAutomationValuePattern)
-            return str(value.CurrentValue) if value else ""
+            return str(value.CurrentValue).strip() if value else ""
         except Exception: return ""
 
     @property
