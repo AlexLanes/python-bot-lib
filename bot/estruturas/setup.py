@@ -348,6 +348,15 @@ class Decimal:
         """Checar se o decimal não é um número"""
         return self.d.is_nan()
 
+    def copiar (self, separador: str | None = None,
+                      precisao: int | None = None) -> Decimal:
+        """Criar um cópia do objeto
+        - `separador` para alterar o separador decimal
+        - `precisao` para alterar a precisão decimal"""
+        copia = Decimal(str(self), precisao or self.precisao, self.separador_decimal)
+        if separador: copia.separador_decimal = separador
+        return copia
+
     @staticmethod
     def sum (decimais: typing.Iterable[Decimal]) -> Decimal:
         """Realizar o `sum()` de todos os `decimais`"""
