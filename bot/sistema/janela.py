@@ -10,7 +10,6 @@ import comtypes.client
 comtypes.client.GetModule('UIAutomationCore.dll')
 from comtypes.gen import UIAutomationClient as uiaclient
 
-ESTILOS_CHECKBOX = (win32con.BS_CHECKBOX, win32con.BS_AUTOCHECKBOX)
 BOTOES_VIRTUAIS_MOUSE = {
     "left":   (win32con.WM_LBUTTONDOWN, win32con.WM_LBUTTONUP, win32con.MK_LBUTTON),
     "middle": (win32con.WM_MBUTTONDOWN, win32con.WM_MBUTTONUP, win32con.MK_MBUTTON),
@@ -40,7 +39,7 @@ class Dialogo [T: ElementoW32 | ElementoUIA]:
             .encontrar(lambda e: botao in bot.util.normalizar(e.texto))\
             .clicar()
 
-    def fechar (self, timeout: float = 10.0) -> bool:
+    def fechar (self, timeout: float | int = 10.0) -> bool:
         """Enviar a mensagem de fechar para o popup e retornar indicador se fechou corretamente"""
         hwnd = self.elemento.hwnd
         win32gui.PostMessage(hwnd, win32con.WM_CLOSE, 0, 0)
@@ -189,7 +188,7 @@ class ElementoW32:
         time.sleep(segundos)
         return self
 
-    def aguardar (self, timeout: float = 120.0) -> typing.Self:
+    def aguardar (self, timeout: float | int = 120.0) -> typing.Self:
         """Aguarda `timeout` segundos até que a thread da GUI fique ociosa"""
         if self is not self.janela.elemento:
             self.janela.aguardar()
@@ -655,18 +654,24 @@ class JanelaW32:
     @property
     def fechada (self) -> bool:
         return not win32gui.IsWindow(self.hwnd)
-    def fechar (self, timeout: float = 10.0) -> bool:
+    def fechar (self, timeout: float | int = 10.0) -> bool:
         """Enviar a mensagem de fechar para janela e retornar indicador se fechou corretamente"""
         win32gui.PostMessage(self.hwnd, win32con.WM_CLOSE, 0, 0)
         return bot.util.aguardar_condicao(lambda: self.fechada, timeout)
-    def encerrar (self, timeout: float = 10.0) -> None:
+    def destruir (self, timeout: float | int = 10.0) -> bool:
+        """Enviar a mensagem de destruir para janela e retornar indicador se fechou corretamente"""
+        win32gui.PostMessage(self.hwnd, win32con.WM_DESTROY, 0, 0)
+        if not self.fechada:
+            win32gui.PostMessage(self.hwnd, win32con.WM_QUIT, 0, 0)
+        return bot.util.aguardar_condicao(lambda: self.fechada, timeout)
+    def encerrar (self, timeout: float | int = 10.0) -> None:
         """Enviar a mensagem de fechar para janela
         - Caso continue aberto após `timeout` segundos, será feito o encerramento pelo processo"""
         if not self.fechar(timeout):
             self.processo.kill()
-            self.processo.wait(timeout)
+            self.processo.wait(float(timeout))
 
-    def aguardar (self, timeout: float = 120.0) -> typing.Self:
+    def aguardar (self, timeout: float | int = 120.0) -> typing.Self:
         """Aguarda `timeout` segundos até que a thread da GUI fique ociosa"""
         if self.fechada or self.hwnd == 0:
             return self
