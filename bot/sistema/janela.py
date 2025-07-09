@@ -30,14 +30,17 @@ class Dialogo [T: ElementoW32 | ElementoUIA]:
     def __eq__ (self, value: object) -> bool:
         return isinstance(value, type(self)) and self.elemento == value.elemento
 
-    def clicar (self, botao: str = "Não") -> None:
+    def clicar (self, botao: str = "Não") -> bool:
         """Clicar no botão com o texto `botão`
         - Texto normalizado, então acentuação ou & não faz diferença
-        - `AssertionError` caso não seja encontrado"""
+        - `AssertionError` caso não seja encontrado
+        - Retornado indicador se o diálogo fechou corretamente"""
+        hwnd = self.elemento.hwnd
         botao = bot.util.normalizar(botao)
         self.elemento\
             .encontrar(lambda e: botao in bot.util.normalizar(e.texto))\
             .clicar()
+        return bot.util.aguardar_condicao(lambda: not win32gui.IsWindow(hwnd), timeout=3)
 
     def fechar (self, timeout: float | int = 10.0) -> bool:
         """Enviar a mensagem de fechar para o popup e retornar indicador se fechou corretamente"""
@@ -51,24 +54,25 @@ class Popup[T: ElementoW32 | ElementoUIA] (Dialogo[T]):
 class CaixaSelecaoW32:
     """Classe para tratar a caixa de seleção do W32"""
 
-    hwnd: int
+    elemento: ElementoW32
 
-    def __init__(self, hwnd: int) -> None:
-        self.hwnd = hwnd
+    def __init__(self, elemento: ElementoW32) -> None:
+        self.elemento = elemento
 
     def __repr__ (self) -> str:
-        return f"<{type(self).__name__} hwnd='{self.hwnd}'>"
+        return f"<{type(self).__name__} hwnd='{self.elemento.hwnd}'>"
 
     @property
     def selecionado (self) -> bool:
         """Checar se está selecionado"""
-        estado = win32gui.SendMessage(self.hwnd, win32con.BM_GETCHECK, 0, 0)
+        estado = win32gui.SendMessage(self.elemento.hwnd, win32con.BM_GETCHECK, 0, 0)
         return estado == 1
 
     def alternar (self) -> None:
         """Alterar o estado da seleção"""
         estado = 0 if self.selecionado else 1
-        win32gui.SendMessage(self.hwnd, win32con.BM_SETCHECK, estado, 0)
+        win32gui.SendMessage(self.elemento.hwnd, win32con.BM_SETCHECK, estado, 0)
+        self.elemento.aguardar(5)
 
 class ElementoW32:
     """Elemento para o backend Win32"""
@@ -126,7 +130,7 @@ class ElementoW32:
     def caixa_selecao (self) -> CaixaSelecaoW32:
         """Obter a interface da caixa de seleção de uma `CheckBox`
         - O Elemento pode não aceitar caso não seja uma `CheckBox`, necessário teste"""
-        return CaixaSelecaoW32(self.hwnd)
+        return CaixaSelecaoW32(self)
 
     def filhos (self, filtro: typing.Callable[[ElementoW32], bot.tipagem.SupportsBool] | None = None) -> list[ElementoW32]:
         """Elementos filhos de primeiro nível
@@ -196,7 +200,7 @@ class ElementoW32:
             return self
 
         try: win32gui.SendMessageTimeout(self.hwnd, win32con.WM_NULL, None, None, win32con.SMTO_ABORTIFHUNG, int(timeout * 1000))
-        except : raise TimeoutError(f"O elemento não respondeu após '{timeout}' segundos esperando") from None
+        except Exception: raise TimeoutError(f"O elemento não respondeu após '{timeout}' segundos esperando") from None
         return self
 
     def focar (self) -> typing.Self:
@@ -267,6 +271,15 @@ class ElementoW32:
                 print_nivel(filho, prefixo)
 
         print_nivel(self)
+
+    def to_uia (self) -> ElementoUIA:
+        """Criar um instância do `ElementoW32` como `ElementoUIA`"""
+        return ElementoUIA(
+            self.hwnd,
+            self.janela.to_uia(),
+            self.parente.to_uia() if self.parente else None,
+            profundidade = self.profundidade
+        )
 
 class ElementoUIA (ElementoW32):
     """Elemento para o backend UIA"""
