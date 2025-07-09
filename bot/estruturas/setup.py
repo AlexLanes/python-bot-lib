@@ -11,7 +11,11 @@ P = typing.ParamSpec("P")
 
 @dataclasses.dataclass
 class Coordenada:
-    """Coordenada de uma região na tela"""
+    """Coordenada de uma região retangular na tela baseado nos pixels
+    - `x` Posição horizontal do canto superior esquerdo
+    - `y` Posição vertical do canto superior esquerdo
+    - `largura` Largura da área, a partir do `x`
+    - `altura` Altura da área, a partir do `y`"""
 
     x: int
     y: int
@@ -82,7 +86,8 @@ class Coordenada:
         return (x, y, largura + x, altura + y)
 
 class Resultado [T]:
-    """Classe para capturar o `return | Exception` das chamadas
+    """Classe para capturar o `return | Exception` de chamadas de uma função
+    - Alternativa para não propagar o erro e nem precisar utilizar `try-except`
 
     ```
     # informar a função, os argumentos posicionais e os argumentos nomeados
@@ -169,10 +174,11 @@ class InfoStack:
         ]
 
 class LowerDict [T]:
-    """Classe usada para obter/criar/adicionar chaves de um `dict` como `lower-case`
+    """Classe usada para obter/adicionar/remover chaves de um `dict` como `lower-case`
     - Obter: `LowerDict["nome"]` KeyError caso não exista
     - Checar existência: `"nome" in LowerDict`
     - Adicionar/Atualizar: `LowerDict["nome"] = "valor"`
+    - Remover: `del LowerDict["nome"]`
     - Tamanho: `len(LowerDict)` quantidade de chaves
     - Iteração: `for chave in LowerDict: ...`
     - Comparador bool: `bool(LowerDict)` ou `if LowerDict: ...` True se não for vazio
@@ -194,6 +200,9 @@ class LowerDict [T]:
 
     def __setitem__ (self, nome: str, valor: T) -> None:
         self.__d[nome.lower().strip()] = valor
+    
+    def __delitem__ (self, chave: str) -> None:
+        del self.__d[chave.lower().strip()]
 
     def __contains__ (self, chave: str) -> bool:
         return chave.lower().strip() in self.__d
@@ -226,10 +235,10 @@ class LowerDict [T]:
 class Decimal:
     """Classe para realizar comparações e operações matemáticas com precisão em números com ponto flutuante
     - Abstração do pacote std `decimal`
-    - `float` não oferece precisão
+    - `float` possuiu precisão limitada
 
     ```
-    # `valor` aceito no formato int, com casas decimais ou exponencial
+    # `valor` aceito como `str`, com ou sem casas decimais ou exponencial
     # `precisao` limita a quantidade de casas decimais
     # `separador_decimal` caso o separador das casas decimais seja diferente de `.`
     Decimal("1")
