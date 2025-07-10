@@ -7,11 +7,7 @@ from .. import configfile, logger
 
 class FTP:
     """Classe de abstração do `ftplib`
-    - Variáveis .ini `[FTP] -> host, user, password, timeout, port`
-        - `host` Obrigatório
-        - `user, password` Opcionais
-        - `port` Opcional `Default: 21`
-        - `timeout` Opcional `Default: 5.0`"""
+    - Variáveis .ini `[FTP] -> host, [user, password, timeout: 5.0, port: 21]`"""
 
     __ftp: ftplib.FTP
 

@@ -44,7 +44,7 @@ def enviar_email (destinatarios: typing.Iterable[tipagem.email],
     """Enviar email para uma lista de `destinatarios` com `assunto`, `conteudo` e lista de `anexos`
     - Abstração `smtplib`
     - `conteudo` pode ser uma string html se começar com "<"
-    - Variáveis .ini `[email.enviar] -> user, password, host, [port: 587, ssl: False, ]`"""
+    - Variáveis .ini `[email.enviar] -> user, password, host, [port: 587, ssl: False]`"""
     logger.informar(f"Enviando e-mail '{assunto}' para {str(destinatarios)}")
     assert destinatarios, "Pelo menos um e-mail é necessário para ser enviado"
 
