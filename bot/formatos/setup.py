@@ -155,7 +155,46 @@ class Json [T]:
 
 class ElementoXML:
     """Classe de manipulação e criação de XML
-    - Abstração do módulo `xml.etree.ElementTree`"""
+    - Abstração do módulo `xml.etree.ElementTree`
+
+    ```
+    # Parse
+    ElementoXML.parse(bot.sistema.Caminho("arquivo.xml"))
+    ElementoXML.parse('<raiz versão="1"><filho1>abc</filho1><filho2>xyz</filho2></raiz>')
+
+    # Criação de elementos
+    raiz = ElementoXML("raiz", atributos={ "versão": "1" })
+    raiz.adicionar(ElementoXML("filho1", "abc"), ElementoXML("filho2", "xyz"))
+    print(raiz) # <raiz versão="1"><filho1>abc</filho1><filho2>xyz</filho2></raiz>
+
+    # Atributos
+    raiz.nome       # Nome do elemento
+    raiz.texto      # Texto do elemento (se houver)
+    raiz.atributos  # Atributos do elemento
+    raiz.namespace  # Namespace do elemento (se houver)
+
+    # Acessores
+    len(raiz)               # Quantidade de elemento(s) filho(s)
+    str(raiz)               # Versão `text/xml` do ElementoXML
+    bool(raiz)              # Formato `bool` indicando se possui algum filho ou texto
+    for filho in raiz: ...  # Iterator dos `elementos` filhos
+
+    # Métodos
+    raiz.adicionar()    # Adicionar `n` elementos como filho
+    raiz.inserir()      # Inserir elemento no index informado
+    raiz.elementos()    # Elementos filhos
+    raiz.remover()      # Remover elemento descendente do elemento
+    raiz.indentar()     # Indentar a verão `str()` do xml
+    raiz.copiar()       # Criar uma cópia do elemento
+    raiz.to_dict()      # Versão `dict` do elemento
+
+    # Registrar um namespace para utilizar na procura com o xpath
+    ElementoXML.registrar_prefixo("ns", "url")
+    # Procurar elementos que resultem no xpath informado
+    raiz.procurar(xpath="", namespaces={})
+    # Encontrar elemento que resulte no xpath informado ou `None` caso não seja encontrado
+    raiz.encontrar(xpath="", namespaces={})
+    ```"""
 
     __elemento: Element
     __prefixos: dict[str, tipagem.url] = {}
