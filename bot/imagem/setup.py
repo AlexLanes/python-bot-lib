@@ -77,7 +77,7 @@ class Imagem:
     @property
     def png (self) -> bytes:
         """Codificar a imagem para `png`"""
-        return cv2.imencode(".png", self.pixels)[1] # type: ignore
+        return cv2.imencode(".png", self.pixels)[1].tobytes()
 
     @property
     def png_base64 (self) -> str:
