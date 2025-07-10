@@ -31,11 +31,11 @@ def yaml_stringify (item: Any) -> str:
     return yaml.dump(Json(item).stringify(), sort_keys=False, indent=4)
 
 def yaml_parse (string: str) -> Any:
-    """Realizar o parse de uma string YAML"""
+    """Realizar o parse de uma string YAML para o objeto do Python apropriado"""
     return yaml.load(string, yaml.FullLoader)
 
 class Json [T]:
-    """Classe para validação e leitura de objetos JSON
+    """Classe para validação e leitura de objetos JSON acessando propriedades via `.` ou `[]`
 
     ```
     item = { "nome": "Alex", "dados": [{ "marco": "polo" }] }
@@ -154,7 +154,7 @@ class Json [T]:
         )
 
 class ElementoXML:
-    """Classe de manipulação de XML
+    """Classe de manipulação e criação de XML
     - Abstração do módulo `xml.etree.ElementTree`"""
 
     __elemento: Element
@@ -196,12 +196,12 @@ class ElementoXML:
         return f"<ElementoXML '{self.nome}' com {len(self)} elemento(s) filho(s)>"
 
     def __iter__ (self) -> Generator[ElementoXML, None, None]:
-        """Iterator dos `elementos`"""
+        """Iterator dos `elementos` filhos"""
         for elemento in self.elementos():
             yield elemento
 
     def __bool__ (self) -> bool:
-        """Formato `bool`"""
+        """Formato `bool` indicando se possui algum filho ou texto"""
         return bool(len(self) or self.texto)
 
     def __getitem__ (self, value: int | str) -> ElementoXML | None:
