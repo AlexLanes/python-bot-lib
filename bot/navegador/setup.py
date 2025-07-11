@@ -138,7 +138,7 @@ class ElementoWEB:
     @property
     @retry_staleness
     def atributos (self) -> estruturas.LowerDict[str]:
-        """Obter os atributos do elemento"""
+        """Obter os atributos html do elemento"""
         assert (driver := self.__driver()), "Navegador encerrado"
         return estruturas.LowerDict(
             driver.execute_script("""
