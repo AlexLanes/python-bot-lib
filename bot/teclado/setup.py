@@ -35,7 +35,7 @@ def digitar_teclado (texto: str, delay=0.05) -> None:
         TECLADO.type(char)
         sleep(delay)
 
-def observar_tecla (tecla: tipagem.BOTOES_TECLADO | tipagem.char, callback: Callable[[], None]) -> None:
+def observar_tecla (tecla: tipagem.BOTOES_TECLADO | tipagem.char, callback: Callable[[], Any]) -> None:
     """Observar quando a `tecla` é apertada e chamar o `callback`
     - `tecla` pode ser do `BOTOES_TECLADO` ou um `char`"""
     CALLBACKS[tecla] = callback
