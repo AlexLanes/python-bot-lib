@@ -153,7 +153,7 @@ class ElementoW32:
         return filhos
 
     def descendentes (self, filtro: typing.Callable[[ElementoW32], bot.tipagem.SupportsBool] | None = None) -> list[ElementoW32]:
-        """Todos os elementos descendente
+        """Todos os elementos descendentes
         - `filtro` para escolher os descendentes. `Default: visíveis`"""
         descendentes = []
         filtro = filtro or (lambda e: e.visivel)
@@ -167,7 +167,7 @@ class ElementoW32:
         return descendentes
 
     def encontrar (self, filtro: typing.Callable[[ElementoW32], bot.tipagem.SupportsBool]) -> ElementoW32:
-        """Encontrar o primeiro elemento descendente com a menor profundidade e de acordo com o `filtro`
+        """Encontrar o primeiro elemento descendente, com a menor profundidade, e de acordo com o `filtro`
         - `AssertionError` caso não encontre"""
         elementos = bot.estruturas.Deque(self.filhos())
 
@@ -230,6 +230,14 @@ class ElementoW32:
 
         return self.aguardar()
 
+    def apertar (self, *teclas: bot.tipagem.char | bot.tipagem.BOTOES_TECLADO) -> typing.Self:
+        """Apertar e soltar as `teclas` uma por vez"""
+        self.focar()
+        for tecla in teclas:
+            bot.teclado.apertar_tecla(tecla)
+            self.aguardar()
+        return self
+
     def digitar (self, texto: str, virtual: bool = True) -> typing.Self:
         """Digitar o `texto` no elemento
         - `virtual` indica se deve ser simulado ou feito com o teclado de fato
@@ -240,28 +248,22 @@ class ElementoW32:
         else: bot.teclado.digitar_teclado(texto)
         return self.aguardar()
 
-    def scroll (self, quantidade: int = 1, direcao: bot.tipagem.DIRECOES_SCROLL = "baixo") -> typing.Self:
-        """Realizar scroll no elemento `quantidade` vezes na `direção`"""
-        self.focar()
-        quantidade = max(1, quantidade)
-        for _ in range(quantidade):
-            bot.mouse.scroll_vertical(1, direcao, self.coordenada)
-            self.aguardar()
-        return self
-
-    def apertar (self, *teclas: bot.tipagem.char | bot.tipagem.BOTOES_TECLADO) -> typing.Self:
-        """Apertar e soltar as `teclas` uma por vez"""
-        self.focar()
-        for tecla in teclas:
-            bot.teclado.apertar_tecla(tecla)
-            self.aguardar()
-        return self
-
     def atalho (self, *teclas: bot.tipagem.char | bot.tipagem.BOTOES_TECLADO) -> typing.Self:
         """Apertar as `teclas` sequencialmente e depois soltá-las em ordem reversa"""
         self.focar()
         bot.teclado.atalho_teclado(teclas)
         return self.aguardar()
+
+    def scroll (self, quantidade: int = 1, direcao: bot.tipagem.DIRECOES_SCROLL = "baixo") -> typing.Self:
+        """Realizar scroll no elemento `quantidade` vezes na `direção`"""
+        assert quantidade >= 1, "Quantidade de scrolls deve ser pelo menos 1"
+
+        self.focar()
+        for _ in range(quantidade):
+            bot.mouse.scroll_vertical(1, direcao, self.coordenada)
+            self.aguardar()
+
+        return self
 
     def print_arvore (self) -> None:
         """Realizar o `print()` da árvore de elementos"""
@@ -740,7 +742,7 @@ class JanelaW32:
                 return Popup(janela.elemento)
 
     def print_arvore (self) -> None:
-        """Realizar o `print()` da árvore de elementos"""
+        """Realizar o `print()` da árvore de elementos da janela e das janelas do processo"""
         for janela in (self, *self.janelas_processo()):
             janela.elemento.print_arvore()
             print()
