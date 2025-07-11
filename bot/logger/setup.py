@@ -57,7 +57,7 @@ def caminho_log_raiz () -> sistema.Caminho:
     return CAMINHO_LOG_RAIZ
 
 def caminho_log_persistencia () -> sistema.Caminho:
-    """Caminho para o arquivo log que é criado na inicialização do bot, caso requisitado, para persistência na pasta `/logs`"""
+    """Caminho para o arquivo log que é criado na inicialização do bot, caso requisitado, para persistência no diretório `/logs`"""
     return CAMINHO_LOG_PERSISTENCIA
 
 def criar_mensagem_padrao (mensagem: str) -> str:
@@ -82,14 +82,14 @@ def alertar (mensagem: str) -> None:
 
 def erro (mensagem: str, excecao: Exception | None = None) -> None:
     """Log nível 'ERROR'
-    - `excecao` Informação para o Traceback. Capturado automaticamente no `try except`"""
+    - `excecao` Informação para o Traceback. Capturado automaticamente dentro do `except`"""
     BOT_LOGGER.error(
         criar_mensagem_padrao(mensagem),
         exc_info = excecao or sys.exc_info()
     )
 
 def linha_horizontal () -> None:
-    """Adicionar uma linha horizontal para separar visualmente"""
+    """Adicionar uma linha horizontal para separar seções visualmente"""
     for handler in ROOT_LOGGER.handlers:
         if isinstance(handler, (logging.FileHandler, logging.StreamHandler)):
             handler.stream.write("\n------------------- |\n\n")
