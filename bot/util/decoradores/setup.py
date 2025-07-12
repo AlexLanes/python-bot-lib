@@ -14,7 +14,6 @@ def timeout[R] (segundos: float) -> typing.Callable[[typing.Callable[P, R]], typ
 
         @functools.wraps(func)
         def wrapper (*args: P.args, **kwargs: P.kwargs) -> R:
-
             mensagem = f"Função({func.__name__}) não finalizou sua execução no tempo configurado de {segundos} segundos e resultou em Timeout"
             try: return ThreadPool(1).apply_async(func, args, kwargs).get(segundos)
             except Timeout: logger.alertar(mensagem)
