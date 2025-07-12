@@ -9,7 +9,8 @@ from ... import util, logger, database, sistema
 P = typing.ParamSpec("P")
 
 def timeout[R] (segundos: float) -> typing.Callable[[typing.Callable[P, R]], typing.Callable[P, R]]: # type: ignore
-    """Executar a função por `segundos` até retornar ou `TimeoutError` caso ultrapasse o tempo"""
+    """Executar a função por `segundos` até retornar ou `TimeoutError` caso ultrapasse o tempo
+    - Utilizado uma `Thread` separada para a execução"""
     def timeout (func: typing.Callable[P, R]) -> typing.Callable[P, R]:
 
         @functools.wraps(func)
