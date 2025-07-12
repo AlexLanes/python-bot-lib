@@ -548,9 +548,11 @@ class ElementoUIA (ElementoW32):
 
 class JanelaW32:
     """Classe para manipulação de janelas e elementos para o backend Win32
+
     ```
     # criação, informar um filtro para buscar a janela
     JanelaW32(lambda j: "titulo" in j.titulo)
+    JanelaW32(lambda j: "titulo" in j.titulo, aguardar=10) # Aguardar por 10 segundos até encontrar
     # criação, obter a janela focada
     JanelaW32.from_foco()
     # método estático para obter os títulos das janelas visíveis
@@ -579,7 +581,10 @@ class JanelaW32:
 
     hwnd: int
 
-    def __init__ (self, filtro: typing.Callable[[typing.Self], bot.tipagem.SupportsBool]) -> None:
+    def __init__ (self, filtro: typing.Callable[[typing.Self], bot.tipagem.SupportsBool],
+                        aguardar: int | float = 0) -> None:
+        assert aguardar >= 0, "Tempo para aguardar por janela deve ser >= 0"
+
         encontrados: list[JanelaW32] = []
         def callback (hwnd: int, _) -> bool:
             j = JanelaW32.from_hwnd(hwnd)
@@ -588,15 +593,24 @@ class JanelaW32:
             except Exception: pass
             return True
 
-        try: win32gui.EnumWindows(callback, None)
-        except Exception: pass
+        primeiro, cronometro = True, bot.util.cronometro()
+        while primeiro or (not encontrados and cronometro() < aguardar):
+            primeiro = False
+            try: win32gui.EnumWindows(callback, None)
+            except Exception: pass
 
-        if not encontrados: raise Exception(f"Janela não encontrada para o filtro informado")
-        self.hwnd = (
-            encontrados if len(encontrados) == 1
-            else sorted(encontrados, key = lambda j: (1 if win32gui.GetParent(j.hwnd) == 0 else 0,
-                                                      len(j.elemento.filhos())))
-        )[-1].hwnd
+        match encontrados:
+            case []: raise Exception(f"Janela não encontrada para o filtro informado")
+            # Apenas 1
+            case [janela]: self.hwnd = janela.hwnd
+            # > 1 | Ordenar pelos que não possuem parente e com mais filhos
+            case _: self.hwnd = sorted(
+                encontrados,
+                key = lambda janela: (
+                    1 if win32gui.GetParent(janela.hwnd) == 0 else 0,
+                    len(janela.elemento.filhos())
+                )
+            )[-1].hwnd
 
     @classmethod
     def from_hwnd (cls, hwnd: int) -> JanelaW32:
@@ -687,11 +701,13 @@ class JanelaW32:
             self.processo.kill()
             self.processo.wait(float(timeout))
 
+    def sleep (self, segundos: int | float = 1) -> typing.Self:
+        """Aguardar por `segundos` até continuar a execução"""
+        time.sleep(segundos)
+        return self
     def aguardar (self, timeout: float | int = 120.0) -> typing.Self:
         """Aguarda `timeout` segundos até que a thread da GUI fique ociosa"""
-        if self.fechada or self.hwnd == 0:
-            return self
-
+        if self.fechada or self.hwnd == 0: return self
         try: win32gui.SendMessageTimeout(self.hwnd, win32con.WM_NULL, None, None, win32con.SMTO_ABORTIFHUNG, int(timeout * 1000))
         except Exception: raise TimeoutError(f"A janela não respondeu após '{timeout}' segundos esperando") from None
         return self
@@ -703,21 +719,34 @@ class JanelaW32:
         filtro = filtro or (lambda j: j.elemento.visivel and j.elemento.ativo)
 
         def callback (hwnd, _) -> typing.Literal[True]:
-            if hwnd == self.hwnd:
-                return True
+            if hwnd == self.hwnd: return True
             j = JanelaW32.from_hwnd(hwnd)
-            
+
             try:
                 if j.processo.pid == self.processo.pid and filtro(j):
                     encontrados.append(j)
             except Exception: pass
-
             return True
 
         try: win32gui.EnumWindows(callback, None)
         except Exception: pass
-
         return encontrados
+
+    def janela_processo (self, filtro: typing.Callable[[JanelaW32], bot.tipagem.SupportsBool],
+                               aguardar: int | float = 0) -> JanelaW32:
+        """Janela do mesmo processo da `janela` mas que está fora de sua árvore
+        - `filtro` para escolher as janelas
+        - `aguardar` tempo em segundos para aguardar por alguma janela"""
+        assert aguardar >= 0, "Tempo para aguardar por janela deve ser >= 0"
+
+        encontrados = list[JanelaW32]()
+        primeiro, cronometro = True, bot.util.cronometro()
+        while primeiro or (not encontrados and cronometro() < aguardar):
+            primeiro = False
+            encontrados = self.janelas_processo(filtro)
+
+        if not encontrados: raise Exception(f"Janela não encontrada no processo para o filtro informado")
+        return encontrados[0]
 
     def dialogo (self, class_name="#32770") -> Dialogo[ElementoW32] | None:
         """Encontrar janela de diálogo com `class_name`
@@ -928,21 +957,31 @@ class JanelaUIA (JanelaW32):
         filtro = filtro or (lambda j: j.elemento.visivel and j.elemento.ativo)
 
         def callback (hwnd, _) -> typing.Literal[True]:
-            if hwnd == self.hwnd:
-                return True
+            if hwnd == self.hwnd: return True
             j = JanelaUIA.from_hwnd(hwnd)
-            
+
             try:
                 if j.processo.pid == self.processo.pid and filtro(j):
                     encontrados.append(j)
             except Exception: pass
-
             return True
 
         try: win32gui.EnumWindows(callback, None)
         except Exception: pass
-
         return encontrados
+
+    def janela_processo (self, filtro: typing.Callable[[JanelaUIA], bot.tipagem.SupportsBool],
+                               aguardar: int | float = 0) -> JanelaUIA:
+        assert aguardar >= 0, "Tempo para aguardar por janela deve ser >= 0"
+
+        encontrados = list[JanelaUIA]()
+        primeiro, cronometro = True, bot.util.cronometro()
+        while primeiro or (not encontrados and cronometro() < aguardar):
+            primeiro = False
+            encontrados = self.janelas_processo(filtro)
+
+        if not encontrados: raise Exception(f"Janela não encontrada no processo para o filtro informado")
+        return encontrados[0]
 
 __all__ = [
     "JanelaUIA",
