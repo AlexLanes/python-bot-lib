@@ -90,11 +90,11 @@ def expandir_tempo (segundos: int | float) -> str:
 def transformar_tipo[T: tipagem.primitivo] (valor: str, tipo: type[T]) -> T:
     """Fazer a transformação do `valor` para `type(tipo)`
     - Função genérica"""
-    match str(tipo):
-        case "<class 'str'>": return valor
-        case "<class 'int'>" | "<class 'float'>": return tipo(valor)
-        case "<class 'bool'>": return valor.lower().strip() == "true"
-        case _: return None
+    match tipo():
+        case bool():    return valor.lower().strip() == "true"
+        case float():   return float(valor)
+        case int():     return int(valor)
+        case _:         return valor
 
 def cronometro (resetar=False) -> typing.Callable[[], float]:
     """Inicializa um cronômetro que retorna o tempo decorrido a cada chamada na função
