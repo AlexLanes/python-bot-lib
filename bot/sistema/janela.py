@@ -213,11 +213,13 @@ class ElementoW32:
         return self.aguardar()
 
     def clicar (self, botao: bot.tipagem.BOTOES_MOUSE = "left",
-                      virtual: bool = True) -> typing.Self:
+                      virtual: bool = True,
+                      focar: bool = True) -> typing.Self:
         """Clicar com o `botão` no centro do elemento
         - `virtual` indica se o click deve ser simulado ou feito com o mouse de fato
+        - `focar` indicador se dever ser feito o foco no elemento
         - Apenas alguns elementos aceitam clicks virtuais"""
-        self.focar()
+        if focar: self.focar()
         coordenada = self.coordenada
 
         if virtual:
@@ -230,20 +232,25 @@ class ElementoW32:
 
         return self.aguardar()
 
-    def apertar (self, *teclas: bot.tipagem.char | bot.tipagem.BOTOES_TECLADO) -> typing.Self:
-        """Apertar e soltar as `teclas` uma por vez"""
-        self.focar()
+    def apertar (self, *teclas: bot.tipagem.char | bot.tipagem.BOTOES_TECLADO,
+                       focar: bool = True) -> typing.Self:
+        """Apertar e soltar as `teclas` uma por vez
+        - `focar` indicador se dever ser feito o foco no elemento"""
+        if focar: self.focar()
         for tecla in teclas:
             bot.teclado.apertar_tecla(tecla)
             self.aguardar()
         return self
 
-    def digitar (self, texto: str, virtual: bool = True) -> typing.Self:
+    def digitar (self, texto: str,
+                       virtual: bool = True,
+                       focar: bool = True) -> typing.Self:
         """Digitar o `texto` no elemento
         - `virtual` indica se deve ser simulado ou feito com o teclado de fato
         - `virtual` substitui o texto atual pelo `texto`
+        - `focar` indicador se dever ser feito o foco no elemento
         - Apenas alguns elementos aceitam o `virtual`"""
-        self.focar()
+        if focar: self.focar()
         if virtual: win32gui.SendMessage(self.hwnd, win32con.WM_SETTEXT, 0, texto) # type: ignore
         else: bot.teclado.digitar_teclado(texto)
         return self.aguardar()
