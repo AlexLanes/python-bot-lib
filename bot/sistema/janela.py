@@ -678,7 +678,7 @@ class JanelaW32:
         return win32gui.GetForegroundWindow() == self.hwnd
     def focar (self) -> typing.Self:
         if self.aguardar().minimizada: win32gui.ShowWindow(self.hwnd, win32con.SW_RESTORE)
-        win32gui.SetForegroundWindow(self.hwnd)
+        bot.util.aguardar_condicao(lambda: win32gui.SetForegroundWindow(self.hwnd), timeout=60)
         return self.aguardar()
 
     @property
