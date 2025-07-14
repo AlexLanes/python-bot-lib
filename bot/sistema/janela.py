@@ -72,7 +72,7 @@ class CaixaSelecaoW32:
         """Alterar o estado da seleção
         - O `elemento.clicar()` pode ser preferencial caso elementos aguardando o evento não atualizem"""
         estado = 0 if self.selecionado else 1
-        win32gui.SendMessage(self.elemento.hwnd, win32con.BM_SETCHECK, estado, 0)
+        win32gui.SendMessage(self.elemento.hwnd, win32con.BM_CLICK, estado, 0)
         self.elemento.aguardar(5)
 
 class ElementoW32:
