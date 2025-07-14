@@ -748,27 +748,43 @@ class JanelaW32:
         if not encontrados: raise Exception(f"Janela não encontrada no processo para o filtro informado")
         return encontrados[0]
 
-    def dialogo (self, class_name="#32770") -> Dialogo[ElementoW32] | None:
+    def dialogo (self, class_name: str = "#32770",
+                       aguardar: int | float = 0) -> Dialogo[ElementoW32] | None:
         """Encontrar janela de diálogo com `class_name`
-        - `None` caso não encontre"""
-        for filho in self.elemento.filhos():
-            if filho.class_name == class_name:
-                return Dialogo(filho)
+        - `None` caso não encontre
+        - `aguardar` tempo em segundos para aguardar pelo diálogo"""
+        assert aguardar >= 0, "Tempo para aguardar pelo diálogo deve ser >= 0"
 
-        for janela in self.janelas_processo():
-            if janela.class_name == class_name:
-                return Dialogo(janela.elemento)
+        primeiro, cronometro = True, bot.util.cronometro()
+        while primeiro or cronometro() < aguardar:
+            primeiro = False
 
-    def popup (self, class_name="#32768") -> Popup[ElementoW32] | None:
+            for filho in self.elemento.filhos():
+                if filho.class_name == class_name:
+                    return Dialogo(filho)
+
+            for janela in self.janelas_processo():
+                if janela.class_name == class_name:
+                    return Dialogo(janela.elemento)
+
+    def popup (self, class_name: str = "#32768",
+                     aguardar: int | float = 0) -> Popup[ElementoW32] | None:
         """Encontrar janela de popup com `class_name`
-        - `None` caso não encontre"""
-        for filho in self.elemento.filhos():
-            if filho.class_name == class_name:
-                return Popup(filho)
+        - `None` caso não encontre
+        - `aguardar` tempo em segundos para aguardar pelo popup"""
+        assert aguardar >= 0, "Tempo para aguardar pelo popup deve ser >= 0"
 
-        for janela in self.janelas_processo():
-            if janela.class_name == class_name:
-                return Popup(janela.elemento)
+        primeiro, cronometro = True, bot.util.cronometro()
+        while primeiro or cronometro() < aguardar:
+            primeiro = False
+
+            for filho in self.elemento.filhos():
+                if filho.class_name == class_name:
+                    return Popup(filho)
+
+            for janela in self.janelas_processo():
+                if janela.class_name == class_name:
+                    return Popup(janela.elemento)
 
     def print_arvore (self) -> None:
         """Realizar o `print()` da árvore de elementos da janela e das janelas do processo"""
