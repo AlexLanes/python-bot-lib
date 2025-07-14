@@ -1,10 +1,12 @@
 # std
-import typing, functools
+import typing, functools, warnings
 # interno
 from .. import util
 from . import Coordenada, Imagem, capturar_tela
 # externo
 import numpy as np
+
+warnings.filterwarnings("ignore", message="'pin_memory'")
 
 class LeitorOCR:
     """Classe de abstração do pacote `EasyOCR` para ler/detectar textos em imagens
