@@ -74,6 +74,16 @@ class Imagem:
         imagem.pixels = cv2.imdecode(conteudo, cv2.IMREAD_COLOR) # type: ignore
         return imagem
 
+    @classmethod
+    def from_base64 (cls, texto: str) -> Imagem:
+        """Criar uma imagem a partir do `texto` base64 (com ou sem prefixo)"""
+        # remover prefixo "data:image/...;base64," se houver
+        if texto.startswith("data"):
+            _, texto = texto.split(",")
+        return Imagem.from_bytes(
+            base64.b64decode(texto)
+        )
+
     @property
     def png (self) -> bytes:
         """Codificar a imagem para `png`"""
