@@ -10,6 +10,15 @@ class LeitorOCR:
     """Classe de abstração do pacote `EasyOCR` para ler/detectar textos em imagens
     - Caso possua GPU da NVIDIA, instalar o `CUDA Toolkit` e instalar as bibliotecas indicadas pelo pytorch https://pytorch.org/get-started/locally/"""
 
+    mag_ratio: int = 2
+    """Taxa de ampliação da imagem"""
+    min_size: int = 2
+    """Filtrar caixas de texto menor que o valor mínimo em pixels"""
+    slope_ths: float = 0.25
+    """Inclinação máxima para ser considerado mesclar as caixas de texto"""
+    width_ths: float = 0.4
+    """Distância horizontal máxima para mesclar caixas"""
+
     def __init__ (self) -> None:
         try: from easyocr import Reader
         except ImportError: raise ImportError("Pacote opcional [ocr] necessário. Realize `pip install bot[ocr]` para utulizar o LeitorOCR")
@@ -40,7 +49,10 @@ class LeitorOCR:
         return [
             (texto, Coordenada.from_box((box[0][0], box[0][1], box[1][0], box[2][1])), confianca) # type: ignore
             for box, texto, confianca in self.__reader
-                .readtext(imagem.pixels, mag_ratio=2, min_size=3, slope_ths=0.25, width_ths=0.4)
+                .readtext(imagem.pixels, mag_ratio = self.mag_ratio,
+                                         min_size  = self.min_size,
+                                         slope_ths = self.slope_ths,
+                                         width_ths = self.width_ths)
         ]
 
     def detectar_tela (self, regiao: Coordenada | None = None) -> list[Coordenada]:
@@ -63,7 +75,10 @@ class LeitorOCR:
 
     def __detectar (self, imagem: Imagem) -> list[Coordenada]:
         """Receber a imagem e detectar as coordenadas"""
-        boxes, _ = self.__reader.detect(imagem.pixels, mag_ratio=2, min_size=3, slope_ths=0.25, width_ths=0.4)
+        boxes, _ = self.__reader.detect(imagem.pixels, mag_ratio = self.mag_ratio,
+                                                       min_size  = self.min_size,
+                                                       slope_ths = self.slope_ths,
+                                                       width_ths = self.width_ths)
         boxes: list[tuple[np.int32, ...]] = np.concatenate(boxes) # type: ignore
         return [
             Coordenada.from_box((x1, y1, x2, y2)) # type: ignore
@@ -141,5 +156,26 @@ class LeitorOCR:
                 break
 
         return coordenadas
+
+    @staticmethod
+    def concatenar_linhas (extracao: list[tuple[str, Coordenada, float]],
+                           margem_y: int = 5) -> list[tuple[str, int]]:
+        """Concatenar as linhas da `extração` em uma só `str`
+        - `margem_y` para juntar linhas com a margem de erro `Y`
+        - Retornado uma lista das linhas sendo `(linha, Y central da linha)`"""
+        linhas = list[tuple[list[str], int]]()
+
+        for texto, coordenada, _ in extracao:
+            centro_y = coordenada.y + (coordenada.altura // 2)
+            # Nova linha
+            if not linhas or linhas[-1][1] + margem_y <= centro_y:
+                linhas.append(([texto], centro_y))
+            # Mesma linha
+            else: linhas[-1][0].append(texto)
+
+        return [
+            (" ".join(textos), centro_y)
+            for textos, centro_y in linhas
+        ]
 
 __all__ = ["LeitorOCR"]
