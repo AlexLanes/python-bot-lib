@@ -1,5 +1,5 @@
 # std
-import time, typing, functools
+import time, types, typing, functools
 import asyncio, cProfile, inspect, pstats
 from multiprocessing.pool import ThreadPool
 from multiprocessing.context import TimeoutError as Timeout
@@ -74,12 +74,12 @@ def retry[R] (
         return wrapper
     return retry
 
-def adicionar_prefixo_erro[R] (
+def prefixar_erro[R] (
         prefixo: str | typing.Callable[[tuple[typing.Any, ...], dict[str, typing.Any]], str]
     ) -> typing.Callable[[typing.Callable[P, R]], typing.Callable[P, R]]: # type: ignore
     """Adicionar um prefixo no erro caso a função resulte em exceção
     - Prefixo pode ser um `str` ou um `lambda args, kwargs: ""` para capturar os argumentos da função"""
-    def mensagem_erro (func: typing.Callable[P, R]) -> typing.Callable[P, R]:
+    def prefixar_erro (func: typing.Callable[P, R]) -> typing.Callable[P, R]:
 
         @functools.wraps(func)
         def wrapper (*args: P.args, **kwargs: P.kwargs) -> R:
@@ -87,11 +87,31 @@ def adicionar_prefixo_erro[R] (
             except Exception as e:
                 tipo_excecao = type(e)
                 mensagem = prefixo(args, kwargs) if callable(prefixo) else prefixo
-                excecao = tipo_excecao(f"{mensagem}; {e}")
-                raise excecao.with_traceback(e.__traceback__)
+                raise tipo_excecao(f"{mensagem}; {e}").with_traceback(e.__traceback__) from None
 
         return wrapper
-    return mensagem_erro
+    return prefixar_erro
+
+def prefixar_erro_classe[R] (prefixo: str) -> typing.Callable[[R], R]:
+    """Adicionar um prefixo no erro caso algum item interno de uma classe resulte em exceção
+    - `__init__, métodos, @property, @staticmethod e @classmethod`"""
+    def getattribute_alterado (self: R, name: str, /) -> typing.Any:
+        try: valor = object.__getattribute__(self, name)
+        except Exception as e:
+            tipo_excecao = type(e)
+            raise tipo_excecao(f"{prefixo}; {e}").with_traceback(e.__traceback__) from None
+        return valor if not isinstance(valor, types.MethodType) else prefixar_erro(prefixo)(valor)
+
+    def prefixar_erro_classe (cls: R) -> R:
+        cls.__getattribute__ = getattribute_alterado # type: ignore
+        for nome, valor in cls.__dict__.items():
+            if nome == "__init__" or isinstance(valor, staticmethod):
+                setattr(cls, nome, prefixar_erro(prefixo)(valor))
+            elif isinstance(valor, classmethod):
+                setattr(cls, nome, classmethod(prefixar_erro(prefixo)(valor.__func__)))
+        return cls
+
+    return prefixar_erro_classe
 
 def tempo_execucao[R] (func: typing.Callable[P, R]) -> typing.Callable[P, R]: # type: ignore
     """Loggar o tempo de execução da função"""
@@ -154,7 +174,8 @@ __all__ = [
     "retry",
     "timeout",
     "async_run",
+    "prefixar_erro",
     "tempo_execucao",
     "perfil_execucao",
-    "adicionar_prefixo_erro",
+    "prefixar_erro_classe",
 ]
