@@ -1,6 +1,7 @@
 # std
 from __future__ import annotations
 import time, base64, collections
+import tkinter, tempfile
 # interno
 from .. import util, tipagem
 from ..sistema import Caminho
@@ -110,10 +111,18 @@ class Imagem:
         return caminho
 
     def exibir (self) -> None:
-        """Exibir a imagem
-        - Aguarda algum tecla ou janela ser fechada para continuar"""
-        cv2.imshow(None, self.pixels) # type: ignore
-        cv2.waitKey(0)
+        """Exibir a imagem em uma janela
+        - Aguarda a janela ser fechada para continuar"""
+        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as writer:
+            writer.write(self.png)
+            caminho = writer.name
+
+        root = tkinter.Tk()
+        root.title("Imagem")
+        imagem = tkinter.PhotoImage(file=caminho)
+        label = tkinter.Label(root, image=imagem)
+        label.pack()
+        root.mainloop()
 
     def recortar (self, regiao: Coordenada) -> Imagem:
         """Criar uma nova imagem recortada"""
