@@ -17,7 +17,7 @@ from xml.etree.ElementTree import (
     fromstring as xml_from_string,
 )
 # interno
-from .. import tipagem, sistema
+from .. import tipagem, sistema, util
 # externo
 import yaml
 from jsonschema import (
@@ -405,6 +405,7 @@ class Unmarshaller[T]:
     - `__repr__` da classe alterada caso não tenha sido implementada
     - Propriedades são validadas como obrigatórios caso não possuam `Union` com `None` ou sem um default
     - Classes deve ter as propriedades e tipos devidamente anotados
+    - Propriedades podem estar na versão normalizada `bot.util.normalizar`
     - Classes podem herdam propriedades de outras classes
     - Tipos Esperados:
         - Primitivos
@@ -415,6 +416,9 @@ class Unmarshaller[T]:
         - class
 
     ```
+    from bot.formatos import Unmarshaller
+    from typing import Literal
+
     # Classes de exemplo
     class Endereco:
         rua: str
@@ -435,7 +439,7 @@ class Unmarshaller[T]:
         "nome": "Alex",
         "idade": 27,
         "sexo": "M",
-        "informado_com_default": 20,
+        "Informado Com Default": 20,
         "documentos": {"cpf": "123", "rg": None, "cnpj": 1234567 },
         "enderecos": [{ "rua": "rua 1", "numero": 1 }, { "rua": "rua 2", "complemento": "próximo ao x" }],
     })
@@ -467,25 +471,33 @@ class Unmarshaller[T]:
         - `(instancia incompleta, mensagem de erro)`"""
         erro: str | None = None
         obj = object.__new__(self.__cls)        
-        path = kwargs.get("path", "") or self.__cls.__name__
+        caminho = kwargs.get("path", "") or self.__cls.__name__
+        chaves_normalizadas = {
+            util.normalizar(chave): chave
+            for chave in item.keys()
+        }
 
         try:
-            for name, t in self.__collect_annotations().items():
-                current_path = f"{path}.{name}" if path else name
-                default = copy.deepcopy(getattr(obj, name, None))
-                value = item.get(name, default)
-                setattr(obj, name, self.__validate(t, value, current_path))
+            for nome, tipo in self.__coletar_anotacoes_classe().items():
+                caminho_atual = f"{caminho}.{nome}" if caminho else nome
+                valor_item = item.get(
+                    # nome exato ou procurado pela versão normalizada
+                    nome if nome in item else chaves_normalizadas.get(nome, nome),
+                    # checar por default da propriedade e obter uma cópia do valor
+                    copy.deepcopy(getattr(obj, nome, None))
+                )
+                setattr(obj, nome, self.__validate(tipo, valor_item, caminho_atual))
 
         except UnmarshalError as e:
             erro = str(e)
 
         return obj, erro
 
-    def __collect_annotations (self) -> dict[str, type]:
-        base_and_parent_annotations = {}
+    def __coletar_anotacoes_classe (self) -> dict[str, type]:
+        base_e_parentes = {}
         for cls in reversed(self.__cls.__mro__):
-            base_and_parent_annotations.update(getattr(cls, '__annotations__', {}))
-        return base_and_parent_annotations
+            base_e_parentes.update(getattr(cls, '__annotations__', {}))
+        return base_e_parentes
 
     def __validate (self, expected: type | Any, value: Any, path: str) -> Any:
         if isinstance(expected, str):
