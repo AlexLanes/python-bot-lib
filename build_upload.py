@@ -1,3 +1,6 @@
+# std
+import tomllib
+# interno
 import bot
 
 HOST, USUARIO, REPOSITORIO, TOKEN = bot.configfile.obter_opcoes_obrigatorias("github", "host", "usuario", "repositorio", "token")
@@ -13,6 +16,21 @@ def apagar_release (id_release: int) -> None:
     )
     assert response.status_code == 204
 
+def obter_descricao_release () -> str:
+    with open("pyproject.toml", "rb") as reader:
+        pyproject = tomllib.load(reader)
+
+    nome: str = pyproject["project"]["name"]
+    dependencias: list[str] = pyproject["project"]["dependencies"]
+    requer_python: str = pyproject["project"]["requires-python"]
+    pacotes = [pacote.path.stem for pacote in bot.estruturas.Caminho(".", nome).procurar(lambda c: not c.nome.startswith("_"))]
+
+    return "<br>".join((
+        f"**Python:** {requer_python!r}",
+        f"**Pacotes:** {pacotes!r}",
+        f"**Dependências:** {dependencias!r}",
+    ))
+
 def criar_release (release: str) -> int:
     response = bot.http.request(
         "POST",
@@ -24,6 +42,7 @@ def criar_release (release: str) -> int:
         json = {
             "tag_name": release,
             "name": release,
+            "body": obter_descricao_release(),
         }
     )
     assert response.status_code == 201
@@ -34,7 +53,7 @@ def obter_releases () -> dict[str, int]:
     response = bot.http.request(
         "GET",
         f"{HOST}/repos/{USUARIO}/{REPOSITORIO}/releases",
-        headers={
+        headers = {
             "Accept": "application/json",
             "Authorization": f"Bearer {TOKEN}"
         }
