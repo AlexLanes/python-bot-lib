@@ -133,9 +133,13 @@ class ElementoW32:
         - O Elemento pode não aceitar caso não seja uma `CheckBox`, necessário teste"""
         return CaixaSelecaoW32(self)
 
-    def filhos (self, filtro: typing.Callable[[ElementoW32], bot.tipagem.SupportsBool] | None = None) -> list[ElementoW32]:
+    def filhos (self, filtro: typing.Callable[[ElementoW32], bot.tipagem.SupportsBool] | None = None,
+                      aguardar: int | float = 0) -> list[ElementoW32]:
         """Elementos filhos de primeiro nível
-        - `filtro` para escolher os filhos. `Default: visíveis`"""
+        - `filtro` para escolher os filhos. `Default: visíveis`
+        - `aguardar` tempo em segundos para aguardar por algum filho"""
+        assert aguardar >= 0, "Tempo para aguardar por filhos deve ser >= 0"
+
         filhos = []
         filtro = filtro or (lambda e: e.visivel)
 
@@ -147,36 +151,54 @@ class ElementoW32:
                 except Exception: pass
             return True
 
-        try: win32gui.EnumChildWindows(self.hwnd, callback, None)
-        except Exception: pass
+        primeiro, cronometro = True, bot.util.cronometro()
+        while primeiro or (not filhos and cronometro() < aguardar):
+            primeiro = False
+            try: win32gui.EnumChildWindows(self.hwnd, callback, None)
+            except Exception: pass
 
         return filhos
 
-    def descendentes (self, filtro: typing.Callable[[ElementoW32], bot.tipagem.SupportsBool] | None = None) -> list[ElementoW32]:
+    def descendentes (self, filtro: typing.Callable[[ElementoW32], bot.tipagem.SupportsBool] | None = None,
+                            aguardar: int | float = 0) -> list[ElementoW32]:
         """Todos os elementos descendentes
-        - `filtro` para escolher os descendentes. `Default: visíveis`"""
+        - `filtro` para escolher os descendentes. `Default: visíveis`
+        - `aguardar` tempo em segundos para aguardar por algum descendente"""
+        assert aguardar >= 0, "Tempo para aguardar por descendentes deve ser >= 0"
+
         descendentes = []
         filtro = filtro or (lambda e: e.visivel)
 
-        for filho in self.filhos():
-            try:
-                if filtro(filho): descendentes.append(filho)
-            except Exception: pass
-            descendentes.extend(filho.descendentes(filtro))
+        primeiro, cronometro = True, bot.util.cronometro()
+        while primeiro or (not descendentes and cronometro() < aguardar):
+            primeiro = False
+
+            for filho in self.filhos():
+                try:
+                    if filtro(filho): descendentes.append(filho)
+                except Exception: pass
+                descendentes.extend(filho.descendentes(filtro))
 
         return descendentes
 
-    def encontrar (self, filtro: typing.Callable[[ElementoW32], bot.tipagem.SupportsBool]) -> ElementoW32:
+    def encontrar (self, filtro: typing.Callable[[ElementoW32], bot.tipagem.SupportsBool],
+                         aguardar: int | float = 0) -> ElementoW32:
         """Encontrar o primeiro elemento descendente, com a menor profundidade, e de acordo com o `filtro`
+        - `aguardar` tempo em segundos para aguardar pelo elemento
         - `AssertionError` caso não encontre"""
-        elementos = bot.estruturas.Deque(self.filhos())
+        assert aguardar >= 0, "Tempo para aguardar por elemento deve ser >= 0"
 
-        while elementos:
-            elemento = elementos.popleft()
-            try:
-                if filtro(elemento): return elemento
-            except Exception: pass
-            elementos.extend(elemento.filhos())
+        primeiro, cronometro = True, bot.util.cronometro()
+        while primeiro or cronometro() < aguardar:
+            primeiro = False
+
+            elementos = bot.estruturas.Deque(self.filhos())
+            while elementos:
+                elemento = elementos.popleft()
+                try:
+                    if filtro(elemento): return elemento
+                except Exception: pass
+                elementos.extend(elemento.filhos())
 
         raise AssertionError("Nenhum elemento descendente encontrado para o filtro")
 
@@ -445,7 +467,9 @@ class ElementoUIA (ElementoW32):
         """Checar se o elemento é um item de uma aba"""
         return self.uiaelement.CurrentControlType == uiaclient.UIA_TabItemControlTypeId
 
-    def filhos (self, filtro: typing.Callable[[ElementoUIA], bot.tipagem.SupportsBool] | None = None) -> list[ElementoUIA]: # type: ignore
+    def filhos (self, filtro: typing.Callable[[ElementoUIA], bot.tipagem.SupportsBool] | None = None, aguardar: int | float = 0) -> list[ElementoUIA]: # type: ignore
+        assert aguardar >= 0, "Tempo para aguardar por filhos deve ser >= 0"
+
         filhos = []
         filtro = filtro or (lambda e: e.visivel)
         finder: uiaclient.IUIAutomationElementArray = self.uiaelement.FindAll(
@@ -453,34 +477,51 @@ class ElementoUIA (ElementoW32):
             ElementoUIA.UIA.CreateTrueCondition()
         )
 
-        for i in range(finder.Length):
-            filho: uiaclient.IUIAutomationElement = finder.GetElement(i)
-            e = ElementoUIA(filho.CurrentNativeWindowHandle, self.janela, self, filho, self.profundidade + 1)
-            try:
-                if filtro(e): filhos.append(e)
-            except Exception: pass
+        primeiro, cronometro = True, bot.util.cronometro()
+        while primeiro or (not filhos and cronometro() < aguardar):
+            primeiro = False
+
+            for i in range(finder.Length):
+                filho: uiaclient.IUIAutomationElement = finder.GetElement(i)
+                e = ElementoUIA(filho.CurrentNativeWindowHandle, self.janela, self, filho, self.profundidade + 1)
+                try:
+                    if filtro(e): filhos.append(e)
+                except Exception: pass
 
         return filhos
 
-    def descendentes (self, filtro: typing.Callable[[ElementoUIA], bot.tipagem.SupportsBool] | None = None) -> list[ElementoUIA]: # type: ignore
+    def descendentes (self, filtro: typing.Callable[[ElementoUIA], bot.tipagem.SupportsBool] | None = None, aguardar: int | float = 0) -> list[ElementoUIA]: # type: ignore
+        assert aguardar >= 0, "Tempo para aguardar por descendentes deve ser >= 0"
+
         descendentes = []
         filtro = filtro or (lambda e: e.visivel)
-        for filho in self.filhos():
-            try:
-                if filtro(filho): descendentes.append(filho)
-            except Exception: pass
-            descendentes.extend(filho.descendentes(filtro))
+
+        primeiro, cronometro = True, bot.util.cronometro()
+        while primeiro or (not descendentes and cronometro() < aguardar):
+            primeiro = False
+
+            for filho in self.filhos():
+                try:
+                    if filtro(filho): descendentes.append(filho)
+                except Exception: pass
+                descendentes.extend(filho.descendentes(filtro))
+
         return descendentes
 
-    def encontrar (self, filtro: typing.Callable[[ElementoUIA], bot.tipagem.SupportsBool]) -> ElementoUIA:
-        elementos = bot.estruturas.Deque(self.filhos())
+    def encontrar (self, filtro: typing.Callable[[ElementoUIA], bot.tipagem.SupportsBool], aguardar: int | float = 0) -> ElementoUIA:
+        assert aguardar >= 0, "Tempo para aguardar por elemento deve ser >= 0"
 
-        while elementos:
-            elemento = elementos.popleft()
-            try:
-                if filtro(elemento): return elemento
-            except Exception: pass
-            elementos.extend(elemento.filhos())
+        primeiro, cronometro = True, bot.util.cronometro()
+        while primeiro or cronometro() < aguardar:
+            primeiro = False
+
+            elementos = bot.estruturas.Deque(self.filhos())
+            while elementos:
+                elemento = elementos.popleft()
+                try:
+                    if filtro(elemento): return elemento
+                except Exception: pass
+                elementos.extend(elemento.filhos())
 
         raise AssertionError("Nenhum elemento descendente encontrado para o filtro")
 
@@ -491,24 +532,27 @@ class ElementoUIA (ElementoW32):
         return self.aguardar()
 
     def clicar (self, botao: bot.tipagem.BOTOES_MOUSE = "left",
-                      virtual: bool = True) -> typing.Self:
+                      virtual: bool = True,
+                      focar: bool = True) -> typing.Self:
         """Clicar com o `botão` no centro do elemento
         - `virtual` indica se o click deve ser simulado ou feito com o mouse de fato
         - Apenas alguns elementos aceitam clicks virtuais"""
-        self.focar()
+        if focar: self.focar()
         invocavel = self.invocavel
 
         if virtual and invocavel and botao == "left": invocavel.Invoke()
-        else: super().clicar(botao, virtual)
+        else: super().clicar(botao, virtual, focar)
 
         return self.aguardar()
 
-    def digitar (self, texto: str, virtual: bool = True) -> typing.Self:
-        self.focar()
+    def digitar (self, texto: str,
+                       virtual: bool = True,
+                       focar: bool = True) -> typing.Self:
+        if focar: self.focar()
         value = self.query_interface(uiaclient.UIA_ValuePatternId, uiaclient.IUIAutomationValuePattern)
 
         if virtual and value: value.SetValue(texto)
-        else: super().digitar(texto, virtual)
+        else: super().digitar(texto, virtual, focar)
 
         return self.aguardar()
 
