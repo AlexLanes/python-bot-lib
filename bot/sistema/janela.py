@@ -121,13 +121,11 @@ class ElementoW32:
 
     @property
     def visivel (self) -> bool:
-        try: return win32gui.IsWindowVisible(self.hwnd) == 1
-        except Exception: return False
+        return win32gui.IsWindowVisible(self.hwnd) == 1
 
     @property
     def ativo (self) -> bool:
-        try: return win32gui.IsWindowEnabled(self.hwnd) == 1
-        except Exception: return False
+        return win32gui.IsWindowEnabled(self.hwnd) == 1
 
     @property
     def caixa_selecao (self) -> CaixaSelecaoW32:
