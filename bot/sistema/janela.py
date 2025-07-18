@@ -121,11 +121,13 @@ class ElementoW32:
 
     @property
     def visivel (self) -> bool:
-        return win32gui.IsWindowVisible(self.hwnd) == 1
+        try: return win32gui.IsWindowVisible(self.hwnd) == 1
+        except Exception: return False
 
     @property
     def ativo (self) -> bool:
-        return win32gui.IsWindowEnabled(self.hwnd) == 1
+        try: return win32gui.IsWindowEnabled(self.hwnd) == 1
+        except Exception: return False
 
     @property
     def caixa_selecao (self) -> CaixaSelecaoW32:
@@ -741,13 +743,13 @@ class JanelaW32:
     def fechar (self, timeout: float | int = 10.0) -> bool:
         """Enviar a mensagem de fechar para janela e retornar indicador se fechou corretamente"""
         win32gui.PostMessage(self.hwnd, win32con.WM_CLOSE, 0, 0)
-        return bot.util.aguardar_condicao(lambda: self.fechada, timeout)
+        return bot.util.aguardar_condicao(lambda: self.fechada and not self.elemento.visivel, timeout)
     def destruir (self, timeout: float | int = 10.0) -> bool:
         """Enviar a mensagem de destruir para janela e retornar indicador se fechou corretamente"""
         win32gui.PostMessage(self.hwnd, win32con.WM_DESTROY, 0, 0)
         if not self.fechada:
             win32gui.PostMessage(self.hwnd, win32con.WM_QUIT, 0, 0)
-        return bot.util.aguardar_condicao(lambda: self.fechada, timeout)
+        return bot.util.aguardar_condicao(lambda: self.fechada and not self.elemento.visivel, timeout)
     def encerrar (self, timeout: float | int = 10.0) -> None:
         """Enviar a mensagem de fechar para janela
         - Caso continue aberto após `timeout` segundos, será feito o encerramento pelo processo"""
