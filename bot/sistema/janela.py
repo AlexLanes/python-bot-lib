@@ -16,12 +16,12 @@ BOTOES_VIRTUAIS_MOUSE = {
     "right":  (win32con.WM_RBUTTONDOWN, win32con.WM_RBUTTONUP, win32con.MK_RBUTTON),
 }
 
-class Dialogo [T: ElementoW32 | ElementoUIA]:
+class Dialogo:
     """Diálogo do windows para confirmação"""
 
-    elemento: T
+    elemento: ElementoW32
 
-    def __init__ (self, elemento: T) -> None:
+    def __init__ (self, elemento: ElementoW32) -> None:
         self.elemento = elemento
 
     def __repr__ (self) -> str:
@@ -29,6 +29,15 @@ class Dialogo [T: ElementoW32 | ElementoUIA]:
 
     def __eq__ (self, value: object) -> bool:
         return isinstance(value, type(self)) and self.elemento == value.elemento
+
+    @property
+    def texto (self) -> str:
+        """Texto dos descendentes, concatenado por `; `, exceto dos botões"""
+        return "; ".join(
+            elemento.texto
+            for elemento in self.elemento.to_uia().descendentes(aguardar=0.5)
+            if elemento.texto and not elemento.botao
+        )
 
     def clicar (self, botao: str = "Não") -> bool:
         """Clicar no botão com o texto `botão`
@@ -48,7 +57,7 @@ class Dialogo [T: ElementoW32 | ElementoUIA]:
         win32gui.PostMessage(hwnd, win32con.WM_CLOSE, 0, 0)
         return bot.util.aguardar_condicao(lambda: not win32gui.IsWindow(hwnd), timeout)
 
-class Popup[T: ElementoW32 | ElementoUIA] (Dialogo[T]):
+class Popup (Dialogo):
     """Popup do windows"""
 
 class CaixaSelecaoW32:
@@ -73,7 +82,7 @@ class CaixaSelecaoW32:
         - O `elemento.clicar()` pode ser preferencial caso elementos aguardando o evento não atualizem"""
         estado = 0 if self.selecionado else 1
         win32gui.SendMessage(self.elemento.hwnd, win32con.BM_CLICK, estado, 0)
-        self.elemento.aguardar(5)
+        self.elemento.aguardar(5).sleep(0.1)
 
 class ElementoW32:
     """Elemento para o backend Win32"""
@@ -252,7 +261,7 @@ class ElementoW32:
         else:
             bot.mouse.clicar_mouse(botao, coordenada=coordenada)
 
-        return self.aguardar()
+        return self.aguardar().sleep(0.1)
 
     def apertar (self, *teclas: bot.tipagem.char | bot.tipagem.BOTOES_TECLADO,
                        focar: bool = True) -> typing.Self:
@@ -262,7 +271,7 @@ class ElementoW32:
         for tecla in teclas:
             bot.teclado.apertar_tecla(tecla)
             self.aguardar()
-        return self
+        return self.sleep(0.1)
 
     def digitar (self, texto: str,
                        virtual: bool = True,
@@ -275,13 +284,13 @@ class ElementoW32:
         if focar: self.focar()
         if virtual: win32gui.SendMessage(self.hwnd, win32con.WM_SETTEXT, 0, texto) # type: ignore
         else: bot.teclado.digitar_teclado(texto)
-        return self.aguardar()
+        return self.aguardar().sleep(0.1)
 
     def atalho (self, *teclas: bot.tipagem.char | bot.tipagem.BOTOES_TECLADO) -> typing.Self:
         """Apertar as `teclas` sequencialmente e depois soltá-las em ordem reversa"""
         self.focar()
         bot.teclado.atalho_teclado(teclas)
-        return self.aguardar()
+        return self.aguardar().sleep(0.1)
 
     def scroll (self, quantidade: int = 1, direcao: bot.tipagem.DIRECOES_SCROLL = "baixo") -> typing.Self:
         """Realizar scroll no elemento `quantidade` vezes na `direção`"""
@@ -292,7 +301,7 @@ class ElementoW32:
             bot.mouse.scroll_vertical(1, direcao, self.coordenada)
             self.aguardar()
 
-        return self
+        return self.sleep(0.1)
 
     def print_arvore (self) -> None:
         """Realizar o `print()` da árvore de elementos"""
@@ -714,7 +723,7 @@ class JanelaW32:
         return placement[1] == win32con.SW_SHOWMAXIMIZED
     def maximizar (self) -> typing.Self:
         win32gui.ShowWindow(self.hwnd, win32con.SW_MAXIMIZE)
-        return self
+        return self.aguardar().sleep(0.1)
 
     @property
     def minimizada (self) -> bool:
@@ -722,7 +731,7 @@ class JanelaW32:
         return placement[1] == win32con.SW_SHOWMINIMIZED
     def minimizar (self) -> typing.Self:
         win32gui.ShowWindow(self.hwnd, win32con.SW_MINIMIZE)
-        return self
+        return self.aguardar().sleep(0.1)
 
     @property
     def focada (self) -> bool:
@@ -733,7 +742,7 @@ class JanelaW32:
             lambda: win32gui.SetForegroundWindow(self.hwnd) == None,
             timeout = 60
         )
-        return self.aguardar()
+        return self.aguardar().sleep(0.1)
 
     @property
     def fechada (self) -> bool:
@@ -803,7 +812,7 @@ class JanelaW32:
         return encontrados[0]
 
     def dialogo (self, class_name: str = "#32770",
-                       aguardar: int | float = 0) -> Dialogo[ElementoW32] | None:
+                       aguardar: int | float = 0) -> Dialogo | None:
         """Encontrar janela de diálogo com `class_name`
         - `None` caso não encontre
         - `aguardar` tempo em segundos para aguardar pelo diálogo"""
@@ -813,16 +822,13 @@ class JanelaW32:
         while primeiro or cronometro() < aguardar:
             primeiro = False
 
-            for filho in self.elemento.filhos():
-                if filho.class_name == class_name:
-                    return Dialogo(filho)
-
-            for janela in self.janelas_processo():
-                if janela.class_name == class_name:
-                    return Dialogo(janela.elemento)
+            for filho in self.elemento.filhos(lambda e: e.class_name == class_name):
+                return Dialogo(filho)
+            for janela in self.janelas_processo(lambda j: j.class_name == class_name):
+                return Dialogo(janela.elemento)
 
     def popup (self, class_name: str = "#32768",
-                     aguardar: int | float = 0) -> Popup[ElementoW32] | None:
+                     aguardar: int | float = 0) -> Popup | None:
         """Encontrar janela de popup com `class_name`
         - `None` caso não encontre
         - `aguardar` tempo em segundos para aguardar pelo popup"""
@@ -832,13 +838,10 @@ class JanelaW32:
         while primeiro or cronometro() < aguardar:
             primeiro = False
 
-            for filho in self.elemento.filhos():
-                if filho.class_name == class_name:
-                    return Popup(filho)
-
-            for janela in self.janelas_processo():
-                if janela.class_name == class_name:
-                    return Popup(janela.elemento)
+            for filho in self.elemento.filhos(lambda e: e.class_name == class_name):
+                return Popup(filho)
+            for janela in self.janelas_processo(lambda j: j.class_name == class_name):
+                return Popup(janela.elemento)
 
     def print_arvore (self) -> None:
         """Realizar o `print()` da árvore de elementos da janela e das janelas do processo"""
@@ -962,36 +965,27 @@ class JanelaUIA (JanelaW32):
         else: super().minimizar()
         return self
 
-    def popup (self, class_name="#32768") -> Popup[ElementoUIA] | None: # type: ignore
-        for filho in self.elemento.filhos():
-            if filho.class_name == class_name:
-                return Popup(filho)
-
-        for janela in self.janelas_processo():
-            if janela.class_name == class_name:
-                return Popup(janela.elemento)
-
-    def dialogo (self, class_name="#32770") -> Dialogo[ElementoUIA] | None: # type: ignore
-        for filho in self.elemento.filhos():
-            if filho.class_name == class_name:
-                return Dialogo(filho)
-
-        for janela in self.janelas_processo():
-            if janela.class_name == class_name:
-                return Dialogo(janela.elemento)
-
     def menu (self, *opcoes: str) -> typing.Self:
         """Selecionar as `opções` nos menus
         - Procurado por elementos `barra_menu` com `item_barra_menu`"""
         self.focar()
         barras_menu_usadas = set[ElementoUIA]()
-        barras_menu_nao_usadas = lambda: self.elemento.descendentes(lambda e: e.barra_menu and e not in barras_menu_usadas)
+        barras_menu_nao_usadas = lambda: self.elemento.descendentes(
+            lambda e: e.barra_menu and e not in barras_menu_usadas,
+            aguardar = 2
+        )
 
-        for index, opcao in enumerate(map(str.lower, opcoes)):
+        # mover o mouse para o topo para não interferir
+        bot.mouse.mover_mouse(
+            self.coordenada.transformar(0.5, 0)
+        )
+
+        for opcao in map(str.lower, opcoes):
             opcao_encontrada = False
-            if index > 0: bot.util.aguardar_condicao(lambda: barras_menu_nao_usadas(), 2)
+            self.aguardar().sleep(0.2)
 
             for barra_menu in barras_menu_nao_usadas():
+                barras_menu_usadas.add(barra_menu)
                 finder: uiaclient.IUIAutomationElementArray = barra_menu.uiaelement.FindAll(
                     # SubTree pega todos os itens da barra que o Children não consegue
                     uiaclient.TreeScope_Subtree,
@@ -1008,19 +1002,15 @@ class JanelaUIA (JanelaW32):
                         and expansivel.Expand() != -1\
                         and expansivel.CurrentExpandCollapseState > 0: pass
                     elif invocavel := e.invocavel: invocavel.Invoke()
-                    else: e.clicar()
+                    else: e.clicar(focar=False)
 
                     opcao_encontrada = True
                     break
-
-                if opcao_encontrada:
-                    self.aguardar()
-                    barras_menu_usadas.add(barra_menu)
-                    break
+                if opcao_encontrada: break
 
             assert opcao_encontrada, f"Opção '{opcao}' não encontrada nas barras de menu"
 
-        return self
+        return self.aguardar().sleep(0.1)
 
     def janelas_processo (self, filtro: typing.Callable[[JanelaUIA], bot.tipagem.SupportsBool] | None = None) -> list[JanelaUIA]: # type: ignore
         encontrados: list[JanelaUIA] = []
