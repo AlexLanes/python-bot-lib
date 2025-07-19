@@ -32,7 +32,7 @@ class Dialogo:
 
     @property
     def texto (self) -> str:
-        """Texto dos descendentes, concatenado por `; `, exceto dos botões"""
+        """Texto dos descendentes, exceto dos botões, concatenados por `; `"""
         return "; ".join(
             elemento.texto
             for elemento in self.elemento.to_uia().descendentes(aguardar=0.5)
