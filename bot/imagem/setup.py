@@ -146,6 +146,12 @@ class Imagem:
         _, imagem.pixels = cv2.threshold(imagem.pixels, 0, 255, cv2.THRESH_OTSU)
         return imagem
 
+    def inverter (self) -> Imagem:
+        """Criar uma nova imagem com as cores invertidas"""
+        imagem = self.copiar()
+        imagem.pixels = cv2.bitwise_not(imagem.pixels)
+        return imagem
+
     def redimensionar (self, escala=2.0) -> Imagem:
         """Criar uma nova imagem redimensionada para a % `escala`"""
         imagem = self.copiar()
