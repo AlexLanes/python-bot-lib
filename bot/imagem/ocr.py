@@ -23,7 +23,7 @@ class LeitorOCR:
 
     def __init__ (self) -> None:
         try: from easyocr import Reader
-        except ImportError: raise ImportError("Pacote opcional [ocr] necessário. Realize `pip install bot[ocr]` para utulizar o LeitorOCR")
+        except ImportError: raise ImportError("Pacote opcional [ocr] necessário. Realize `pip install bot[ocr]` para utilizar o LeitorOCR")
         self.__reader = Reader(["en"])
 
     def ler_tela (self, regiao: Coordenada | None = None) -> list[tuple[str, Coordenada, float]]:
