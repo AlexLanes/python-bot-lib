@@ -2,12 +2,8 @@
 from __future__ import annotations
 import copy
 from types import UnionType, NoneType
-from typing import Any, Generator, Literal, Self, get_args, get_origin
-from json import (
-    JSONDecodeError,
-    dumps as json_dumps, 
-    loads as json_parse
-)
+from json import JSONDecodeError, dumps as json_dumps, loads as json_parse
+from typing import Any, Generator, Literal, Self, get_args, get_origin, Union
 from xml.etree.ElementTree import (
     Element,
     register_namespace,
@@ -532,7 +528,7 @@ class Unmarshaller[T]:
             return value
 
         # union
-        if origin is UnionType:
+        if origin in (UnionType, Union):
             for t in get_args(expected):
                 try: return self.__validate(t, value, path)
                 except Exception: pass
