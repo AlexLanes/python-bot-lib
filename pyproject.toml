@@ -19,7 +19,6 @@ dependencies = [
   "polars[xlsx2csv]",
 
   # formatos
-  "pyyaml",
   "jsonschema",
 
   # http
