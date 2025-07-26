@@ -562,7 +562,7 @@ class Toml:
     # Obter valor sem validação
     toml[chave]
     # Obter valor com validação
-    toml.obter(chave, dict[str, Any])
+    toml.obter(chave, dict[str, str | int])
     ```
     """
 
