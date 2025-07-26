@@ -1,6 +1,6 @@
 # std
 from __future__ import annotations
-import copy
+import copy, tomllib
 from types import UnionType, NoneType
 from json import JSONDecodeError, dumps as json_dumps, loads as json_parse
 from typing import Any, Generator, Literal, Self, get_args, get_origin, Union
@@ -15,20 +15,11 @@ from xml.etree.ElementTree import (
 # interno
 from .. import tipagem, sistema, util
 # externo
-import yaml
 from jsonschema import (
     SchemaError,
     ValidationError,
     validate as validate_schema
 )
-
-def yaml_stringify (item: Any) -> str:
-    """Transforma o `item` em uma string YAML"""
-    return yaml.dump(Json(item).stringify(), sort_keys=False, indent=4)
-
-def yaml_parse (string: str) -> Any:
-    """Realizar o parse de uma string YAML para o objeto do Python apropriado"""
-    return yaml.load(string, yaml.FullLoader)
 
 class Json [T]:
     """Classe para validação e leitura de objetos JSON acessando propriedades via `.` ou `[]`
@@ -557,10 +548,124 @@ class Unmarshaller[T]:
 
         raise UnmarshalError(path, expected, value)
 
+class Toml:
+    """Classe para leitura, acesso e validação de tipo do formato `TOML`
+    - O formato toml aceita os tipos: `str, int, float, bool, dict[str, ...], list[...]`
+    - `chave` aceita chaves aninhadas. Exemplo `tool."setup tools"`
+
+    ```
+    toml = Toml("arquivo.toml")
+    chave = 'tool."setuptools"'
+    # Checar existência
+    chave in toml
+    toml.existe(chave)
+    # Obter valor sem validação
+    toml[chave]
+    # Obter valor com validação
+    toml.obter(chave, dict[str, Any])
+    ```
+    """
+
+    dados: dict[str, Any]
+    """Dados raiz do `toml`"""
+
+    def __init__ (self, caminho: str | sistema.Caminho) -> None:
+        caminho = sistema.Caminho(str(caminho))
+        self.dados = tomllib.loads(caminho.path.read_text(encoding="utf-8"))
+
+    def __repr__ (self) -> str:
+        return f"<bot.formatos.Toml>"
+
+    def __contains__ (self, chave: object) -> bool:
+        if not isinstance(chave, str):
+            raise ValueError(f"Chave deve ser 'str' | Recebido '{chave}'")
+
+        dados = self.dados
+        for chave in self.__parse_chaves_aninhadas(chave):
+            if not (isinstance(dados, dict) and chave in dados):
+                return False
+            dados = dados[chave]
+
+        return True
+
+    def __getitem__ (self, chave: object) -> Any:
+        if not isinstance(chave, str):
+            raise ValueError(f"Chave deve ser 'str' | Recebido '{chave}'")
+
+        dados = self.dados
+        for chave in self.__parse_chaves_aninhadas(chave):
+            if not (isinstance(dados, dict) and chave in dados):
+                raise KeyError(f"Chave '{chave}' não encontrada no Toml")
+            dados = dados[chave]
+
+        return dados
+
+    def existe (self, chave: str) -> bool:
+        """Checar se a `chave` existe
+        - Alternativa ao operador `in`"""
+        return chave in self
+
+    def obter[T] (self, chave: str, tipo: type[T] = str) -> T:
+        """Obter a `chave` e esperar o `tipo`
+        - Erro caso a `chave` não exista ou o `tipo` for inválido
+        - Alternativa `toml[chave]` não faz validação do `tipo`"""
+        valor = self[chave]
+        if not self.__validar_tipo(valor, tipo):
+            raise ValueError(f"Falha ao obter a chave '{chave}' no Toml | Tipo do valor incompatível com tipo '{tipo}'")
+        return valor
+
+    def __validar_tipo[T] (self, valor: Any, tipo: type[T]) -> bool:
+        origem = get_origin(tipo)
+
+        # Any
+        if tipo is Any: return True
+        # primitivos
+        if origem is None: return isinstance(valor, tipo)
+
+        # union
+        if origem in (UnionType, Union):
+            return any(self.__validar_tipo(valor, t)
+                       for t in get_args(tipo))
+
+        # list
+        if tipo is list or origem is list:
+            tipo_item, *_ = get_args(tipo) or [Any]
+            if not isinstance(valor, list):
+                return False
+            return all(
+                self.__validar_tipo(item, tipo_item)
+                for item in valor
+            )
+
+        # dict
+        if tipo is dict or origem is dict:
+            tipo_chave, tipo_valor = get_args(tipo) or (str, Any)
+            if tipo_chave is not str or not isinstance(valor, dict):
+                return False
+            return all(
+                self.__validar_tipo(v, tipo_valor)
+                for v in valor.values()
+            )
+
+        return False
+
+    def __parse_chaves_aninhadas (self, chave: str) -> list[str]:
+        em_aberto, chaves = False, list[str]()
+        for parte in chave.split("."):
+            if not em_aberto:
+                em_aberto = parte.startswith('"')
+                chaves.append(parte.lstrip('"'))
+                continue
+
+            fechando = parte.endswith('"')
+            chaves[-1] += f".{parte.rstrip('"')}"
+            em_aberto = not fechando
+
+        return chaves
+
 __all__ = [
+    "Toml",
     "Json",
-    "yaml_parse",
     "ElementoXML",
     "Unmarshaller",
-    "yaml_stringify"
 ]
