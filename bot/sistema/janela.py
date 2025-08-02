@@ -822,9 +822,9 @@ class JanelaW32:
         while primeiro or cronometro() < aguardar:
             primeiro = False
 
-            for filho in self.elemento.filhos(lambda e: e.class_name == class_name):
+            for filho in self.elemento.filhos(lambda e: e.class_name == class_name and e.ativo):
                 return Dialogo(filho)
-            for janela in self.janelas_processo(lambda j: j.class_name == class_name):
+            for janela in self.janelas_processo(lambda j: j.class_name == class_name and j.elemento.ativo):
                 return Dialogo(janela.elemento)
 
     def popup (self, class_name: str = "#32768",
@@ -838,9 +838,9 @@ class JanelaW32:
         while primeiro or cronometro() < aguardar:
             primeiro = False
 
-            for filho in self.elemento.filhos(lambda e: e.class_name == class_name):
+            for filho in self.elemento.filhos(lambda e: e.class_name == class_name and e.ativo):
                 return Popup(filho)
-            for janela in self.janelas_processo(lambda j: j.class_name == class_name):
+            for janela in self.janelas_processo(lambda j: j.class_name == class_name and j.elemento.ativo):
                 return Popup(janela.elemento)
 
     def print_arvore (self) -> None:
