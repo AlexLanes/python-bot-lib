@@ -114,3 +114,4 @@ e.to_uia()                  # Criar um instância do `ElementoW32` como `Element
 e.filhos()                                  # Elementos filhos de primeiro nível
 e.descendentes()                            # Todos os elementos descendentes
 e.encontrar(lambda e: e.class_name == "")   # Encontrar o primeiro elemento descendente, com a menor profundidade, e de acordo com o filtro
+e[0]                                        # Primeiro filho, na posição `index`, ordenado pelas coordenadas
