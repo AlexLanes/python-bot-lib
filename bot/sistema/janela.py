@@ -57,6 +57,28 @@ class Dialogo:
         win32gui.PostMessage(hwnd, win32con.WM_CLOSE, 0, 0)
         return bot.util.aguardar_condicao(lambda: not win32gui.IsWindow(hwnd), timeout)
 
+    def negar (self) -> None:
+        """Negar o diálogo clicando nas opções `("nao", "ok", "no")`
+        - Checado se fechou corretamente"""
+        botoes = ("nao", "ok", "no")
+        hwnd = self.elemento.hwnd
+        self.elemento\
+            .encontrar(lambda e: bot.util.normalizar(e.texto) in botoes)\
+            .clicar()
+        assert bot.util.aguardar_condicao(lambda: not win32gui.IsWindow(hwnd), timeout=3),\
+            "Diálogo não fechou conforme esperado"
+
+    def confirmar (self) -> None:
+        """Confirmar o diálogo clicando nas opções `("sim", "ok", "yes")`
+        - Checado se fechou corretamente"""
+        botoes = ("sim", "ok", "yes")
+        hwnd = self.elemento.hwnd
+        self.elemento\
+            .encontrar(lambda e: bot.util.normalizar(e.texto) in botoes)\
+            .clicar()
+        assert bot.util.aguardar_condicao(lambda: not win32gui.IsWindow(hwnd), timeout=3),\
+            "Diálogo não fechou conforme esperado"
+
 class Popup (Dialogo):
     """Popup do windows"""
 
