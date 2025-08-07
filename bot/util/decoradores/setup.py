@@ -84,10 +84,12 @@ def prefixar_erro[R] (
         @functools.wraps(func)
         def wrapper (*args: P.args, **kwargs: P.kwargs) -> R:
             try: return func(*args, **kwargs)
-            except Exception as e:
-                tipo_excecao = type(e)
-                mensagem = prefixo(args, kwargs) if callable(prefixo) else prefixo
-                raise tipo_excecao(f"{mensagem}; {e}").with_traceback(e.__traceback__) from None
+            except Exception as erro:
+                tipo_excecao = type(erro)
+                msg_erro = str(erro)
+                msg_prefixo = prefixo(args, kwargs) if callable(prefixo) else prefixo
+                mensagem_prefixada = msg_erro if msg_erro.startswith(msg_prefixo) else f"{msg_prefixo}; {msg_erro}"
+                raise tipo_excecao(mensagem_prefixada).with_traceback(erro.__traceback__) from None
 
         return wrapper
     return prefixar_erro
@@ -97,9 +99,11 @@ def prefixar_erro_classe[R] (prefixo: str) -> typing.Callable[[R], R]:
     - `__init__, métodos, @property, @staticmethod e @classmethod`"""
     def getattribute_alterado (self: R, name: str, /) -> typing.Any:
         try: valor = object.__getattribute__(self, name)
-        except Exception as e:
-            tipo_excecao = type(e)
-            raise tipo_excecao(f"{prefixo}; {e}").with_traceback(e.__traceback__) from None
+        except Exception as erro:
+            tipo_excecao = type(erro)
+            msg_erro = str(erro)
+            mensagem_prefixada = msg_erro if msg_erro.startswith(prefixo) else f"{prefixo}; {msg_erro}"
+            raise tipo_excecao(mensagem_prefixada).with_traceback(erro.__traceback__) from None
         return valor if not isinstance(valor, types.MethodType) else prefixar_erro(prefixo)(valor)
 
     def prefixar_erro_classe (cls: R) -> R:
