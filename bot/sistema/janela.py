@@ -178,6 +178,7 @@ class ElementoW32:
         """Elementos filhos de primeiro nível
         - `filtro` para escolher os filhos. `Default: visíveis`
         - `aguardar` tempo em segundos para aguardar por algum filho"""
+        self.aguardar()
         assert aguardar >= 0, "Tempo para aguardar por filhos deve ser >= 0"
 
         filhos = []
@@ -517,6 +518,7 @@ class ElementoUIA (ElementoW32):
         return self.uiaelement.CurrentControlType == uiaclient.UIA_TabItemControlTypeId
 
     def filhos (self, filtro: typing.Callable[[ElementoUIA], bot.tipagem.SupportsBool] | None = None, aguardar: int | float = 0) -> list[ElementoUIA]: # type: ignore
+        self.aguardar()
         assert aguardar >= 0, "Tempo para aguardar por filhos deve ser >= 0"
 
         filhos = []
@@ -818,6 +820,7 @@ class JanelaW32:
     def janelas_processo (self, filtro: typing.Callable[[JanelaW32], bot.tipagem.SupportsBool] | None = None) -> list[JanelaW32]:
         """Janelas do mesmo processo da `janela` mas que estão fora de sua árvore
         - `filtro` para escolher as janelas. `Default: visível e ativo`"""
+        self.aguardar()
         encontrados: list[JanelaW32] = []
         filtro = filtro or (lambda j: j.elemento.visivel and j.elemento.ativo)
 
@@ -840,6 +843,7 @@ class JanelaW32:
         """Janela do mesmo processo da `janela` mas que está fora de sua árvore
         - `filtro` para escolher as janelas
         - `aguardar` tempo em segundos para aguardar por alguma janela"""
+        self.aguardar()
         assert aguardar >= 0, "Tempo para aguardar por janela deve ser >= 0"
 
         encontrados = list[JanelaW32]()
@@ -1053,6 +1057,7 @@ class JanelaUIA (JanelaW32):
         return self.aguardar().sleep(0.1)
 
     def janelas_processo (self, filtro: typing.Callable[[JanelaUIA], bot.tipagem.SupportsBool] | None = None) -> list[JanelaUIA]: # type: ignore
+        self.aguardar()
         encontrados: list[JanelaUIA] = []
         filtro = filtro or (lambda j: j.elemento.visivel and j.elemento.ativo)
 
@@ -1072,6 +1077,7 @@ class JanelaUIA (JanelaW32):
 
     def janela_processo (self, filtro: typing.Callable[[JanelaUIA], bot.tipagem.SupportsBool],
                                aguardar: int | float = 0) -> JanelaUIA:
+        self.aguardar()
         assert aguardar >= 0, "Tempo para aguardar por janela deve ser >= 0"
 
         encontrados = list[JanelaUIA]()
