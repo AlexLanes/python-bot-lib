@@ -219,12 +219,20 @@ def executar (*argumentos: str,
     except Exception as erro:
         return (False, str(erro))
 
-def abrir_programa (*argumentos: str, shell=False) -> subprocess.Popen[bytes]:
-    """Abrir um programa em um novo processo descolado da `main thread`
-    - Levar em consideração o diretório de execução atual
-    - Lança exceção se o comando for inválido
-    - Retorna a classe responsável pelo processo aberto"""
-    return subprocess.Popen(argumentos, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=shell)
+def abrir_processo (*argumentos: str, shell=False) -> subprocess.Popen[str]:
+    """Abrir um processo descolado da `main thread`
+    - Pode ser utilizado para abrir programas
+    - Retornado classe `subprocess.Popen[str]` configurada
+    - `stdin, stdout e stderr` são garantidos não serem `None` pois usam o `PIPE` e retornam `str` como `utf-8`"""
+    return subprocess.Popen(
+        argumentos,
+        shell    = shell,
+        stdin    = subprocess.PIPE,
+        stdout   = subprocess.PIPE,
+        stderr   = subprocess.PIPE,
+        text     = True,
+        encoding = "utf-8",
+    )
 
 def informacoes_resolucao () -> tuple[tuple[int, int], list[tuple[int, int]]]:
     """Obter informações sobre resolução da tela
@@ -308,7 +316,7 @@ __all__ = [
     "executar",
     "copiar_texto",
     "texto_copiado",
-    "abrir_programa",
+    "abrir_processo",
     "alterar_resolucao",
     "informacoes_resolucao",
     "encerrar_processos_usuario"
