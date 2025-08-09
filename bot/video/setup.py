@@ -23,7 +23,7 @@ def instalar_ffmpeg () -> None:
         else: bot.logger.alertar(f"Falha ao instalar o ffmpeg via winget: {mensagem}")
 
     raise Exception("""Falha ao instalar o ffmpeg.
-        \r\t- Caso não possua o gerencimando de pacotes 'winget' instalado, instale o 'chocolatey'
+        \r\t- Caso não possua o gerenciador de pacotes 'winget' instalado, instale o 'chocolatey'
         \r\t- Abra o terminal como Admin, execute 'choco install ffmpeg-full' e confirme com 'y' caso requerido""")
 
 class GravadorTela:
