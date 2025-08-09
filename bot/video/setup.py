@@ -1,5 +1,5 @@
 # std
-import atexit, subprocess
+import atexit, shutil, subprocess
 from typing import Self
 from datetime import datetime
 # interno
@@ -7,21 +7,24 @@ import bot
 from bot.sistema import Caminho
 
 def checar_existencia_ffmpeg () -> bool:
-    sucesso, _ = bot.sistema.executar("ffmpeg", "-h")
-    return sucesso
+    return shutil.which("ffmpeg") is not None
 
+@bot.util.decoradores.timeout(60)
 def instalar_ffmpeg () -> None:
-    try:
+    if shutil.which("winget") is not None:
+        bot.logger.informar("Realizando a instalação do ffmpeg via winget")
         sucesso, mensagem = bot.sistema.executar(
             "winget", "install", "ffmpeg",
             "--accept-source-agreements",
             "--accept-package-agreements",
             powershell = True,
-            timeout = 30,
         )
-        assert sucesso, mensagem
-    except Exception as erro:
-        raise Exception(f"Falha ao instalar o pacote ffmpeg via winget") from erro
+        if sucesso: return
+        else: bot.logger.alertar(f"Falha ao instalar o ffmpeg via winget: {mensagem}")
+
+    raise Exception("""Falha ao instalar o ffmpeg.
+        \r\t- Caso não possua o gerencimando de pacotes 'winget' instalado, instale o 'chocolatey'
+        \r\t- Abra o terminal como Admin, execute 'choco install ffmpeg-full' e confirme com 'y' caso requerido""")
 
 class GravadorTela:
     """Classe para realizar a captura de vídeo da tela utilizado o `ffmpeg`.  
@@ -76,7 +79,6 @@ class GravadorTela:
     def __init__ (self, diretorio: Caminho | None = None, comprimir: bool = True) -> None:
         if not checar_existencia_ffmpeg():
             bot.logger.informar("Biblioteca ffmpeg, utilizada para a gravação, não detectada")
-            bot.logger.informar("Realizando a instação do ffmpeg via winget")
             instalar_ffmpeg()
 
         self.processo, self.comprimir = None, comprimir
