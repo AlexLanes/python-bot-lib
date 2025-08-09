@@ -328,3 +328,12 @@ Pacote interno `decoradores` para decorar funções
     on_error: lambda args, kwargs: ..., = None
 )
 ```
+
+### `video`
+Pacote agregador para ações envolvendo vídeos
+```python
+# Classe para realizar a captura de vídeo da tela utilizado o `ffmpeg`
+gravador = GravadorTela().iniciar()
+...
+caminho = gravador.parar()
+```

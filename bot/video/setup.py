@@ -1,0 +1,180 @@
+# std
+import atexit, subprocess
+from typing import Self
+from datetime import datetime
+# interno
+import bot
+from bot.sistema import Caminho
+
+def checar_existencia_ffmpeg () -> bool:
+    sucesso, _ = bot.sistema.executar("ffmpeg", "-h")
+    return sucesso
+
+def instalar_ffmpeg () -> None:
+    try:
+        sucesso, mensagem = bot.sistema.executar(
+            "winget", "install", "ffmpeg",
+            "--accept-source-agreements",
+            "--accept-package-agreements",
+            powershell = True,
+            timeout = 30,
+        )
+        assert sucesso, mensagem
+    except Exception as erro:
+        raise Exception(f"Falha ao instalar o pacote ffmpeg via winget") from erro
+
+class GravadorTela:
+    """Classe para realizar a captura de vídeo da tela utilizado o `ffmpeg`.  
+    Os parâmetros enviados ao `ffmpeg` são customizáveis e é automaticamente instalado caso não esteja
+    - `diretorio = ./video_logs` para configurar onde será salvo as gravações
+    - `comprimir = True` Indicador para comprimir a gravação
+
+    # Exemplo
+    ```
+    gravador = GravadorTela()
+    gravador.iniciar()                          # com nome automático
+    gravador.iniciar(nome_extensao="xpto.mp4")  # com nome alterado
+    caminho = gravador.parar() # parar a gravação e obter o caminho para o arquivo
+
+    # caso não queira obter o arquivo
+    # o gravador continuará ativo até o encerramento do Python
+    GravadorTela().iniciar()
+    ```
+    """
+
+    comprimir: bool
+    """Indicador para comprimir a gravação para salvar espaço
+    - Default: `True`"""
+    diretorio: Caminho
+    """Caminho para o diretório do arquivo
+    - Default: `./video_logs`"""
+    nome_extensao: str
+    """nome do arquivo + extensão apropriada para o `vcodec`"""
+    processo: subprocess.Popen[str] | None
+    """Processo do ffmpeg"""
+
+    # FFMPEG
+    f: str = "gdigrab"
+    """Formato de captura `Windows`"""
+    i: str = "desktop"
+    """Fonte de captura"""
+    framerate: int = 30
+    """Quadros por segundo"""
+    vcodec: str = "libx264"
+    """Codec do vídeo
+    - Determina o formato do vídeo
+    - Default `mp4`"""
+    preset: str = "ultrafast"
+    """Nível de compressão
+    - Default `ultrafast` | Arquivos maiores porém menos consumo de memória"""
+    crf: int = 33
+    """Fator de qualidade
+    - `0`: sem perdas
+    - `51`: pior qualidade
+    - Default `33`"""
+
+    def __init__ (self, diretorio: Caminho | None = None, comprimir: bool = True) -> None:
+        if not checar_existencia_ffmpeg():
+            bot.logger.informar("Biblioteca ffmpeg, utilizada para a gravação, não detectada")
+            bot.logger.informar("Realizando a instação do ffmpeg via winget")
+            instalar_ffmpeg()
+
+        self.processo, self.comprimir = None, comprimir
+        self.diretorio = (diretorio or Caminho.diretorio_execucao() / "video_logs").criar_diretorios()
+
+    @property
+    def argumentos (self) -> list[str]:
+        """Argumentos para abrir o processo do `ffmpeg`
+        - Usar apenas após `iniciar`"""
+        return [
+            "ffmpeg", "-y",
+            "-f", self.f,
+            "-framerate", str(self.framerate),
+            "-i", self.i,
+            "-vcodec", self.vcodec,
+            "-preset", self.preset,
+            "-crf", str(self.crf),
+            str(self.diretorio / self.nome_extensao)
+        ]
+
+    @property
+    def argumentos_compressor (self) -> list[str]:
+        """Argumentos para comprimir o vídeo via `ffmpeg`
+        - Incluído `_comprimido` no nome do `destino`
+        - Usar apenas após `parar`"""
+        caminho = self.caminho
+        destino = caminho.path.with_stem(f"{caminho.path.stem}_comprimido")
+        return [
+            "ffmpeg", "-y",
+            "-i", caminho.string,
+            "-vcodec", self.vcodec,
+            "-preset", "veryfast",
+            "-crf", str(self.crf),
+            str(destino)
+        ]
+
+    @property
+    def caminho (self) -> Caminho:
+        """Caminho para o arquivo atual
+        - Validado se o `caminho` existe
+        - Usar apenas após `iniciar`"""
+        caminho = self.diretorio / self.nome_extensao
+        assert caminho.existe(), f"Caminho para o arquivo de vídeo não foi encontrado '{caminho}'"
+        return caminho
+
+    def iniciar (self, nome_extensao: str | None = None) -> Self:
+        """Iniciar gravação e salvar com `nome_extensao` no `diretório`
+        - Utilizado `data-hora.mp4` caso `nome_extensao=None`
+        - Não iniciar uma nova gravação caso já exista uma em andamento
+        - Registrado o `parar` automático ao fim do Python"""
+        assert self.processo is None, "Não é possível iniciar duas gravações ao mesmo tempo"
+
+        nome_extensao = nome_extensao or f"{datetime.now().strftime(r"%Y-%m-%dT%H-%M-%S")}.mp4"
+        assert len(nome_extensao.split(".")) >= 2, f"Informe a extensão junto com o nome do arquivo: '{nome_extensao}'"
+        self.nome_extensao = nome_extensao
+
+        self.processo = bot.sistema.abrir_processo(*self.argumentos)
+        if self.processo.poll() is not None or not bot.util.aguardar_condicao(lambda: self.caminho.existe(), timeout=5):
+            stdout, stderr = self.processo.communicate(timeout=3)
+            mensagem = f"Falha ao iniciar a gravação com ffmpeg:\n{stdout}\n{stderr}"
+            bot.logger.alertar(mensagem)
+            raise Exception(mensagem)
+
+        atexit.register(lambda: self.parar() if self.processo is not None else None)
+        return self
+
+    def parar (self) -> Caminho:
+        """Parar a gravação e retornar o `Caminho`
+        - Usar apenas após `iniciar`"""
+        assert self.processo is not None, "Nenhuma gravação está em andamento para ser parada"
+
+        try:
+            self.processo.communicate("q", timeout=3)
+            assert self.processo.poll() == 0, "Retorno do processo diferente do esperado"
+        except Exception as erro:
+            raise Exception(f"Falha ao parar a gravação: {erro}")
+        finally:
+            p = self.processo
+            self.processo = None
+            p.kill(); p.wait(1)
+
+        if self.comprimir: self.__comprimir()
+        return self.caminho
+
+    def __comprimir (self) -> None:
+        """Comprimir o `caminho` da gravação e substituir o original"""
+        assert self.processo is None, "Não possível comprimir pois a gravação está em andamento"
+        caminho = self.caminho
+
+        try:
+            argumentos = self.argumentos_compressor
+            sucesso, mensagem = bot.sistema.executar(*argumentos, timeout=120)
+            assert sucesso, mensagem
+        except Exception as erro:
+            raise Exception(f"Falha ao comprimir o arquivo da gravação {caminho!r}\n{erro}")
+
+        Caminho(argumentos[-1]).renomear(caminho.nome)
+
+__all__ = [
+    "GravadorTela",
+]

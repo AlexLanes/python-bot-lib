@@ -16,6 +16,7 @@ from . import sistema
 from . import teclado
 from . import tipagem
 from . import util
+from . import video
 
 def configurar_diretorio (caminho: str | sistema.Caminho) -> None:
     """Configurar o diretório de execução do bot manualmente

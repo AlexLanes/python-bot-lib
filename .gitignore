@@ -3,7 +3,7 @@
 
 # log / configfile / sqlite
 **.log
-/logs
+/**logs
 **.ini
 **.sqlite
 
