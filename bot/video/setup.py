@@ -1,7 +1,7 @@
 # std
 import atexit, shutil, subprocess
 from typing import Self
-from datetime import datetime
+from datetime import datetime, timedelta
 # interno
 import bot
 from bot.sistema import Caminho
@@ -38,10 +38,11 @@ class GravadorTela:
     gravador.iniciar()                          # com nome automático
     gravador.iniciar(nome_extensao="xpto.mp4")  # com nome alterado
     caminho = gravador.parar() # parar a gravação e obter o caminho para o arquivo
+    gravador.registrar_limpeza_diretorio()      # evitar o acúmulo de gravações no diretório
 
     # caso não queira obter o arquivo
     # o gravador continuará ativo até o encerramento do Python
-    GravadorTela().iniciar()
+    GravadorTela().iniciar().registrar_limpeza_diretorio()
     ```
     """
 
@@ -176,6 +177,26 @@ class GravadorTela:
             raise Exception(f"Falha ao comprimir o arquivo da gravação {caminho!r}\n{erro}")
 
         Caminho(argumentos[-1]).renomear(caminho.nome)
+
+    def registrar_limpeza_diretorio (self, *extensoes: str, limite_dias = 14) -> Self:
+        """Registrar a execução da limpeza das gravações no `diretório` que ultrapassarem `limite_dias`
+        - Execução realizada ao fim da execução do Python
+        - `extensoes` informar as extensões que devem ser limpas. Default `.mp4`"""
+        extensoes = tuple(map(str.lower, extensoes)) or (".mp4",)
+        assert limite_dias >= 1, "Limite de dias para a limpeza do diretório dever ser >= 1"
+    
+        def limpar () -> None:
+            agora = datetime.now()
+            limite = timedelta(days=limite_dias)
+            for caminho in self.diretorio:
+                extensao = caminho.path.suffix.lower()
+                if not caminho.arquivo(): continue
+                if not any(extensao in e for e in extensoes): continue
+                if (agora - caminho.data_modificao) < limite: continue
+                caminho.apagar_arquivo()
+
+        atexit.register(limpar)
+        return self
 
 __all__ = [
     "GravadorTela",
