@@ -67,10 +67,11 @@ class Sqlite:
         - Retornado classe própria `ResultadoSQL`, veja a documentação na definição da classe"""
         assert bool(posicional) + bool(nomeado) < 2, "Não é possível misturar argumentos posicionais com nomeados"
         cursor = self.conexao.execute(sql, posicional or nomeado)
+        colunas = tuple(coluna for coluna, *_ in cursor.description) if cursor.description else tuple()
         return ResultadoSQL(
-            linhas_afetadas = cursor.rowcount if cursor.rowcount >= 0 else None,
-            colunas = tuple(coluna for coluna, *_ in cursor.description) if cursor.description else tuple(),
-            linhas = (linha for linha in cursor)
+            linhas_afetadas = cursor.rowcount if not colunas and cursor.rowcount >= 0 else None,
+            colunas = colunas,
+            linhas = (linha for linha in cursor) if colunas else (tuple() for _ in [])
         )
 
     def execute_many (self, sql: str, parametros: typing.Iterable[tipagem.nomeado] | typing.Iterable[tipagem.posicional]) -> ResultadoSQL:
@@ -79,10 +80,11 @@ class Sqlite:
         - `parametros` quantidade de argumentos, posicionais `?` **ou** nomeados `:nome`, que serão executados
         - Retornado classe própria `ResultadoSQL`, veja a documentação na definição da classe"""
         cursor = self.conexao.executemany(sql, parametros) # type: ignore
+        colunas = tuple(coluna for coluna, *_ in cursor.description) if cursor.description else tuple()
         return ResultadoSQL(
-            linhas_afetadas = cursor.rowcount if cursor.rowcount >= 0 else None,
-            colunas = tuple(coluna for coluna, *_ in cursor.description) if cursor.description else tuple(),
-            linhas = (linha for linha in cursor)
+            linhas_afetadas = cursor.rowcount if not colunas and cursor.rowcount >= 0 else None,
+            colunas = colunas,
+            linhas = (linha for linha in cursor) if colunas else (tuple() for _ in [])
         )
 
     def to_excel (self, caminho: sistema.Caminho) -> sistema.Caminho:
