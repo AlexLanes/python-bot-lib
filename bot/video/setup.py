@@ -27,7 +27,7 @@ def instalar_ffmpeg () -> None:
         \r\t- Abra o terminal como Admin, execute 'choco install ffmpeg-full' e confirme com 'y' caso requerido""")
 
 class GravadorTela:
-    """Classe para realizar a captura de vídeo da tela utilizado o `ffmpeg`.  
+    """Classe para realizar a captura de vídeo da tela utilizando o `ffmpeg`.  
     Os parâmetros enviados ao `ffmpeg` são customizáveis e é automaticamente instalado caso não esteja
     - `diretorio = ./video_logs` para configurar onde será salvo as gravações
     - `comprimir = True` Indicador para comprimir a gravação

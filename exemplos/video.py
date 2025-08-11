@@ -1,7 +1,7 @@
 from bot.video import GravadorTela
 
 """
-Classe para realizar a captura de vídeo da tela utilizado o `ffmpeg`
+Classe para realizar a captura de vídeo da tela utilizando o `ffmpeg`
 """
 gravador = GravadorTela()
 gravador.iniciar()                          # com nome automático
