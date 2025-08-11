@@ -2,3 +2,4 @@
 - Pacote `polars` exportado para tratamentos de DataFrames"""
 
 from bot.database.setup import *
+from bot.database.sqlite import *

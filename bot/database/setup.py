@@ -1,5 +1,5 @@
 # std
-import re, sqlite3, typing
+import re, typing
 import itertools, functools, dataclasses
 # interno
 from .. import tipagem, database, logger, sistema
@@ -60,96 +60,114 @@ def criar_excel (caminho: sistema.Caminho, planilhas: dict[str, polars.DataFrame
 
 @dataclasses.dataclass
 class ResultadoSQL:
-    """Classe utilizada no retorno de comando em banco de dados
+    """Classe utilizada no retorno ao executar comando em banco de dados
 
+    ### Representação
     ```
-    # representação "vazio", "com linhas afetadas" ou "com colunas e linhas"
-    repr(resultado)
-    resultado.linhas_afetadas != None # para comandos de manipulação
-    resultado.colunas # para comandos de consulta
+    - repr(resultado) # vazio, com linhas afetadas ou com colunas e linhas
+    - resultado.linhas_afetadas != None # para comandos de manipulação
+    - resultado.colunas e resultado.linhas # para comandos de consulta
+    ```
 
-    # teste de sucesso, indica se teve linhas_afetadas ou linhas/colunas retornadas
-    bool(resultado) | if resultado: ...
+    ### Indicador se teve linhas_afetadas ou linhas retornadas
+    ```
+    - bool(resultado)
+    - if resultado: ...
+    ```
 
-    # quantidade de linhas retornadas
-    len(resultado)
+    ### Quantidade de linhas retornadas
+    ```
+    - len(resultado)
+    - resultado.quantidade_linhas
+    ```
 
-    # iteração sobre as linhas `Generator`
-    # as linhas são consumidas quando iteradas sobre
-    linha: tuple[tipagem.tipoSQL, ...] = next(resultado.linhas)
-    for linha in resultado.linhas:
-    for linha in resultado:
+    ### Iteração sobre as linhas retornadas
+    ```
+    # As linhas são consumidas quando iteradas sobre
+    - linha: tuple[tipagem.tipoSQL, ...] = next(resultado.linhas)
+    - for linha in resultado.linhas: ...
+    - for linha in resultado: ...
+    - resultado.to_dict()
+    - resultado.to_dataframe()
+    ```
 
-    # fácil acesso a primeira linha
-    resultado["nome_coluna"]
-    ```"""
+    ### Fácil acesso a primeira linha
+    ```
+    - resultado["nome_coluna"]
+    - resultado.primeira_linha["nome_coluna"]
+    ```
+    """
 
     linhas_afetadas: int | None
     """Quantidade de linhas afetadas pelo comando sql
-    - `None` indica que não se aplica para o comando sql"""
+    - `None` indica que não se aplica ao comando sql"""
     colunas: tuple[str, ...]
     """Colunas das linhas retornadas (se houver)"""
     linhas: typing.Iterable[tuple[tipagem.tipoSQL, ...]]
     """Generator das linhas retornadas (se houver)
     - Consumido quando iterado sobre"""
 
-    def __iter__ (self) -> typing.Generator[tuple[tipagem.tipoSQL, ...], None, None]:
-        """Generator do self.linhas"""
-        for linha in self.linhas:
-            yield linha
+    @functools.cached_property
+    def quantidade_linhas (self) -> int:
+        """Obter a quantidade de linhas retornadas sem consumir o gerador"""
+        self.linhas, linhas = itertools.tee(self.linhas)
+        return sum(1 for _ in linhas)
 
     @functools.cached_property
-    def __p (self) -> tuple[tipagem.tipoSQL, ...] | None:
+    def primeira_linha (self) -> tuple[tipagem.tipoSQL, ...] | None:
         """Cache da primeira linha no resultado
+        - Não altera o gerador das `linhas`
         - `None` caso não possua"""
         self.linhas, linhas = itertools.tee(self.linhas)
         try: return next(linhas)
         except StopIteration: return None
 
+    def __iter__ (self) -> typing.Generator[tuple[tipagem.tipoSQL, ...], None, None]:
+        """Generator do self.linhas"""
+        for linha in self.linhas:
+            yield linha
+
     def __repr__ (self) -> str:
         "Representação da classe"
-        tipo = f"com {self.linhas_afetadas} linha(s) afetada(s)" if self.linhas_afetadas \
-            else f"com {len(self.colunas)} coluna(s) e {len(self)} linha(s)" if self.__p \
-            else f"vazio"
-        return f"<ResultadoSQL {tipo}>"
+        if self.linhas_afetadas is not None:
+            return f"<ResultadoSQL com {self.linhas_afetadas} linha(s) afetada(s)"
+        if linhas := len(self):
+            return f"<ResultadoSQL com '{len(self.colunas)}' coluna(s) e '{linhas}' linha(s)"
+        return f"<ResultadoSQL vazio>"
 
     def __bool__ (self) -> bool:
         """Representação se possui linhas ou linhas_afetadas"""
         return "vazio" not in repr(self)
 
     def __len__ (self) -> int:
-        """Obter a quantidade de linhas no retornadas"""
-        self.linhas, linhas = itertools.tee(self.linhas)
-        return sum(1 for _ in linhas)
+        return self.quantidade_linhas
 
     def __getitem__ (self, campo: str) -> tipagem.tipoSQL:
         """Obter o `campo` da primeira linha"""
-        return self.__p[self.colunas.index(campo)] if self.__p else None
+        if not self.primeira_linha: return
+        return self.primeira_linha[self.colunas.index(campo)]
 
-    def to_dict (self) -> dict[str, int | None | list[dict]]:
-        """Representação formato dicionário"""
-        self.linhas, linhas = itertools.tee(self.linhas)
-        return {
-            "linhas_afetadas": self.linhas_afetadas,
-            "resultados": [
-                { 
-                    coluna: valor
-                    for coluna, valor in zip(self.colunas, linha)
-                }
-                for linha in linhas
-            ]
-        }
+    def to_dict (self) -> list[dict[str, tipagem.tipoSQL]]:
+        """Representação das linhas e colunas no formato `dict`
+        - Consome o gerador das `linhas`"""
+        return [
+            { 
+                coluna: valor
+                for coluna, valor in zip(self.colunas, linha)
+            }
+            for linha in self
+        ]
 
     def to_dataframe (self, transformar_string=False) -> polars.DataFrame:
         """Salvar o resultado em um `polars.DataFrame`
-        - `transformar_string` flag se os dados serão convertidos em `str`"""
-        self.linhas, linhas = itertools.tee(self.linhas)
+        - `transformar_string` flag se os dados serão convertidos em `str`
+        - Consome o gerador das `linhas`"""
         to_string = lambda linha: tuple(
             str(valor) if valor != None else None
             for valor in linha
         )
         return polars.DataFrame(
-            map(to_string, linhas) if transformar_string else linhas,
+            map(to_string, self.linhas) if transformar_string else self.linhas,
             { coluna: str for coluna in self.colunas } if transformar_string else self.colunas,
             nan_to_null=True
         )
@@ -195,12 +213,17 @@ class DatabaseODBC:
 
     def __del__ (self) -> None:
         """Fechar a conexão quando sair do escopo"""
-        logger.informar(f"Encerrando conexão com o database")
-        try: self.conexao.close()
+        try: self.fechar_conexao()
         except Exception: pass
 
     def __repr__ (self) -> str:
         return f"<Database ODBC>"
+
+    def fechar_conexao (self) -> None:
+        """Fechar a conexão com o database
+        - Executado automaticamente quando o objeto sair do escopo"""
+        self.conexao.close()
+        logger.informar(f"Conexão com o database encerrada")
 
     def tabelas (self, schema: str | None = None) -> list[tuple[str, str | None]]:
         """Nomes das tabelas e schemas disponíveis
@@ -274,84 +297,8 @@ class DatabaseODBC:
         - `@staticmethod`"""
         return pyodbc.drivers()
 
-class Sqlite:
-    """Classe de abstração do módulo `sqlite3`
-    - `database` caminho para o arquivo .db ou .sqlite (Default apenas na memória)
-    - Comando para ativar as `foreign_keys` realizado automaticamente
-    - Aberto transação automaticamente. Necessário realizar `commit()` para persistir alterações"""
-
-    __conexao: sqlite3.Connection
-    """Conexão com o sqlite3"""
-
-    def __init__ (self, database: str | sistema.Caminho = ":memory:") -> None:
-        database = str(database)
-        logger.informar(f"Iniciando conexão Sqlite com o database '{database}'")
-        self.__conexao = sqlite3.connect(database)
-        self.__conexao.execute("PRAGMA foreign_keys = ON")
-
-    def __del__ (self) -> None:
-        """Fechar a conexão quando sair do escopo"""
-        logger.informar(f"Encerrando conexão com o database")
-        try: self.__conexao.close()
-        except Exception: pass
-
-    def __repr__ (self) -> str:
-        return f"<Database Sqlite>"
-
-    def tabelas (self) -> list[str]:
-        """Nomes das tabelas disponíveis"""
-        sql = "SELECT name FROM sqlite_schema WHERE type = 'table' AND name NOT LIKE 'sqlite_%'"
-        return [str(tabela) for tabela, *_ in self.execute(sql)]
-
-    def colunas (self, tabela: str) -> list[tuple[str, str]]:
-        """Nomes das colunas e tipos da tabela
-        - `for coluna, tipo in database.colunas(tabela)`"""
-        return [
-            (str(coluna), str(tipo))
-            for _, coluna, tipo, *_, in self.execute(f"PRAGMA table_info({tabela})")
-        ]
-
-    def commit (self) -> typing.Self:
-        """Commitar alterações feitas na conexão"""
-        self.__conexao.commit()
-        return self
-
-    def rollback (self) -> typing.Self:
-        """Reverter as alterações, pós commit, feitas na conexão"""
-        self.__conexao.rollback()
-        return self
-
-    def execute (self, sql: str, parametros: tipagem.nomeado | tipagem.posicional | None = None) -> ResultadoSQL:
-        """Executar uma única instrução SQL
-        - `sql` Comando que será executado. Recomendado ser parametrizado com argumentos posicionais `?` ou nomeados `:nome`
-        - `parametros` Parâmetros presentes no `sql`"""
-        cursor = self.__conexao.execute(sql, parametros) if parametros else self.__conexao.execute(sql) # type: ignore
-        colunas = tuple(coluna[0] for coluna in cursor.description) if cursor.description else tuple()
-        linhas_afetadas = cursor.rowcount if cursor.rowcount >= 0 and not colunas else None
-        gerador = (linha for linha in cursor)
-        return ResultadoSQL(linhas_afetadas, colunas, gerador)
-
-    def execute_many (self, sql: str, parametros: typing.Iterable[tipagem.nomeado] | typing.Iterable[tipagem.posicional]) -> ResultadoSQL:
-        """Executar uma ou mais instruções SQL
-        - `sql` Comando que será executado. Recomendado ser parametrizado com argumentos nomeados `:nome` ou posicionais `?`
-        - `parametros` Lista dos parâmetros presentes no `sql`"""
-        cursor = self.__conexao.executemany(sql, parametros) # type: ignore
-        colunas = tuple(coluna[0] for coluna in cursor.description) if cursor.description else tuple()
-        linhas_afetadas = cursor.rowcount if cursor.rowcount >= 0 and not colunas else None
-        gerador = (linha for linha in cursor)
-        return ResultadoSQL(linhas_afetadas, colunas, gerador)
-
-    def to_excel (self, caminho: sistema.Caminho) -> sistema.Caminho:
-        """Salvar as linhas de todas as tabelas da conexão no `caminho` formato excel
-        - `caminho` deve terminar com `.xlsx`"""
-        return criar_excel(caminho, {
-            tabela: self.execute(f"SELECT * FROM {tabela}").to_dataframe()
-            for tabela in self.tabelas()
-        })
-
 __all__ = [
     "polars",
-    "Sqlite",
     "criar_excel",
     "DatabaseODBC",
     "formatar_dataframe"
