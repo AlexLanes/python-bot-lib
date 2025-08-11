@@ -3,3 +3,4 @@
 
 from bot.database.setup import *
 from bot.database.sqlite import *
+from bot.database.odbc import *
