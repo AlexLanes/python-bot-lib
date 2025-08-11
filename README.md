@@ -332,7 +332,7 @@ Pacote interno `decoradores` para decorar funções
 ### `video`
 Pacote agregador para ações envolvendo vídeos
 ```python
-# Classe para realizar a captura de vídeo da tela utilizado o `ffmpeg`
+# Classe para realizar a captura de vídeo da tela utilizando o `ffmpeg`
 gravador = GravadorTela().iniciar()
 ...
 caminho = gravador.parar()
