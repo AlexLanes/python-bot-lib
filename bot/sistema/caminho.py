@@ -196,11 +196,13 @@ class Caminho:
             self.apagar_diretorio()
         return destino
 
-    def copiar (self, diretorio: Caminho) -> Caminho:
+    def copiar (self, diretorio: Caminho, prefixo: str | None = None) -> Caminho:
         """Copiar o arquivo ou diretório do caminho atual para o `diretorio` e retornar o caminho destino
+        - `prefixo` para alterar o prefixo do destino.
         - Sobrescreve os arquivos existentes (recursivamente se for diretório)
         - Não tem efeito caso caminho não exista"""
-        destino = diretorio.criar_diretorios() / self.nome
+        nome = self.nome if not prefixo else self.com_prefixo(prefixo).nome
+        destino = diretorio.criar_diretorios() / nome
         if self.arquivo():
             shutil.copyfile(self.path, destino.path)
         elif self.diretorio():
