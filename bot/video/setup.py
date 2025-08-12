@@ -67,7 +67,7 @@ class GravadorTela:
     t: int = 60 * 60
     """Tempo máximo em segundos
     - Default `1 hora`"""
-    framerate: int = 30
+    framerate: int = 15
     """Quadros por segundo"""
     vcodec: str = "libx264"
     """Codec do vídeo
