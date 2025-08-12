@@ -28,9 +28,11 @@ def instalar_ffmpeg () -> None:
 
 class GravadorTela:
     """Classe para realizar a captura de vídeo da tela utilizando o `ffmpeg`.  
-    Os parâmetros enviados ao `ffmpeg` são customizáveis e é automaticamente instalado caso não esteja
+    O `ffmpeg` possui parâmetros customizáveis e é automaticamente instalado, via `winget`, caso não seja encontrado.  
+    Caso não possua `winget`, será informado em erro para realizar a instalação manual do `ffmpeg` via `chocolatey`
     - `diretorio = ./video_logs` para configurar onde será salvo as gravações
     - `comprimir = True` Indicador para comprimir a gravação
+    - Por padrão é gravado até um tempo limite de `1 hora`, que é customizável
 
     # Exemplo
     ```
@@ -62,6 +64,9 @@ class GravadorTela:
     """Formato de captura `Windows`"""
     i: str = "desktop"
     """Fonte de captura"""
+    t: int = 60 * 60
+    """Tempo máximo em segundos
+    - Default `1 hora`"""
     framerate: int = 30
     """Quadros por segundo"""
     vcodec: str = "libx264"
@@ -97,6 +102,7 @@ class GravadorTela:
             "-vcodec", self.vcodec,
             "-preset", self.preset,
             "-crf", str(self.crf),
+            "-t", str(self.t),
             str(self.diretorio / self.nome_extensao)
         ]
 
@@ -106,7 +112,7 @@ class GravadorTela:
         - Incluído `_comprimido` no nome do `destino`
         - Usar apenas após `parar`"""
         caminho = self.caminho
-        destino = caminho.path.with_stem(f"{caminho.path.stem}_comprimido")
+        destino = caminho.com_prefixo(f"{caminho.prefixo}_comprimido")
         return [
             "ffmpeg", "-y",
             "-i", caminho.string,
@@ -152,10 +158,14 @@ class GravadorTela:
         assert self.processo is not None, "Nenhuma gravação está em andamento para ser parada"
 
         try:
-            self.processo.communicate("q", timeout=3)
-            assert self.processo.poll() == 0, "Retorno do processo diferente do esperado"
+            if self.processo.poll() is None:
+                self.processo.communicate("q", timeout=3)
+            returncode = self.processo.poll()
+            assert returncode == 0, f"Retorno do processo diferente do esperado: '{returncode}'"
+
         except Exception as erro:
             raise Exception(f"Falha ao parar a gravação: {erro}")
+
         finally:
             p = self.processo
             self.processo = None
