@@ -1,6 +1,6 @@
 # std
 from __future__ import annotations
-import time, ctypes, typing, functools
+import time, typing, functools
 # interno
 import bot
 # externo
@@ -10,7 +10,6 @@ import comtypes.client
 comtypes.client.GetModule('UIAutomationCore.dll')
 from comtypes.gen import UIAutomationClient as uiaclient
 
-attach_thread_input = ctypes.windll.user32.AttachThreadInput
 BOTOES_VIRTUAIS_MOUSE = {
     "left":   (win32con.WM_LBUTTONDOWN, win32con.WM_LBUTTONUP, win32con.MK_LBUTTON),
     "middle": (win32con.WM_MBUTTONDOWN, win32con.WM_MBUTTONUP, win32con.MK_MBUTTON),
@@ -778,27 +777,24 @@ class JanelaW32:
     def focar (self) -> typing.Self:
         if self.minimizada:
             win32gui.ShowWindow(self.hwnd, win32con.SW_RESTORE)
+            bot.util.aguardar_condicao(lambda: self.elemento.visivel, timeout=5, delay=0.5)
 
-        # Anexar a Thread para ter permissão ao colocar como foco
-        thread_id_janela,  _ = win32process.GetWindowThreadProcessId(self.hwnd)
-        thread_id_em_foco, _ = win32process.GetWindowThreadProcessId(win32gui.GetForegroundWindow())
-        if thread_id_janela != thread_id_em_foco:
-            attach_thread_input(thread_id_em_foco, thread_id_janela, True)
+        def trazer_para_o_foco () -> bool:
+            try:
+                win32gui.SetWindowPos(self.hwnd, win32con.HWND_TOPMOST, 0, 0, 0, 0, win32con.SWP_NOMOVE | win32con.SWP_NOSIZE)
+                win32gui.SetWindowPos(self.hwnd, win32con.HWND_NOTOPMOST, 0, 0, 0, 0, win32con.SWP_NOMOVE | win32con.SWP_NOSIZE)
+                win32gui.BringWindowToTop(self.hwnd)
+                win32gui.SetForegroundWindow(self.hwnd)
+                return win32gui.GetForegroundWindow() == self.hwnd
+            except Exception:
+                return False
 
-        # Focar
-        def topo () -> bool:
-            win32gui.SetWindowPos(self.hwnd, win32con.HWND_TOPMOST, 0, 0, 0, 0, win32con.SWP_NOMOVE | win32con.SWP_NOSIZE)
-            win32gui.SetWindowPos(self.hwnd, win32con.HWND_NOTOPMOST, 0, 0, 0, 0, win32con.SWP_NOMOVE | win32con.SWP_NOSIZE)
-            win32gui.SetForegroundWindow(self.hwnd)
-            win32gui.BringWindowToTop(self.hwnd)
-            if win32gui.GetForegroundWindow() != self.hwnd: win32api.keybd_event(0, 0, 0, 0)
-            return win32gui.GetForegroundWindow() == self.hwnd
-        bot.util.aguardar_condicao(topo, timeout=5, delay=0.5)
+        # O Windows pode não permitir
+        # Clicando em cima da janela resolve
+        if not trazer_para_o_foco():
+            bot.mouse.clicar_mouse(coordenada=self.coordenada.transformar(0.01, 0.01))
 
-        # Remover a permissão da Thread
-        if thread_id_janela != thread_id_em_foco:
-            attach_thread_input(thread_id_em_foco, thread_id_janela, False)
-
+        bot.util.aguardar_condicao(trazer_para_o_foco, timeout=5, delay=0.5)
         return self.aguardar().sleep(0.1)
 
     @property
