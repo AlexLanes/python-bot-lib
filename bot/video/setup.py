@@ -31,7 +31,7 @@ class GravadorTela:
     O `ffmpeg` possui parâmetros customizáveis e é automaticamente instalado, via `winget`, caso não seja encontrado.  
     Caso não possua `winget`, será informado em erro para realizar a instalação manual do `ffmpeg` via `chocolatey`
     - `diretorio = ./video_logs` para configurar onde será salvo as gravações
-    - `comprimir = True` Indicador para comprimir a gravação
+    - `comprimir = False` Indicador para comprimir a gravação (Pode demorar alguns minutos dependendo do tamanho)
     - Por padrão é gravado até um tempo limite de `1 hora`, que é customizável
 
     # Exemplo
@@ -44,13 +44,13 @@ class GravadorTela:
 
     # caso não queira obter o arquivo
     # o gravador continuará ativo até o encerramento do Python
-    GravadorTela().iniciar().registrar_limpeza_diretorio()
+    GravadorTela().registrar_limpeza_diretorio().iniciar()
     ```
     """
 
     comprimir: bool
     """Indicador para comprimir a gravação para salvar espaço
-    - Default: `True`"""
+    - Default: `False`"""
     diretorio: Caminho
     """Caminho para o diretório do arquivo
     - Default: `./video_logs`"""
@@ -82,7 +82,7 @@ class GravadorTela:
     - `51`: pior qualidade
     - Default `33`"""
 
-    def __init__ (self, diretorio: Caminho | None = None, comprimir: bool = True) -> None:
+    def __init__ (self, diretorio: Caminho | None = None, comprimir: bool = False) -> None:
         if not checar_existencia_ffmpeg():
             bot.logger.informar("Biblioteca ffmpeg, utilizada para a gravação, não detectada")
             instalar_ffmpeg()
@@ -144,8 +144,12 @@ class GravadorTela:
 
         self.processo = bot.sistema.abrir_processo(*self.argumentos)
         if self.processo.poll() is not None or not bot.util.aguardar_condicao(lambda: self.caminho.existe(), timeout=5):
-            stdout, stderr = self.processo.communicate(timeout=3)
-            mensagem = f"Falha ao iniciar a gravação com ffmpeg:\n{stdout}\n{stderr}"
+            try:
+                stdout, stderr = self.processo.communicate(timeout=10)
+                mensagem = f"Falha ao iniciar a gravação com ffmpeg:\n{stdout}\n{stderr}"
+            except Exception:
+                mensagem = f"Falha ao iniciar a gravação com ffmpeg"
+                bot.sistema.encerrar_processos_usuario("ffmpeg")
             bot.logger.alertar(mensagem)
             raise Exception(mensagem)
 
@@ -181,10 +185,12 @@ class GravadorTela:
 
         try:
             argumentos = self.argumentos_compressor
-            sucesso, mensagem = bot.sistema.executar(*argumentos, timeout=120)
+            sucesso, mensagem = bot.sistema.executar(*argumentos)
             assert sucesso, mensagem
-        except Exception as erro:
-            raise Exception(f"Falha ao comprimir o arquivo da gravação {caminho!r}\n{erro}")
+        except Exception:
+            mensagem = f"Falha ao comprimir o arquivo da gravação {caminho!r}"
+            bot.logger.erro(mensagem)
+            raise Exception(mensagem)
 
         Caminho(argumentos[-1]).renomear(caminho.nome)
 
