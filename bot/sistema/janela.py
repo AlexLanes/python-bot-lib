@@ -1,6 +1,6 @@
 # std
 from __future__ import annotations
-import time, typing, functools
+import time, ctypes, typing, functools
 # interno
 import bot
 # externo
@@ -10,6 +10,7 @@ import comtypes.client
 comtypes.client.GetModule('UIAutomationCore.dll')
 from comtypes.gen import UIAutomationClient as uiaclient
 
+attach_thread_input = ctypes.windll.user32.AttachThreadInput
 BOTOES_VIRTUAIS_MOUSE = {
     "left":   (win32con.WM_LBUTTONDOWN, win32con.WM_LBUTTONUP, win32con.MK_LBUTTON),
     "middle": (win32con.WM_MBUTTONDOWN, win32con.WM_MBUTTONUP, win32con.MK_MBUTTON),
@@ -270,7 +271,6 @@ class ElementoW32:
     def focar (self) -> typing.Self:
         if not self.janela.focada:
             self.janela.focar()
-
         try: win32gui.SetForegroundWindow(self.hwnd)
         except Exception: pass
         return self.aguardar()
@@ -735,9 +735,6 @@ class JanelaW32:
     def __hash__ (self) -> int:
         return hash(self.hwnd)
 
-    def __bool__ (self) -> bool:
-        return True
-
     @property
     def titulo (self) -> str:
         """Texto do elemento
@@ -779,11 +776,29 @@ class JanelaW32:
     def focada (self) -> bool:
         return win32gui.GetForegroundWindow() == self.hwnd
     def focar (self) -> typing.Self:
-        if self.aguardar().minimizada: win32gui.ShowWindow(self.hwnd, win32con.SW_RESTORE)
-        bot.util.aguardar_condicao(
-            lambda: win32gui.SetForegroundWindow(self.hwnd) == None,
-            timeout = 60
-        )
+        if self.minimizada:
+            win32gui.ShowWindow(self.hwnd, win32con.SW_RESTORE)
+
+        # Anexar a Thread para ter permissão ao colocar como foco
+        thread_id_janela,  _ = win32process.GetWindowThreadProcessId(self.hwnd)
+        thread_id_em_foco, _ = win32process.GetWindowThreadProcessId(win32gui.GetForegroundWindow())
+        if thread_id_janela != thread_id_em_foco:
+            attach_thread_input(thread_id_em_foco, thread_id_janela, True)
+
+        # Focar
+        def topo () -> bool:
+            win32gui.SetWindowPos(self.hwnd, win32con.HWND_TOPMOST, 0, 0, 0, 0, win32con.SWP_NOMOVE | win32con.SWP_NOSIZE)
+            win32gui.SetWindowPos(self.hwnd, win32con.HWND_NOTOPMOST, 0, 0, 0, 0, win32con.SWP_NOMOVE | win32con.SWP_NOSIZE)
+            win32gui.SetForegroundWindow(self.hwnd)
+            win32gui.BringWindowToTop(self.hwnd)
+            if win32gui.GetForegroundWindow() != self.hwnd: win32api.keybd_event(0, 0, 0, 0)
+            return win32gui.GetForegroundWindow() == self.hwnd
+        bot.util.aguardar_condicao(topo, timeout=5, delay=0.5)
+
+        # Remover a permissão da Thread
+        if thread_id_janela != thread_id_em_foco:
+            attach_thread_input(thread_id_em_foco, thread_id_janela, False)
+
         return self.aguardar().sleep(0.1)
 
     @property
