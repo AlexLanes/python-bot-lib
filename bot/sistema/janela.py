@@ -788,13 +788,14 @@ class JanelaW32:
                 return win32gui.GetForegroundWindow() == self.hwnd
             except Exception:
                 return False
+        focado = bot.util.aguardar_condicao(trazer_para_o_foco, timeout=5, delay=0.5)
 
         # O Windows pode não permitir
         # Clicando em cima da janela resolve
-        if not trazer_para_o_foco():
-            bot.mouse.clicar_mouse(coordenada=self.coordenada.transformar(0.01, 0.01))
+        if not focado:
+            bot.mouse.clicar_mouse(coordenada=self.coordenada.transformar(yOffset=0.01))
+            trazer_para_o_foco()
 
-        bot.util.aguardar_condicao(trazer_para_o_foco, timeout=5, delay=0.5)
         return self.aguardar().sleep(0.1)
 
     @property
