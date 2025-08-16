@@ -21,9 +21,6 @@ dependencies = [
   "xlsxwriter",
   "polars[xlsx2csv]",
 
-  # formatos
-  "jsonschema",
-
   # http
   "httpx",
 
