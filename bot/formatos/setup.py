@@ -1,143 +1,173 @@
 # std
 from __future__ import annotations
-import copy, tomllib
-from types import UnionType, NoneType
-from json import JSONDecodeError, dumps as json_dumps, loads as json_parse
+import copy, types, tomllib
+import json as jsonlib
 from typing import Any, Generator, Literal, Self, get_args, get_origin, Union
 from xml.etree.ElementTree import (
     Element,
     register_namespace,
-    indent as indentar_xml,
-    parse as xml_from_file,
-    tostring as xml_to_string,
-    fromstring as xml_from_string,
+    parse       as xml_from_file,
+    indent      as indentar_xml,
+    tostring    as xml_to_string,
+    fromstring  as xml_from_string,
 )
 # interno
 from .. import tipagem, sistema, util
-# externo
-from jsonschema import (
-    SchemaError,
-    ValidationError,
-    validate as validate_schema
-)
 
-class Json [T]:
-    """Classe para validação e leitura de objetos JSON acessando propriedades via `.` ou `[]`
+class Json:
+    """Classe para validação e leitura de itens JSON acessando propriedades via `.` ou `[]`
+    - Conforme Javascript
 
+    ### Exemplo
     ```
-    item = { "nome": "Alex", "dados": [{ "marco": "polo" }] }
-    json = bot.formatos.Json(item)
-    # Caminho valido
-    print(json.nome.valor(), "|", f"Valido: {bool(json.nome)}")
-    print(json["dados"].valor(), "|", f"Valido: {bool(json["dados"])}")
-    print(json.dados[0].valor(), "|", f"Valido: {bool(json.dados[0])}")
-    print(json.dados[0].marco.valor(), "|", f"Valido: {bool(json.dados[0].marco)}")
-    # Caminho invalido
-    print(json.dados[1].valor(), "|", f"Valido: {bool(json.dados[1])}")
-    print(json.dados[1]["abc"].valor(), "|", f"Valido: {bool(json.dados[1]["abc"])}")
-    # Comparação
-    print(bool(json.nome))
-    print("Caminho existe" if json.dados[0].marco else "Caminho não existe")
-    print(json.nome == "Alex")
-    print(json.nome != "Xyz")
-    print({ "marco": "polo" } in json.dados)
-    # Funções
-    print(repr(json))
-    print("Obtendo o tipo do json:", json.tipo())
-    print("Obtendo o valor do json:", json.valor())
-    print("Transformando em string:", json.stringify(indentar=False))
-    print("Realizar parse de uma string json:", bot.formatos.Json.parse("[1, 2, 3]").valor())
-    print("Validar um Json de acordo com o jsonschema:", json.validar({ "type": "object", "properties": {"nome": {"type": "string"}} }))
+    item = {
+        "nome": "Alex",
+        "campo com espaço": 20,
+        "documentos": { "cpf": "123", "rg": None, "cnpj": 1234567 },
+        "enderecos": [{ "rua": "rua 1", "numero": 1 }, { "rua": "rua 2", "complemento": "próximo ao x" }],
+    }
+
+    # Criação
+    json = Json.parse('{ "nome": "Alex" }')
+    json = Json(item)
+
+    # Caminhos válidos
+    json.nome
+    json["campo com espaço"]
+    json.documentos.rg
+    json.enderecos[0].rua
+
+    # Caminhos invalidos
+    json["errado"]
+    json.enderecos[2]
+
+    # Checar existência do caminho
+    bool(json.nome)
+    if json.nome: ...
+
+    # Comparações aceitas
+    json.nome == "Alex"
+    json.nome != "Alex"
+    "Alex" in json.nome # Usar em str, list e dict
+
+    # Obter o tipo do json
+    tipo = json.tipo()
+
+    # Transformar para string json
+    json.stringify(indentar=True)
+
+    # Acessar o valor do `json` validando com o tipo `esperar`
+    # Erro caso o caminho seja inválido ou o tipo `esperar` seja inválido
+    valor = json.nome.obter(str)
+    valor = json.nome.obter(str | None)
+    valor = json["campo com espaço"].obter(Literal[20])
+    valor = json.documentos.obter(dict)
+    valor = json.enderecos.obter(list[dict[str, dict]])
+
+    # Realizar o unmarshal do `item` conforme a `classe`
+    objeto = json.unmarshal(classe)
     ```"""
 
-    __item: T
+    __item: Any
     """Representação JSON como objeto Python"""
     __valido: bool
-    """Indicador se o caminho percorrido no `json` é valido"""
+    """Indicador se o caminho do json é valido"""
+    __caminho: list[str]
+    """Caminho percorrido"""
 
-    def __init__ (self, item: T) -> None:
+    def __init__ (self, item: Any) -> None:
         self.__item = item
         self.__valido = True
+        self.__caminho = []
 
     @classmethod
-    def parse (cls, json: str) -> tuple[Json, str | None]:
+    def parse (cls, json: str) -> Json:
         """Realiza o parse de uma string JSON na classe `Json`
-        - retorno `(Json, None) ou (Json vazio, mensagem de erro)`"""
-        try: return Json(json_parse(json)), None
-        except JSONDecodeError as erro:
-            return Json({}), erro.msg
+        - `Exception` caso ocorra erro"""
+        try: return Json(jsonlib.loads(json))
+        except jsonlib.JSONDecodeError as erro:
+            raise Exception(erro.msg)
 
     def __repr__ (self) -> str:
         """Representação da classe"""
-        tipo = self.tipo().__name__
-        return f"<Json [{tipo}]>"
+        return f"<Json '{self.tipo().__name__ if self else "inválido"}'>"
 
     def __bool__ (self) -> bool:
-        """Indicador se o caminho percorrido no `json` é valido"""
         return self.__valido
 
-    def __getattr__ (self, chave: str) -> Json:
-        return self[chave]
-
-    def __getitem__ (self, value: int | str) -> Json:
-        """Obter o item filho na posição `int` ou elemento de nome `str`
-        - Invalidar o `json` se o caminho for invalido"""
-        try:
-            if self.tipo() in (list, tuple, dict):
-                return Json(self.__item[value]) # type: ignore
-
-        # caminho inválido
-        except (KeyError, IndexError): pass
-        json = Json(None)
-        json.__valido = False
-        return json
-
     def __eq__ (self, value: object) -> bool:
-        """Comparador `==` do valor"""
-        return self.valor() == value
-
-    def __ne__ (self, value: object) -> bool:
-        """Comparador `!=` do valor"""
-        return self.valor() != value
+        return self.__item == value
 
     def __contains__ (self, value: object) -> bool:
-        """Comparador `in` do valor"""
-        return value in self.valor() if self.tipo() in (list, tuple, dict, str) else False # type: ignore
+        try: return value in self.__item # type: ignore
+        except Exception: return False
 
-    def tipo (self) -> type[T]:
-        """Tipo raiz do `json`"""
+    def __getattr__ (self, chave: str) -> Json:
+        """Obter o item filho de nome `chave`
+        - Invalidado caso não encontrado"""
+        json = self[chave]
+        json.__caminho.pop(-1)
+        json.__caminho.append(f".{chave}")
+        return json
+
+    def __getitem__ (self, value: int | str) -> Json:
+        """Obter o item filho na posição `int` ou de nome `str`
+        - Invalidado caso não encontrado"""
+        try:
+            json = Json(self.__item[value]) # type: ignore
+        except Exception:
+            json = Json(None)
+            json.__valido = False
+
+        json.__caminho.extend(self.__caminho)
+        json.__caminho.append(f"[{value!r}]")
+        return json
+
+    def tipo (self) -> type:
+        """Tipo do `json`"""
         return type(self.__item)
 
-    def valor (self) -> T:
-        """Valor raiz do `json`"""
-        return self.__item
+    def obter[T] (self, esperar: type[T] | Any) -> T:
+        """Acessar o valor do `json` validando com o tipo `esperar`
+        - Erro caso o caminho seja inválido ou o tipo `esperar` seja inválido
+        - Tipos Esperados:
+            - Primitivos `(str, int, float, bool, None)`
+            - `Literal`
+            - `|` `Union`
+            - `dict`
+            - `list`"""
 
-    def stringify (self, indentar=True) -> str:
-        """Transformar o `json` no formato string"""
+        try:
+            assert self
+            return Unmarshaller(Unmarshaller).validar(esperar, self.__item)
+
+        except Exception:
+            caminho = "".join(["$", *self.__caminho])
+            raise Exception(
+                f"Erro {self!r} ao se obter o valor no Caminho({caminho}); "
+                f"Esperado ({esperar}) Encontrado({self.tipo()})"
+            ) from None
+
+    def unmarshal[T] (self, cls: type[T]) -> T:
+        """Realizar o unmarshal do `item` conforme a classe `cls`
+        - `item` do json deve ser um `dict`"""
+        valor = self.obter(dict)
+        return Unmarshaller(cls).parse(valor)
+
+    def stringify (self, indentar: bool = True) -> str:
+        """Transformar o item para o formato string"""
         def tratamentos (obj):
             if type(obj) in (int, float, str, bool, type(None)): return obj
             if hasattr(obj, "__dict__"): return obj.__dict__
             if hasattr(obj, "__iter__"): return [tratamentos(item) for item in obj]
             if hasattr(obj, "__str__"): return obj.__str__()
             raise TypeError(f"Tipo inesperado para ser transformado em json: '{type(obj)}'")
-        return json_dumps(self.__item, ensure_ascii=False, default=tratamentos, indent=4 if indentar else None)
 
-    def validar (self, schema: dict[str, Any]) -> tuple[bool, None | str]:
-        """Validar se o `json` está de acordo com o `schema`
-        - retorno `(sucesso, None ou mensagem de erro)`"""
-        try: return validate_schema(self.__item, schema) == None, None
-        except SchemaError as erro:
-            return False, f"Schema para validação apresentou o erro: {erro.message}"
-        except ValidationError as erro:
-            return False, f"Erro de validação: {erro.message}"
-
-    def unmarshal[C] (self, cls: type[C]) -> tuple[C, None | str]:
-        """Realizar o parse dos `Json` conforme a classe `cls`
-        - retorno `(instancia preenchida corretamente, None) ou (instancia vazia, mensagem de erro)`"""
-        valor = self.valor()
-        return Unmarshaller(cls).parse(valor) if isinstance(valor, dict) else (
-            object.__new__(cls),
-            f"Json deve ser do tipo 'dict' para ser feito o unmarshal e não tipo '{self.tipo()}'"
+        return jsonlib.dumps(
+            self.__item,
+            ensure_ascii = False,
+            default = tratamentos,
+            indent = 4 if indentar else None
         )
 
 class ElementoXML:
@@ -375,18 +405,6 @@ class ElementoXML:
         ElementoXML.__prefixos[prefixo] = namespace
         return register_namespace(prefixo, namespace) or namespace
 
-class UnmarshalError (Exception):
-    def __init__ (self, path: str, expected: Any, value: Any) -> None:
-        super().__init__(
-            f"Erro ao processar '{path}'; Esperado {expected}; Encontrado {type(value)} {value}"
-        )
-
-    @classmethod
-    def from_message (cls, message: str) -> UnmarshalError:
-        obj = cls.__new__(cls)
-        super(UnmarshalError, obj).__init__(message)
-        return obj
-
 class Unmarshaller[T]:
     """Classe para validação e parse de um `dict` para uma classe customizada
     - `__repr__` da classe alterada caso não tenha sido implementada
@@ -395,12 +413,12 @@ class Unmarshaller[T]:
     - Propriedades podem estar na versão normalizada `bot.util.normalizar`
     - Classes podem herdam propriedades de outras classes
     - Tipos Esperados:
-        - Primitivos
-        - Literal
-        - Union |
-        - dict
-        - list
-        - class
+        - Primitivos `(str, int, float, bool, None)`
+        - `Literal`
+        - `|` `Union`
+        - `dict`
+        - `list`
+        - `class` tratado as propriedades como `dict`
 
     ```
     from bot.formatos import Unmarshaller
@@ -422,24 +440,24 @@ class Unmarshaller[T]:
         documentos: dict[str, str | int | None]
         enderecos: list[Endereco | EnderecoComComplemento]
 
-    item, erro = Unmarshaller(Pessoa).parse({
+    item = {
         "nome": "Alex",
         "idade": 27,
         "sexo": "M",
         "Informado Com Default": 20,
         "documentos": {"cpf": "123", "rg": None, "cnpj": 1234567 },
         "enderecos": [{ "rua": "rua 1", "numero": 1 }, { "rua": "rua 2", "complemento": "próximo ao x" }],
-    })
-    assert not erro, f"Falha no unmarshal: {erro}"
-    print(item)
+    }
+    pessoa = Unmarshaller(Pessoa).parse(item)
+    print(pessoa)
     ```
     """
 
-    __cls: type[T]
-    __primitives = (str, int, float, bool, NoneType)
+    cls: type[T]
+    PRIMITIVOS = (str, int, float, bool, types.NoneType)
 
     def __init__(self, cls: type[T]) -> None:
-        self.__cls = cls
+        self.cls = cls
         if cls.__repr__ is object.__repr__:
             cls.__repr__ = lambda self: str(self.__dict__)
 
@@ -450,103 +468,103 @@ class Unmarshaller[T]:
             setattr(Unmarshaller, "cls_seen", {})
 
     def __repr__ (self) -> str:
-        return f"<Unmarshaller[{self.__cls.__name__}]>"
+        return f"<Unmarshaller[{self.cls.__name__}]>"
 
-    def parse (self, item: dict[str, Any], **kwargs: str) -> tuple[T, str | None]:
-        """Realizar o parse do `item` conforme a classe informada
-        - `(instancia preenchida corretamente, None)`
-        - `(instancia incompleta, mensagem de erro)`"""
-        erro: str | None = None
-        obj = object.__new__(self.__cls)        
-        caminho = kwargs.get("path", "") or self.__cls.__name__
+    def parse (self, item: dict[str, Any], **kwargs: str) -> T:
+        """Realizar o parse do `item` conforme a classe informada`"""
+        obj = object.__new__(self.cls)
+        caminho = kwargs.get("caminho", "$")
         chaves_normalizadas = {
             util.normalizar(chave): chave
             for chave in item.keys()
         }
 
-        try:
-            for nome, tipo in self.__coletar_anotacoes_classe().items():
-                caminho_atual = f"{caminho}.{nome}" if caminho else nome
-                valor_item = item.get(
-                    # nome exato ou procurado pela versão normalizada
-                    nome if nome in item else chaves_normalizadas.get(nome, nome),
-                    # checar por default da propriedade e obter uma cópia do valor
-                    copy.deepcopy(getattr(obj, nome, None))
-                )
-                setattr(obj, nome, self.__validate(tipo, valor_item, caminho_atual))
+        for nome, tipo in self.coletar_anotacoes_classe().items():
+            caminho_atual = f"{caminho}.{nome}" if caminho else nome
+            valor_item = item.get(
+                # nome exato ou procurado pela versão normalizada
+                nome if nome in item else chaves_normalizadas.get(nome, nome),
+                # checar por default da propriedade e obter uma cópia do valor
+                copy.deepcopy(getattr(obj, nome, None))
+            )
+            setattr(obj, nome, self.validar(tipo, valor_item, caminho_atual))
 
-        except UnmarshalError as e:
-            erro = str(e)
+        return obj
 
-        return obj, erro
-
-    def __coletar_anotacoes_classe (self) -> dict[str, type]:
+    def coletar_anotacoes_classe (self) -> dict[str, type]:
         base_e_parentes = {}
-        for cls in reversed(self.__cls.__mro__):
+        for cls in reversed(self.cls.__mro__):
             base_e_parentes.update(getattr(cls, '__annotations__', {}))
         return base_e_parentes
 
-    def __validate (self, expected: type | Any, value: Any, path: str) -> Any:
-        if isinstance(expected, str):
-            expected = Unmarshaller.cls_seen.get(expected, expected) # type: ignore
+    def validar[V] (self, esperar: type | Any, valor: V, caminho: str = "") -> V:
+        """Validar se o `valor` de acordo com o tipo `esperar` e retornar o `valor`
+        - Erro caso o `valor` não possuao tipo `esperar`"""
+        if isinstance(esperar, str):
+            esperar = Unmarshaller.cls_seen.get(esperar, esperar) # type: ignore
 
-        origin = get_origin(expected)
+        origin = get_origin(esperar)
 
         # any
-        if expected is Any:
-            return value
+        if esperar is Any:
+            return valor
 
         # primitivo
-        if any(expected is t and isinstance(value, t)
-               for t in self.__primitives):
-            return value
+        if any(esperar is t and isinstance(valor, t)
+               for t in self.PRIMITIVOS):
+            return valor
 
         # class
-        if hasattr(expected, '__annotations__'):
-            if not isinstance(value, dict):
-                raise UnmarshalError(path, dict, value)
-            if expected.__name__ not in Unmarshaller.cls_seen: # type: ignore
-                Unmarshaller.cls_seen[expected.__name__] = expected # type: ignore
-            value, nok = Unmarshaller(expected).parse(value, path=path)
-            if nok: raise UnmarshalError.from_message(nok)
-            return value
+        if hasattr(esperar, '__annotations__'):
+            if not isinstance(valor, dict):
+                raise self.criar_erro(caminho, dict, valor)
+            if esperar.__name__ not in Unmarshaller.cls_seen: # type: ignore
+                Unmarshaller.cls_seen[esperar.__name__] = esperar # type: ignore
+            return Unmarshaller(esperar).parse(valor, caminho=caminho)
 
         # literal
         if origin is Literal:
-            expected_values = get_args(expected)
-            if expected_values and value not in expected_values:
-                raise UnmarshalError(path, Literal[expected_values], value)
-            return value
+            expected_values = get_args(esperar)
+            if expected_values and valor not in expected_values:
+                raise self.criar_erro(caminho, Literal[expected_values], valor)
+            return valor
 
         # union
-        if origin in (UnionType, Union):
-            for t in get_args(expected):
-                try: return self.__validate(t, value, path)
+        if origin in (types.UnionType, Union):
+            for t in get_args(esperar):
+                try: return self.validar(t, valor, caminho)
                 except Exception: pass
 
         # list
-        if expected is list or origin is list:
-            item_type, *_ = get_args(expected) or [Any]
-            if not isinstance(value, list):
-                raise UnmarshalError(path, list, value)
+        if esperar is list or origin is list:
+            item_type, *_ = get_args(esperar) or [Any]
+            if not isinstance(valor, list):
+                raise self.criar_erro(caminho, list, valor)
             return [
-                self.__validate(item_type, v, f"{path}[{i}]")
-                for i, v in enumerate(value)
-            ]
+                self.validar(item_type, v, f"{caminho}[{i}]")
+                for i, v in enumerate(valor)
+            ] # type: ignore
 
         # dict
-        if expected is dict or origin is dict:
-            key_type, val_type = get_args(expected) or (str, Any)
+        if esperar is dict or origin is dict:
+            key_type, val_type = get_args(esperar) or (str, Any)
             if key_type is not str:
                 raise NotImplementedError("Apenas dict[str, V] é suportado.")
-            if not isinstance(value, dict):
-                raise UnmarshalError(path, dict, value)
+            if not isinstance(valor, dict):
+                raise self.criar_erro(caminho, dict, valor)
             return {
-                k: self.__validate(val_type, v, f"{path}.{k}")
-                for k, v in value.items()
-            }
+                k: self.validar(val_type, v, f"{caminho}.{k}")
+                for k, v in valor.items()
+            } # type: ignore
 
-        raise UnmarshalError(path, expected, value)
+        raise self.criar_erro(caminho, esperar, valor)
+
+    def criar_erro (self, caminho: str, esperado: Any, valor: Any) -> Exception:
+        return Exception(
+            f"Erro {repr(self).strip("<>")} no Caminho({caminho}) "
+            f"Esperado({esperado}) "
+            f"Encontrado({valor})"
+        )
 
 class Toml:
     """Classe para leitura, acesso e validação de tipo do formato `TOML`
@@ -623,7 +641,7 @@ class Toml:
         if origem is None: return isinstance(valor, tipo)
 
         # union
-        if origem in (UnionType, Union):
+        if origem in (types.UnionType, Union):
             return any(self.__validar_tipo(valor, t)
                        for t in get_args(tipo))
 

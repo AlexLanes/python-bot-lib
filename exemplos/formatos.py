@@ -3,7 +3,7 @@ from typing import Literal
 
 """
 Unmarshaller
-Parser de um `dict` para uma classe informada
+Classe para validação e parse de um `dict` para uma classe customizada
 """
 # Classe de exemplo
 class Endereco:
@@ -22,45 +22,70 @@ class Pessoa:
     enderecos: list[Endereco | EnderecoComComplemento]
 
 # Realizando o Parse
-item, erro = bot.formatos.Unmarshaller(Pessoa).parse({
+item = {
     "nome": "Alex",
     "idade": 27,
     "sexo": "M",
-    "informado_com_default": 20,
+    "Informado Com Default": 20,
     "documentos": {"cpf": "123", "rg": None, "cnpj": 1234567 },
     "enderecos": [{ "rua": "rua 1", "numero": 1 }, { "rua": "rua 2", "complemento": "próximo ao x" }],
-})
-assert not erro, f"Falha no unmarshal: {erro}"
-print(item)
+}
+pessoa = bot.formatos.Unmarshaller(Pessoa).parse(item)
+print(pessoa)
 
 
 
 """
 JSON
-Classe para validação e leitura de objetos JSON acessando propriedades via `.` ou `[]`
+Classe para validação e leitura de itens JSON acessando propriedades via `.` ou `[]`
+- Conforme Javascript
 """
-item = { "nome": "Alex", "dados": [{ "marco": "polo" }] }
-json = bot.formatos.Json.parse(str(item)) # A partir de uma `str`
-json = bot.formatos.Json(item) # A partir de algum objeto
+item = {
+    "nome": "Alex",
+    "campo com espaço": 20,
+    "documentos": { "cpf": "123", "rg": None, "cnpj": 1234567 },
+    "enderecos": [{ "rua": "rua 1", "numero": 1 }, { "rua": "rua 2", "complemento": "próximo ao x" }],
+}
 
-# Acesso
-json.nome.valor() # "Alex"
-json["nome"].valor() # "Alex"
-json.dados[0].marco.valor() # "polo"
-json.errado.valor() # None
-# Validação de valor
-json.nome == "Alex" # True
-json.nome != "Alex" # False
-# Validação de caminho
-bool(json.idade) # False
-if json.nome: ... # True
+# Criação
+json = bot.formatos.Json.parse('{ "nome": "Alex" }')
+json = bot.formatos.Json(item)
 
-# Métodos
-json.valor() # Acessar o valor
-json.tipo() # Tipo do valor
-json.stringify(indentar=True) # Transformar o `Json` em `str`
-json.validar(schema={}) # Validar o json com um `json-schema`
-json.unmarshal(cls=Pessoa) # Veja o `Unmarshaller`
+# Caminhos válidos
+json.nome
+json["campo com espaço"]
+json.documentos.rg
+json.enderecos[0].rua
+
+# Caminhos invalidos
+json["errado"]
+json.enderecos[2]
+
+# Checar existência do caminho
+bool(json.nome)
+if json.nome: ...
+
+# Comparações aceitas
+json.nome == "Alex"
+json.nome != "Alex"
+"Alex" in json.nome # Usar em str, list e dict
+
+# Obter o tipo do json
+tipo = json.tipo()
+
+# Transformar para string json
+json.stringify(indentar=True)
+
+# Acessar o valor do `json` validando com o tipo `esperar`
+# Erro caso o caminho seja inválido ou o tipo `esperar` seja inválido
+valor = json.nome.obter(str)
+valor = json.nome.obter(str | None)
+valor = json["campo com espaço"].obter(Literal[20])
+valor = json.documentos.obter(dict)
+valor = json.enderecos.obter(list[dict[str, dict]])
+
+# Realizar o unmarshal do `item` conforme a `classe`
+objeto = json.unmarshal(classe)
 
 
 
