@@ -646,7 +646,7 @@ class Chrome (Navegador):
 
             message = json.message
             params = message.params
-            request_id = params.requestId.valor()
+            request_id = params.requestId.obter(typing.Any)
             mensagem = id_mensagem[request_id]
 
             if "Network.request" in message.method:
