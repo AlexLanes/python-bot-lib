@@ -14,7 +14,7 @@ bot.util.encontrar_texto("a", ("1", "2", "a"))  # Encontrar a melhor opção em 
 """
 Tempo
 """
-bot.util.cronometro(resetar=False)  # Inicializa um cronômetro que retorna o tempo decorrido a cada chamada na função
+bot.util.Cronometro(resetar=False)  # Inicializa um cronômetro que retorna o tempo decorrido a cada chamada na função
 bot.util.expandir_tempo(segundos=0) # Expandir a medida `segundos` para as duas primeiras unidades de grandeza (Hora, Minuto, Segundo ou Milissegundo)
 
 """

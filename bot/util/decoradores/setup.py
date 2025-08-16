@@ -121,7 +121,7 @@ def tempo_execucao[R] (func: typing.Callable[P, R]) -> typing.Callable[P, R]: # 
     """Loggar o tempo de execução da função"""
     @functools.wraps(func)
     def wrapper (*args: P.args, **kwargs: P.kwargs) -> R: # type: ignore
-        cronometro, resultado = util.cronometro(), func(*args, **kwargs)
+        cronometro, resultado = util.Cronometro(), func(*args, **kwargs)
         tempo = util.expandir_tempo(cronometro())
         logger.informar(f"Função({func.__name__}) executada em {tempo}")
         return resultado

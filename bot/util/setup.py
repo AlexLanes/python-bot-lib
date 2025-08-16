@@ -9,7 +9,7 @@ def aguardar_condicao (condicao: typing.Callable[[], tipagem.SupportsBool],
     """Repetir a função `condição` por `timeout` segundos até que resulte em `True`
     - Retorna um `bool` indicando se a `condição` foi atendida
     - Exceções são ignoradas"""
-    tempo = cronometro()
+    tempo = Cronometro()
 
     while tempo() < timeout:
         try:
@@ -96,22 +96,22 @@ def transformar_tipo[T: tipagem.primitivo] (valor: str, tipo: type[T]) -> T:
         case int():     return int(valor)
         case _:         return valor
 
-def cronometro (resetar=False) -> typing.Callable[[], float]:
+def Cronometro (resetar: bool = False) -> typing.Callable[[], float]:
     """Inicializa um cronômetro que retorna o tempo decorrido a cada chamada na função
     - `resetar` indicador para resetar o tempo após cada chamada
-    - Arredondado para 3 casas decimais"""
+    - Arredondado para 5 casas decimais"""
     inicio = time.perf_counter()
     def func () -> float:
         nonlocal inicio
         agora = time.perf_counter()
-        delta = round(agora - inicio, 3)        
+        delta = round(agora - inicio, 5)        
         if resetar: inicio = agora
         return delta
     return func
 
 __all__ = [
     "normalizar",
-    "cronometro",
+    "Cronometro",
     "expandir_tempo",
     "encontrar_texto",
     "transformar_tipo",

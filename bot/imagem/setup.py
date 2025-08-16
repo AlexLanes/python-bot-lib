@@ -196,7 +196,7 @@ class Imagem:
         if referencia and cinza: referencia = referencia.cinza()
         if referencia and regiao: referencia = referencia.recortar(regiao)
 
-        cronometro = util.cronometro()
+        cronometro = util.Cronometro()
         confianca_coordenadas = filas.PriorityQueue[tuple[float, Coordenada]](comparador=lambda item: item[0])
         while not confianca_coordenadas:
             np_referencia = (referencia or capturar_tela(regiao, cinza)).pixels
