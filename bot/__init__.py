@@ -1,21 +1,21 @@
 """Biblioteca com funcionalidades gerais para criação de automações para o Windows"""
 
+from . import tipagem, util, estruturas
+
+from bot.mouse import *
+from bot.teclado import *
+from . import sistema
+
 from . import argumentos
 from . import configfile
 from . import database
 from . import email
-from . import estruturas
 from . import formatos
 from . import ftp
 from . import http
 from . import imagem
 from . import logger
-from . import mouse
 from . import navegador
-from . import sistema
-from . import teclado
-from . import tipagem
-from . import util
 from . import video
 
 def configurar_diretorio (caminho: str | sistema.Caminho) -> None:

@@ -1,61 +1,123 @@
 # std
+import contextlib
 from time import sleep
-from atexit import register
-from typing import Any, Callable, Iterable
+from typing import Generator, Self
 # interno
-from .. import tipagem
-# externo
-from pynput.keyboard import Controller, Key, Listener
+from bot.teclado.win_api import traduzir_tecla, send_input_tecla_api
+from bot.tipagem import char, BOTOES_TECLADO
 
-TECLADO = Controller()
-CALLBACKS: dict[str, Callable[[], None]] = {}
+class Teclado:
+    """Classe de controle do teclado
+    - Alterar constantes `DELAY_...` para modificar tempo de espera após ação"""
 
-def apertar_tecla (tecla: tipagem.BOTOES_TECLADO | tipagem.char, quantidade=1, delay=0.1) -> None:
-    """Apertar e soltar uma tecla `qtd` vezes
-    - `tecla` pode ser do `BOTOES_TECLADO` ou um `char`"""
-    t = tecla if len(tecla) == 1 else Key[tecla]
-    for _ in range(max(quantidade, 1)):
-        TECLADO.tap(t)
-        sleep(delay)
+    DELAY_APERTAR    = 0.1
+    DELAY_DIGITAR    = 0.02
+    DELAY_ATALHO     = 0.05
+    DELAY_PRESSIONAR = 0.05
 
-def atalho_teclado (teclas: Iterable[tipagem.BOTOES_TECLADO | tipagem.char], delay=0.5) -> None:
-    """Apertar as `teclas` sequencialmente e depois soltá-las em ordem reversa
-    - `tecla` pode ser do `BOTOES_TECLADO` ou um `char`"""
-    t = [
-        tecla if len(tecla) == 1 else Key[tecla]
-        for tecla in teclas
-    ]
-    for tecla in t: TECLADO.press(tecla) # pressionar
-    for tecla in reversed(t): TECLADO.release(tecla) # soltar
-    sleep(delay)
+    def apertar (self, *teclas: BOTOES_TECLADO | char) -> Self:
+        """Pressionar e soltar as `teclas` uma vez"""
+        try:
+            for tecla in teclas:
+                unicode, codigos = traduzir_tecla(tecla)
+                for codigo in codigos:
+                    send_input_tecla_api(codigo, pressionar=True,  unicode=unicode)
+                    send_input_tecla_api(codigo, pressionar=False, unicode=unicode)
 
-def digitar_teclado (texto: str, delay=0.05) -> None:
-    """Digitar o texto pressionando cada tecla do texto e soltando em seguida"""
-    for char in texto:
-        TECLADO.type(char)
-        sleep(delay)
+                sleep(self.DELAY_APERTAR)
 
-def observar_tecla (tecla: tipagem.BOTOES_TECLADO | tipagem.char, callback: Callable[[], Any]) -> None:
-    """Observar quando a `tecla` é apertada e chamar o `callback`
-    - `tecla` pode ser do `BOTOES_TECLADO` ou um `char`"""
-    CALLBACKS[tecla] = callback
+        except Exception as erro:
+            raise Exception(f"Erro ao apertar teclas {teclas}: {erro}")
 
-    # observador já iniciado
-    if len(CALLBACKS) > 1: return
+        return self
 
-    # iniciar observador
-    def on_press (t: Key | str | Any) -> None:
-        tecla = t.name if isinstance(t, Key) else str(t).strip("'")
-        callback = CALLBACKS.get(tecla, lambda: None)
-        callback()
+    def digitar (self, texto: str) -> Self:
+        """Digitar os caracteres no `texto`"""
+        teclas_unicode = dict[str, tuple[bool, list[int]]]()
 
-    observador = Listener(on_press)
-    observador.start()
-    register(observador.stop)
+        for char in texto:
+            if char not in teclas_unicode:
+                teclas_unicode[char] = traduzir_tecla(char)
 
-__all__ = [
-    "apertar_tecla",
-    "atalho_teclado",
-    "observar_tecla",
-    "digitar_teclado"
-]
+            unicode, codigos = teclas_unicode[char]
+            for codigo in codigos:
+                send_input_tecla_api(codigo, pressionar=True,  unicode=unicode)
+                send_input_tecla_api(codigo, pressionar=False, unicode=unicode)
+
+            sleep(self.DELAY_DIGITAR)
+
+        return self
+
+    def atalho (self, *teclas: BOTOES_TECLADO | char) -> Self:
+        """Pressionar as `teclas` sequencialmente e soltá-las em ordem reversa"""
+        codigos_teclas = [
+            traduzir_tecla(tecla, virtual=True)
+            for tecla in teclas
+        ]
+
+        # Pressionar
+        for unicode, codigos in codigos_teclas:
+            for codigo in codigos:
+                send_input_tecla_api(codigo, pressionar=True, unicode=unicode)
+            sleep(self.DELAY_ATALHO)
+
+        # Soltar
+        for unicode, codigos in reversed(codigos_teclas):
+            for codigo in reversed(codigos):
+                send_input_tecla_api(codigo, pressionar=False, unicode=unicode)
+            sleep(self.DELAY_ATALHO)
+
+        return self
+
+    @contextlib.contextmanager
+    def pressionar (self, *teclas: BOTOES_TECLADO | char) -> Generator[Self, None, None]:
+        """Pressionar as `teclas` e soltar ao sair
+        - Utilizar com o `with`"""
+        pressionados = list[tuple[bool, int]]()
+
+        # Pressionar e yield
+        try:
+            for tecla in teclas:
+                unicode, codigos = traduzir_tecla(tecla, virtual=True)
+
+                for codigo in codigos:
+                    send_input_tecla_api(codigo, pressionar=True, unicode=unicode)
+                    pressionados.append((unicode, codigo))
+
+                sleep(self.DELAY_PRESSIONAR)
+
+            yield self
+
+        # Soltar todas as teclas em ordem inversa
+        finally:
+            for unicode, codigo in reversed(pressionados):
+                send_input_tecla_api(codigo, pressionar=False, unicode=unicode)
+
+    def sleep (self, segundos: int | float = 1) -> Self:
+        """Aguardar por `segundos` até continuar a execução"""
+        sleep(segundos)
+        return self
+
+# def observar_tecla (tecla: tipagem.BOTOES_TECLADO | tipagem.char, callback: Callable[[], Any]) -> None:
+#     """Observar quando a `tecla` é apertada e chamar o `callback`
+#     - `tecla` pode ser do `BOTOES_TECLADO` ou um `char`"""
+#     CALLBACKS[tecla] = callback
+
+#     # observador já iniciado
+#     if len(CALLBACKS) > 1: return
+
+#     # iniciar observador
+#     def on_press (t: Key | str | Any) -> None:
+#         tecla = t.name if isinstance(t, Key) else str(t).strip("'")
+#         callback = CALLBACKS.get(tecla, lambda: None)
+#         callback()
+
+#     observador = Listener(on_press)
+#     observador.start()
+#     register(observador.stop)
+
+teclado = Teclado()
+"""Classe de controle do teclado
+- Alterar constantes `DELAY_...` para modificar tempo de espera após ação"""
+
+__all__ = ["teclado"]

@@ -192,7 +192,7 @@ class ElementoW32:
                 except Exception: pass
             return True
 
-        primeiro, cronometro = True, bot.util.cronometro()
+        primeiro, cronometro = True, bot.util.Cronometro()
         while primeiro or (not filhos and cronometro() < aguardar):
             primeiro = False
             try: win32gui.EnumChildWindows(self.hwnd, callback, None)
@@ -210,7 +210,7 @@ class ElementoW32:
         descendentes = []
         filtro = filtro or (lambda e: e.visivel)
 
-        primeiro, cronometro = True, bot.util.cronometro()
+        primeiro, cronometro = True, bot.util.Cronometro()
         while primeiro or (not descendentes and cronometro() < aguardar):
             primeiro = False
 
@@ -229,7 +229,7 @@ class ElementoW32:
         - `AssertionError` caso não encontre"""
         assert aguardar >= 0, "Tempo para aguardar por elemento deve ser >= 0"
 
-        primeiro, cronometro = True, bot.util.cronometro()
+        primeiro, cronometro = True, bot.util.Cronometro()
         while primeiro or cronometro() < aguardar:
             primeiro = False
 
@@ -289,8 +289,7 @@ class ElementoW32:
             down, up, wparam = BOTOES_VIRTUAIS_MOUSE[botao]
             win32gui.PostMessage(self.hwnd, down, wparam, lparam)
             win32gui.PostMessage(self.hwnd, up, 0, lparam)
-        else:
-            bot.mouse.clicar_mouse(botao, coordenada=coordenada)
+        else: bot.mouse.mover(coordenada).clicar(botao=botao)
 
         return self.aguardar().sleep(0.1)
 
@@ -300,7 +299,7 @@ class ElementoW32:
         - `focar` indicador se dever ser feito o foco no elemento"""
         if focar: self.focar()
         for tecla in teclas:
-            bot.teclado.apertar_tecla(tecla)
+            bot.teclado.apertar(tecla)
             self.aguardar()
         return self.sleep(0.1)
 
@@ -314,13 +313,13 @@ class ElementoW32:
         - Apenas alguns elementos aceitam o `virtual`"""
         if focar: self.focar()
         if virtual: win32gui.SendMessage(self.hwnd, win32con.WM_SETTEXT, 0, texto) # type: ignore
-        else: bot.teclado.digitar_teclado(texto)
+        else: bot.teclado.digitar(texto)
         return self.aguardar().sleep(0.1)
 
     def atalho (self, *teclas: bot.tipagem.char | bot.tipagem.BOTOES_TECLADO) -> typing.Self:
-        """Apertar as `teclas` sequencialmente e depois soltá-las em ordem reversa"""
+        """Pressionar as teclas sequencialmente e soltá-las em ordem reversa"""
         self.focar()
-        bot.teclado.atalho_teclado(teclas)
+        bot.teclado.atalho(*teclas)
         return self.aguardar().sleep(0.1)
 
     def scroll (self, quantidade: int = 1, direcao: bot.tipagem.DIRECOES_SCROLL = "baixo") -> typing.Self:
@@ -328,8 +327,9 @@ class ElementoW32:
         assert quantidade >= 1, "Quantidade de scrolls deve ser pelo menos 1"
 
         self.focar()
+        bot.mouse.mover(self.coordenada)
         for _ in range(quantidade):
-            bot.mouse.scroll_vertical(1, direcao, self.coordenada)
+            bot.mouse.scroll_vertical(direcao=direcao)
             self.aguardar()
 
         return self.sleep(0.1)
@@ -527,7 +527,7 @@ class ElementoUIA (ElementoW32):
             ElementoUIA.UIA.CreateTrueCondition()
         )
 
-        primeiro, cronometro = True, bot.util.cronometro()
+        primeiro, cronometro = True, bot.util.Cronometro()
         while primeiro or (not filhos and cronometro() < aguardar):
             primeiro = False
 
@@ -546,7 +546,7 @@ class ElementoUIA (ElementoW32):
         descendentes = []
         filtro = filtro or (lambda e: e.visivel)
 
-        primeiro, cronometro = True, bot.util.cronometro()
+        primeiro, cronometro = True, bot.util.Cronometro()
         while primeiro or (not descendentes and cronometro() < aguardar):
             primeiro = False
 
@@ -561,7 +561,7 @@ class ElementoUIA (ElementoW32):
     def encontrar (self, filtro: typing.Callable[[ElementoUIA], bot.tipagem.SupportsBool], aguardar: int | float = 0) -> ElementoUIA:
         assert aguardar >= 0, "Tempo para aguardar por elemento deve ser >= 0"
 
-        primeiro, cronometro = True, bot.util.cronometro()
+        primeiro, cronometro = True, bot.util.Cronometro()
         while primeiro or cronometro() < aguardar:
             primeiro = False
 
@@ -694,7 +694,7 @@ class JanelaW32:
             except Exception: pass
             return True
 
-        primeiro, cronometro = True, bot.util.cronometro()
+        primeiro, cronometro = True, bot.util.Cronometro()
         while primeiro or (not encontrados and cronometro() < aguardar):
             primeiro = False
             try: win32gui.EnumWindows(callback, None)
@@ -793,7 +793,8 @@ class JanelaW32:
         # O Windows pode não permitir
         # Clicando em cima da janela resolve
         if not focado:
-            bot.mouse.clicar_mouse(coordenada=self.coordenada.transformar(yOffset=0.01))
+            topo = self.coordenada.transformar(yOffset=0.01)
+            bot.mouse.mover(topo).clicar()
             trazer_para_o_foco()
 
         return self.aguardar().sleep(0.1)
@@ -859,7 +860,7 @@ class JanelaW32:
         assert aguardar >= 0, "Tempo para aguardar por janela deve ser >= 0"
 
         encontrados = list[JanelaW32]()
-        primeiro, cronometro = True, bot.util.cronometro()
+        primeiro, cronometro = True, bot.util.Cronometro()
         while primeiro or (not encontrados and cronometro() < aguardar):
             primeiro = False
             encontrados = self.janelas_processo(filtro)
@@ -874,7 +875,7 @@ class JanelaW32:
         - `aguardar` tempo em segundos para aguardar pelo diálogo"""
         assert aguardar >= 0, "Tempo para aguardar pelo diálogo deve ser >= 0"
 
-        primeiro, cronometro = True, bot.util.cronometro()
+        primeiro, cronometro = True, bot.util.Cronometro()
         while primeiro or cronometro() < aguardar:
             primeiro = False
 
@@ -890,7 +891,7 @@ class JanelaW32:
         - `aguardar` tempo em segundos para aguardar pelo popup"""
         assert aguardar >= 0, "Tempo para aguardar pelo popup deve ser >= 0"
 
-        primeiro, cronometro = True, bot.util.cronometro()
+        primeiro, cronometro = True, bot.util.Cronometro()
         while primeiro or cronometro() < aguardar:
             primeiro = False
 
@@ -1032,9 +1033,8 @@ class JanelaUIA (JanelaW32):
         )
 
         # mover o mouse para o topo para não interferir
-        bot.mouse.mover_mouse(
-            self.coordenada.transformar(0.5, 0)
-        )
+        topo = self.coordenada.transformar(0.5, 0)
+        bot.mouse.mover(topo)
 
         for opcao in map(str.lower, opcoes):
             opcao_encontrada = False
@@ -1093,7 +1093,7 @@ class JanelaUIA (JanelaW32):
         assert aguardar >= 0, "Tempo para aguardar por janela deve ser >= 0"
 
         encontrados = list[JanelaUIA]()
-        primeiro, cronometro = True, bot.util.cronometro()
+        primeiro, cronometro = True, bot.util.Cronometro()
         while primeiro or (not encontrados and cronometro() < aguardar):
             primeiro = False
             encontrados = self.janelas_processo(filtro)

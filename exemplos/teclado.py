@@ -1,20 +1,26 @@
 import bot
 
 """
-Pressionar teclado
+Pressionar e soltar teclas
 """
-# Apertar e soltar uma tecla qtd vezes
-bot.teclado.apertar_tecla(tecla="", quantidade=1, delay=0.1)
-
-# Digitar o texto pressionando cada tecla do texto e soltando em seguida
-bot.teclado.digitar_teclado("", delay=0.05)
-
-# Apertar as `teclas` sequencialmente e depois soltá-las em ordem reversa
-bot.teclado.atalho_teclado([], delay=0.5)
-
+bot.teclado.apertar("a", "A", "1", "ç").apertar("!", "🤣")
+bot.teclado.apertar("page_down")
+bot.teclado.apertar("home", "delete")
 
 """
-Observar teclado
+Digitar os caracteres no texto
 """
-# Observar quando a tecla é apertada e chamar o callback
-bot.teclado.observar_tecla("enter", lambda: print("enter apertado"))
+bot.teclado.digitar(texto="")\
+           .apertar("enter")
+
+"""
+Pressionar as teclas sequencialmente e soltá-las em ordem reversa
+"""
+bot.teclado.atalho("ctrl", "v")
+bot.teclado.atalho("shift", "home")
+
+"""
+Pressionar as `teclas` e soltar ao sair
+"""
+with bot.teclado.pressionar("shift") as teclado:
+    ...

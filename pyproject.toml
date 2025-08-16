@@ -12,6 +12,9 @@ urls = { Homepage = "https://github.com/AlexLanes/python-bot-lib" }
 dependencies = [
   "uv>=0.6.16",
 
+  # mouse / teclado / imagem / sistema / estruturas
+  "pywin32",
+
   # database
   "pyodbc",
   "fastexcel",
@@ -25,14 +28,8 @@ dependencies = [
   "httpx",
 
   # imagem
-  "pynput",
-  "pywin32",
   "numpy==1.26.4",
   "opencv-python",
-
-  # mouse / teclado
-  "pynput",
-  "pywin32",
 
   # navegador
   "selenium",
@@ -41,7 +38,6 @@ dependencies = [
 
   # sistema
   "psutil",
-  "pywin32",
   "comtypes",
   "pyperclip",
 ]

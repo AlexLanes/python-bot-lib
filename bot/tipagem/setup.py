@@ -20,16 +20,16 @@ type tipoSQL = primitivo | bytes | date | time | datetime
 type nomeado = dict[str, tipoSQL]
 """Parâmetros necessários quando o SQL é nomeado ':nome'"""
 type posicional = Iterable[tipoSQL]
-"""Parâmetros necessários quando o SQL é posicionail '?'"""
+"""Parâmetros necessários quando o SQL é posicional '?'"""
 
 DIRECOES_SCROLL = Literal["cima", "baixo"]
-"""Direções de scroll do mouse"""
+"""Direções de scroll aceitos pelo `bot.mouse`"""
 BOTOES_MOUSE = Literal["left", "middle", "right"]
-"""Botões aceitos pelo `pynput`"""
-PORCENTAGENS = Literal["0.9", "0.8", "0.7", "0.6", "0.5", "0.4", "0.3", "0.2", "0.1"] | float
+"""Nome dos botões aceitos pelo `bot.mouse`"""
+PORCENTAGENS = float | Literal["0.9", "0.8", "0.7", "0.6", "0.5", "0.4", "0.3", "0.2", "0.1"]
 """Porcentagens (float) entre 0.0 e 1.0"""
-BOTOES_TECLADO = Literal["alt", "alt_l", "alt_r", "alt_gr", "backspace", "caps_lock", "cmd", "cmd_r", "ctrl", "ctrl_l", "ctrl_r", "delete", "down", "end", "enter", "esc", "f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9", "f10", "f11", "f12", "f13", "f14", "f15", "f16", "f17", "f18", "f19", "f20", "f21", "f22", "f23", "f24", "home", "left", "page_down", "page_up", "right", "shift", "shift_r", "space", "tab", "up", "media_play_pause", "media_volume_mute", "media_volume_down", "media_volume_up", "media_previous", "media_next", "insert", "menu", "num_lock", "pause", "print_screen", "scroll_lock"]
-"""Botões especiais aceitos pelo `pynput`"""
+BOTOES_TECLADO = Literal["alt", "ctrl", "shift", "alt_gr", "backspace", "win", "enter", "esc", "space", "tab", "up", "down", "left", "right", "insert", "delete", "home", "end", "page_down", "page_up", "f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9", "f10", "f11", "f12", "f13", "f14", "f15", "f16", "f17", "f18", "f19", "f20", "f21", "f22", "f23", "f24"]
+"""Nome dos botões virtuais aceitos pelo `bot.teclado`"""
 
 __all__ = [
     "url",
