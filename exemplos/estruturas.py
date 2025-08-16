@@ -33,7 +33,7 @@ repr(resultado)
 
 # Checar sucesso na chamada
 if resultado: ...
-if resultado.ok()
+resultado.ok()
 
 # Validação com mensagem de erro
 resultado.validar("Erro ao realizar xpto")
