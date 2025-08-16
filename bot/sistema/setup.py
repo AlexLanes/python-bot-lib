@@ -1,10 +1,11 @@
 # std
 from __future__ import annotations
-import getpass, subprocess
+import atexit, getpass, subprocess
 # interno
 from . import Caminho
 # externo
 import pyperclip, psutil
+import win32event, win32api # pywin32
 
 CAMINHO_QRES = Caminho(__file__).parente / "QRes.exe"
 
@@ -119,8 +120,23 @@ def encerrar_processos_usuario (*nome_processo: str) -> int:
 
     return encerrados
 
+def criar_mutex (nome_mutex: str) -> bool:
+    """Criar o mutex `nome_mutex` no sistema.  
+    Impede a criação de outro mutex enquanto esse estiver ativo
+    - Retornado se foi criado com sucesso
+    - Útil para evitar duplicidade em execução
+    - Mutex é segurado na memória até o fim da execução do Python"""
+    ERRO_MUTEX_EXISTENTE = 183
+    mutex = win32event.CreateMutex(None, False, nome_mutex) # type: ignore
+    if win32api.GetLastError() == ERRO_MUTEX_EXISTENTE:
+        return False
+
+    atexit.register(lambda: mutex)
+    return True
+
 __all__ = [
     "executar",
+    "criar_mutex",
     "copiar_texto",
     "texto_copiado",
     "abrir_processo",

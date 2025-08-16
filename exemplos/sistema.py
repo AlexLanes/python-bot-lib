@@ -6,6 +6,7 @@ Funções
 bot.sistema.executar()                      # Executar um comando com os argumentos no prompt e aguardar finalizar
 bot.sistema.abrir_processo()                # Abrir um processo descolado da main thread
 bot.sistema.encerrar_processos_usuario()    # Encerrar os processos do usuário atual que comecem com algum nome em nome_processo
+bot.sistema.criar_mutex("MUTEX_BOT")        # Criar o mutex `nome_mutex` no sistema (Útil para evitar duplicidade em execução)
 
 bot.sistema.informacoes_resolucao()         # Obter informações sobre resolução da tela
 bot.sistema.alterar_resolucao(1920, 1080)   # Alterar a resolução da tela
