@@ -21,20 +21,32 @@ x, y = coordenada.transformar(xOffset=0.5, yOffset=0.5)
 Classe para capturar o `return | Exception` de chamadas de uma função
 - Alternativa para não propagar o erro e nem precisar utilizar `try-except`
 """
-# Chamando manualmente
-resultado = bot.estruturas.Resultado(int, "11")
-# Possível de se utilizar como decorador
+# Criando com a função, argumentos posicionais e argumentos nomeados
+# a função será automaticamente chamada após
+resultado = bot.estruturas.Resultado(funcao, "argumento1", "argumento2", argumento=valor)
+# Pode se utilizar como decorador em uma função e obter Resultado como retorno
 @bot.estruturas.Resultado.decorador
 def funcao (): ...
-resultado = funcao()
 
-# Propriedades
-resultado.valor                     # Acessar o valor diretamente ou `None` caso tenha apresentado erro
-resultado.erro                      # Acessar a `Exception` diretamente ou `None` caso não tenha apresentado erro
-# Métodos
-resultado.ok()                      # Checar se não houve erro
-resposta, erro = resultado.unwrap() # Obter o valor da resposta e erro
-resultado.valor_ou(default=0)       # Obter o valor da resposta ou default caso tenha apresentado erro
+# Representação "sucesso" ou "erro"
+repr(resultado)
+
+# Checar sucesso na chamada
+if resultado: ...
+if resultado.ok()
+
+# Validação com mensagem de erro
+resultado.validar("Erro ao realizar xpto")
+valor = resultado.validar("Erro ao realizar xpto").valor()
+
+# Acessar
+valor = resultado.valor()           # necessário checar se é de sucesso
+erro = resultado.erro()             # necessário checar se é de erro
+valor = resultado.valor_ou(default) # valor ou default caso o resultado seja de erro
+
+# Mapear o resultado para outra função
+bot.estruturas.Resultado(lambda: 10).map(lambda x: x * 2)  # Sucesso; valor=20
+bot.estruturas.Resultado(lambda: 1/0).map(lambda x: x * 2) # Erro; ZeroDivisionError
 
 
 

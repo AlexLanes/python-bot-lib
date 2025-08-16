@@ -90,32 +90,40 @@ class Resultado [T]:
     - Alternativa para não propagar o erro e nem precisar utilizar `try-except`
 
     ```
-    # informar a função, os argumentos posicionais e os argumentos nomeados
+    # Criando com a função, argumentos posicionais e argumentos nomeados
     # a função será automaticamente chamada após
     resultado = Resultado(funcao, "argumento1", "argumento2", argumento=valor)
-    # pode se utilizar como decorador em uma função e obter Resultado como retorno
+    # Pode se utilizar como decorador em uma função e obter Resultado como retorno
     @Resultado.decorador
 
-    # representação "sucesso" ou "erro"
+    # Representação "sucesso" ou "erro"
     repr(resultado)
 
-    # checar sucesso na chamada
+    # Checar sucesso na chamada
     if resultado: ...
     if resultado.ok()
 
-    # acessando
-    valor, erro = resultado.unwrap()
-    valor, erro = resultado.valor, resultado.erro
-    valor = resultado.valor_ou(default) # valor ou default caso a função tenha apresentado erro
+    # Validação com mensagem de erro
+    resultado.validar("Erro ao realizar xpto")
+    valor = resultado.validar("Erro ao realizar xpto").valor()
+
+    # Acessar
+    valor = resultado.valor()           # necessário checar se é de sucesso
+    erro = resultado.erro()             # necessário checar se é de erro
+    valor = resultado.valor_ou(default) # valor ou default caso o resultado seja de erro
+
+    # Mapear o resultado para outra função
+    Resultado(lambda: 10).map(lambda x: x * 2)  # Sucesso; valor=20
+    Resultado(lambda: 1/0).map(lambda x: x * 2) # Erro; ZeroDivisionError
     ```"""
 
-    valor: T | None
-    erro: Exception | None
+    __valor: T | None
+    __erro: Exception | None
 
     def __init__(self, funcao: typing.Callable[..., T], *args, **kwargs) -> None:
-        self.valor = self.erro = None
-        try: self.valor = funcao(*args, **kwargs)
-        except Exception as erro: self.erro = erro
+        self.__valor = self.__erro = None
+        try: self.__valor = funcao(*args, **kwargs)
+        except Exception as erro: self.__erro = erro
 
     @staticmethod
     def decorador[K] (func: typing.Callable[P, K]) -> typing.Callable[P, Resultado[K]]: # type: ignore
@@ -127,7 +135,7 @@ class Resultado [T]:
 
     def __bool__ (self) -> bool:
         """Indicação de sucesso"""
-        return self.erro == None
+        return self.__erro == None
 
     def __repr__ (self) -> str:
         """Representação da classe"""
@@ -137,13 +145,38 @@ class Resultado [T]:
         """Indicação de sucesso"""
         return bool(self)
 
-    def unwrap (self) -> tuple[T, None] | tuple[None, Exception]:
-        """Obter `valor, erro` do resultado"""
-        return self.valor, self.erro # type: ignore
+    def valor (self) -> T:
+        """Obter o `valor` do resultado
+        - Necessário validar se o resultado é de sucesso"""
+        if not self.ok():
+            raise Exception(f"Tentando obter o valor de um resultado sem sucesso") from self.__erro
+        return self.__valor # type: ignore
 
-    def valor_ou[K] (self, default: K) -> T | K:
+    def erro (self) -> Exception:
+        """Obter o `erro` do resultado
+        - Necessário validar se o resultado é de erro"""
+        if self.ok():
+            raise Exception(f"Tentando obter o erro de um resultado com sucesso")
+        return self.__erro # type: ignore
+
+    def valor_ou[D] (self, default: D) -> T | D:
         """Obter o valor do resultado ou `default` caso tenha apresentado erro"""
-        return self.valor if self else default # type: ignore
+        return self.__valor if self else default # type: ignore
+
+    def validar (self, mensagem: str) -> typing.Self:
+        """Validar se o resultado é de sucesso
+        - `Exception(mensagem; erro)` caso não seja um resultado de sucesso
+        - Retornado `self` para encadeamento"""
+        if not self.ok():
+            raise Exception(f"{mensagem}; {self.__erro}")
+        return self
+
+    def map[K] (self, func: typing.Callable[[T], K], *args, **kwargs) -> Resultado[K]: # type: ignore
+        """Aplicar o `valor` do resultado na `func` como primeiro argumento e retornar um novo resultado
+        - `args` e `kwargs` para adicionar mais argumentos caso necessário
+        - Caso seja resultado de erro, retornado o mesmo resultado para propagar o erro"""
+        if not self.ok(): return self # type: ignore
+        return Resultado(func, self.__valor, *args, **kwargs)
 
 class InfoStack:
     """Informações do `Stack` de execução"""
