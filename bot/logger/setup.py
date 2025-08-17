@@ -1,132 +1,148 @@
 # std
-import sys, logging, atexit
+import sys, atexit, logging, typing, inspect, functools
 from datetime import (
-    datetime as Datetime,
-    timezone as Timezone,
+    datetime  as Datetime,
+    timezone  as Timezone,
     timedelta as Timedelta
 )
 # interno
-from .. import configfile, estruturas, sistema
+from ..        import configfile
+from ..sistema import Caminho
 
-TIMEZONE = Timezone(Timedelta(hours=-3))
-INICIALIZADO_EM = Datetime.now(TIMEZONE)
+DIRETORIO_EXECUCAO = Caminho.diretorio_execucao().string
 
-FORMATO_MENSAGEM_LOG = "%(asctime)s | nome(%(name)s) | level(%(levelname)s) | %(message)s"
-FORMATO_DATA_LOG, FORMATO_NOME_LOG_PERSISTENCIA = "%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H-%M-%S.log"
-FORMATTER = logging.Formatter(FORMATO_MENSAGEM_LOG, FORMATO_DATA_LOG)
+class StackInfoFilter (logging.Filter):
+    """Adicionar informação do arquivo, função e linha na mensagem do Log"""
 
-CAMINHO_PACOTE = sistema.Caminho(__file__).parente.string.removesuffix(r"\logger")
-DIRETORIO_EXECUCAO = sistema.Caminho.diretorio_execucao()
-CAMINHO_LOG_RAIZ = DIRETORIO_EXECUCAO / ".log"
-CAMINHO_DIRETORIO_PERSISTENCIA = DIRETORIO_EXECUCAO / "logs"
-CAMINHO_LOG_PERSISTENCIA = CAMINHO_DIRETORIO_PERSISTENCIA / INICIALIZADO_EM.strftime(FORMATO_NOME_LOG_PERSISTENCIA)
+    def filter (self, record: logging.LogRecord) -> bool:
+        try: frame = inspect.stack()[6]
+        except Exception: return True
 
-INICIALIZADO = False
-ROOT_LOGGER, BOT_LOGGER = logging.getLogger(), logging.getLogger("BOT")
+        caminho_relativo = frame.filename.removeprefix(DIRETORIO_EXECUCAO).strip("\\")
+        record.msg = f"arquivo({caminho_relativo}) | função({frame.function}) | linha({frame.lineno}) | {record.msg}"
+        return True
 
-def inicializar_logger (diretorio = DIRETORIO_EXECUCAO) -> None:
-    """Inicializar o logger
-    - Utiliza o `configfile`"""
-    global DIRETORIO_EXECUCAO, CAMINHO_LOG_RAIZ, CAMINHO_DIRETORIO_PERSISTENCIA, CAMINHO_LOG_PERSISTENCIA
-    DIRETORIO_EXECUCAO = diretorio.criar_diretorios()
-    CAMINHO_LOG_RAIZ = DIRETORIO_EXECUCAO / ".log"
-    CAMINHO_DIRETORIO_PERSISTENCIA = DIRETORIO_EXECUCAO / "logs"
-    CAMINHO_LOG_PERSISTENCIA = CAMINHO_DIRETORIO_PERSISTENCIA / INICIALIZADO_EM.strftime(FORMATO_NOME_LOG_PERSISTENCIA)
+class Logger:
+    """Classe configurada para criar, consultar e tratar os arquivos de log.  
+    Possível alterar configurações mudando as constantes antes do logger ser inicializado
+    #### Deve ser inicializado `bot.logger.inicializar_logger()`
 
-    logging.basicConfig(
-        force = True,
-        encoding = "utf-8",
-        datefmt = FORMATO_DATA_LOG,
-        format = FORMATO_MENSAGEM_LOG,
-        level = logging.DEBUG if configfile.obter_opcao_ou("logger", "flag_debug", False) else logging.INFO,
-        handlers = [logging.FileHandler(CAMINHO_LOG_RAIZ.string, "w", "utf-8"), logging.StreamHandler(sys.stdout)]
+    - Stream para o `stdout`
+    - Cria um LOG no diretório de execução para fácil acesso `CAMINHO_LOG_RAIZ`
+    - Salva um LOG no diretório de persistência `CAMINHO_LOG_PERSISTENCIA`
+    - Variáveis .ini `[logger] -> [dias_persistencia: 14, flag_debug: False]`"""
+
+    INICIALIZADO = False
+    TIMEZONE_BR = Timezone(Timedelta(hours=-3))
+    INICIALIZACAO_PACOTE = Datetime.now(TIMEZONE_BR)
+
+    FORMATO_DATA_LOG = r"%Y-%m-%dT%H:%M:%S"
+    FORMATO_NOME_LOG_PERSISTENCIA = r"%Y-%m-%dT%H-%M-%S.log"
+    FORMATO_MENSAGEM_LOG = "%(asctime)s | nome(%(name)s) | level(%(levelname)s) | %(message)s"
+
+    CAMINHO_LOG_RAIZ = Caminho.diretorio_execucao() / ".log"
+    CAMINHO_DIRETORIO_PERSISTENCIA = Caminho.diretorio_execucao() / "logs"
+    CAMINHO_LOG_PERSISTENCIA = Caminho(
+        CAMINHO_DIRETORIO_PERSISTENCIA.string,
+        INICIALIZACAO_PACOTE.strftime(FORMATO_NOME_LOG_PERSISTENCIA)
     )
 
-    # adicionar a persistência do log se requisitado
-    if configfile.obter_opcao_ou("logger", "flag_persistencia", True):
-        CAMINHO_DIRETORIO_PERSISTENCIA.criar_diretorios()
-        handler = logging.FileHandler(CAMINHO_LOG_PERSISTENCIA.string, "w", "utf-8")
-        handler.setFormatter(FORMATTER)
-        ROOT_LOGGER.addHandler(handler)
+    @functools.cached_property
+    def bot_logger (self) -> logging.Logger:
+        logger = logging.getLogger("BOT")
+        logger.propagate = False # Não deixar o root duplicar a mensagem
+        return logger
 
-    global INICIALIZADO
-    INICIALIZADO = True
+    def inicializar_logger (self) -> typing.Self:
+        """Inicializar o logger
+        - Configura o formato
+        - Inicializa os handlers no stdout e arquivos
+        - Registra a limpeza do diretório de persistência"""
+        if self.INICIALIZADO: return self
+        self.INICIALIZADO = True
 
-def caminho_log_raiz () -> sistema.Caminho:
-    """Caminho para o arquivo log que é criado na raiz do projeto"""
-    return CAMINHO_LOG_RAIZ
+        # Aplicar o filtro apenas para quem usar o BOT_LOGGER
+        # Não possível usar em todos os handlers devido a diferença no stack de outros loggers
+        self.bot_logger.addFilter(StackInfoFilter())
 
-def caminho_log_persistencia () -> sistema.Caminho:
-    """Caminho para o arquivo log que é criado na inicialização do bot, caso requisitado, para persistência no diretório `/logs`"""
-    return CAMINHO_LOG_PERSISTENCIA
+        # Adicionar os handlers no BOT_LOGGER
+        self.CAMINHO_LOG_PERSISTENCIA.parente.criar_diretorios()
+        for handler in (logging.FileHandler(self.CAMINHO_LOG_RAIZ.path, "w", "utf-8"),
+                        logging.StreamHandler(sys.stdout),
+                        logging.FileHandler(self.CAMINHO_LOG_PERSISTENCIA.path, "w", "utf-8")):
+            self.bot_logger.addHandler(handler)
 
-def criar_mensagem_padrao (mensagem: str) -> str:
-    """Extrair informações do stack para adicionar na mensagem de log"""
-    if not INICIALIZADO: inicializar_logger()
-    stack = estruturas.InfoStack(3)
-    prefixo_caminho = DIRETORIO_EXECUCAO.string if str(stack.caminho).startswith(DIRETORIO_EXECUCAO.string) else CAMINHO_PACOTE.removesuffix(r"\bot")
-    arquivo_relativo = str(stack.caminho).removeprefix(prefixo_caminho).lstrip("\\")
-    return f"arquivo({arquivo_relativo}) | função({stack.funcao}) | linha({stack.linha}) | {mensagem}"
+        logging.basicConfig(
+            force    = True,
+            encoding = "utf-8",
+            datefmt  = self.FORMATO_DATA_LOG,
+            format   = self.FORMATO_MENSAGEM_LOG,
+            level    = logging.DEBUG if configfile.obter_opcao_ou("logger", "flag_debug", False) else logging.INFO,
+            handlers = self.bot_logger.handlers
+        )
 
-def debug (mensagem: str) -> None:
-    """Log nível 'DEBUG'"""
-    BOT_LOGGER.debug(criar_mensagem_padrao(mensagem))
+        atexit.register(self.__limpeza_diretorio_persistencia)
+        return self
 
-def informar (mensagem: str) -> None:
-    """Log nível 'INFO'"""
-    BOT_LOGGER.info(criar_mensagem_padrao(mensagem))
+    def __limpeza_diretorio_persistencia (self) -> None:
+        """Limpar os logs no `CAMINHO_DIRETORIO_PERSISTENCIA` que ultrapassaram a data limite
+        - Registrado para executar ao fim do Python automaticamente
+        - `Default:` 14 dias"""
+        # obter limite
+        dias = configfile.obter_opcao_ou("logger", "dias_persistencia", 14)
+        limite = Timedelta(days=dias)
+        # limpar
+        for caminho in Logger.CAMINHO_DIRETORIO_PERSISTENCIA:
+            if not caminho.arquivo(): continue
+            data = Datetime.strptime(caminho.nome, Logger.FORMATO_NOME_LOG_PERSISTENCIA)\
+                           .astimezone(Logger.TIMEZONE_BR)
+            if Logger.INICIALIZACAO_PACOTE - data < limite: break
+            caminho.apagar_arquivo()
 
-def alertar (mensagem: str) -> None:
-    """Log nível 'WARNING'"""
-    BOT_LOGGER.warning(criar_mensagem_padrao(mensagem))
+    def debug (self, mensagem: str) -> typing.Self:
+        """Log nível 'DEBUG'"""
+        self.bot_logger.debug(mensagem)
+        return self
 
-def erro (mensagem: str, excecao: Exception | None = None) -> None:
-    """Log nível 'ERROR'
-    - `excecao` Informação para o Traceback. Capturado automaticamente dentro do `except`"""
-    BOT_LOGGER.error(
-        criar_mensagem_padrao(mensagem),
-        exc_info = excecao or sys.exc_info()
-    )
+    def informar (self, mensagem: str) -> typing.Self:
+        """Log nível 'INFO'"""
+        self.bot_logger.info(mensagem)
+        return self
 
-def linha_horizontal () -> None:
-    """Adicionar uma linha horizontal para separar seções visualmente"""
-    for handler in ROOT_LOGGER.handlers:
-        if isinstance(handler, (logging.FileHandler, logging.StreamHandler)):
+    def alertar (self, mensagem: str) -> typing.Self:
+        """Log nível 'WARNING'"""
+        self.bot_logger.warning(mensagem)
+        return self
+
+    def erro (self, mensagem: str, excecao: Exception | None = None) -> typing.Self:
+        """Log nível 'ERROR'
+        - `excecao=None` Capturado automaticamente, caso esteja dentro do `except`"""
+        self.bot_logger.error(mensagem, exc_info=excecao or sys.exc_info())
+        return self
+
+    def linha_horizontal (self) -> typing.Self:
+        """Adicionar uma linha horizontal para separar seções visualmente"""
+        for handler in self.bot_logger.handlers:
+            if not isinstance(handler, (logging.FileHandler, logging.StreamHandler)): continue
             handler.stream.write("\n------------------- |\n\n")
             handler.flush()
+        return self
 
-def limpar_log_raiz () -> None:
-    """Limpar o `caminho_log_raiz()`
-    - Não afeta o `caminho_log_persistencia()`"""
-    if not INICIALIZADO: return
-    ROOT_LOGGER.handlers[0].close()
-    handler = logging.FileHandler(CAMINHO_LOG_RAIZ.string, "w", "utf-8")
-    handler.setFormatter(FORMATTER)
-    ROOT_LOGGER.handlers[0] = handler
+    def limpar_log_raiz (self) -> typing.Self:
+        """Limpar o `CAMINHO_LOG_RAIZ`
+        - Não afeta o `CAMINHO_DIRETORIO_PERSISTENCIA`"""
+        self.bot_logger.handlers[0].close()
+        self.bot_logger.handlers[0] = logging.FileHandler(self.CAMINHO_LOG_RAIZ.path, "w", "utf-8")
+        return self
 
-@atexit.register
-def limpar_logs_persistencia () -> None:
-    """Limpar os logs no diretório de persistência que ultrapassaram a data limite
-    - Função executada automaticamente ao fim da execução"""
-    if not INICIALIZADO or not CAMINHO_DIRETORIO_PERSISTENCIA.existe():
-        return
-    # obter limite
-    dias = configfile.obter_opcao_ou("logger", "dias_persistencia", 14)
-    limite = Timedelta(days=dias)
-    # limpar
-    for caminho in CAMINHO_DIRETORIO_PERSISTENCIA:
-        if not caminho.arquivo(): continue
-        data = Datetime.strptime(caminho.nome, FORMATO_NOME_LOG_PERSISTENCIA).astimezone(TIMEZONE)
-        if INICIALIZADO_EM - data < limite: break
-        caminho.apagar_arquivo()
+logger = Logger()
+"""Classe configurada para criar, consultar e tratar os arquivos de log.  
+Possível alterar configurações mudando as constantes antes do logger ser inicializado
+#### Deve ser inicializado `bot.logger.inicializar_logger()`
 
-__all__ = [
-    "erro",
-    "debug", 
-    "alertar",
-    "informar",
-    "limpar_log_raiz",
-    "linha_horizontal",
-    "caminho_log_raiz",
-    "caminho_log_persistencia"
-]
+- Stream para o `stdout`
+- Cria um LOG no diretório de execução para fácil acesso `CAMINHO_LOG_RAIZ`
+- Salva um LOG no diretório de persistência `CAMINHO_LOG_PERSISTENCIA`
+- Variáveis .ini `[logger] -> [dias_persistencia: 14, flag_debug: False]`"""
+
+__all__ = ["logger"]
