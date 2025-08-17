@@ -25,6 +25,7 @@ class StackInfoFilter (logging.Filter):
 class Logger:
     """Classe configurada para criar, consultar e tratar os arquivos de log.  
     Possível alterar configurações mudando as constantes antes do logger ser inicializado
+
     #### Deve ser inicializado `bot.logger.inicializar_logger()`
 
     - Stream para o `stdout`
@@ -46,6 +47,10 @@ class Logger:
         CAMINHO_DIRETORIO_PERSISTENCIA.string,
         INICIALIZACAO_PACOTE.strftime(FORMATO_NOME_LOG_PERSISTENCIA)
     )
+
+    @functools.cached_property
+    def root_logger (self) -> logging.Logger:
+        return logging.getLogger()
 
     @functools.cached_property
     def bot_logger (self) -> logging.Logger:
@@ -101,23 +106,27 @@ class Logger:
 
     def debug (self, mensagem: str) -> typing.Self:
         """Log nível 'DEBUG'"""
-        self.bot_logger.debug(mensagem)
+        logger = self.bot_logger if self.INICIALIZADO else self.root_logger
+        logger.debug(mensagem)
         return self
 
     def informar (self, mensagem: str) -> typing.Self:
         """Log nível 'INFO'"""
-        self.bot_logger.info(mensagem)
+        logger = self.bot_logger if self.INICIALIZADO else self.root_logger
+        logger.info(mensagem)
         return self
 
     def alertar (self, mensagem: str) -> typing.Self:
         """Log nível 'WARNING'"""
-        self.bot_logger.warning(mensagem)
+        logger = self.bot_logger if self.INICIALIZADO else self.root_logger
+        logger.warning(mensagem)
         return self
 
     def erro (self, mensagem: str, excecao: Exception | None = None) -> typing.Self:
         """Log nível 'ERROR'
         - `excecao=None` Capturado automaticamente, caso esteja dentro do `except`"""
-        self.bot_logger.error(mensagem, exc_info=excecao or sys.exc_info())
+        logger = self.bot_logger if self.INICIALIZADO else self.root_logger
+        logger.error(mensagem, exc_info=excecao or sys.exc_info())
         return self
 
     def linha_horizontal (self) -> typing.Self:
@@ -138,6 +147,7 @@ class Logger:
 logger = Logger()
 """Classe configurada para criar, consultar e tratar os arquivos de log.  
 Possível alterar configurações mudando as constantes antes do logger ser inicializado
+
 #### Deve ser inicializado `bot.logger.inicializar_logger()`
 
 - Stream para o `stdout`
