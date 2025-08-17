@@ -1,11 +1,14 @@
 # std
 import configparser
 # interno
-from .. import util, sistema, tipagem, estruturas
+from ..estruturas import LowerDict
+from ..sistema    import Caminho
+from ..tipagem    import primitivo
+from ..util       import transformar_tipo
 
 INICIALIZADO = False
-DIRETORIO_EXECUCAO = sistema.Caminho.diretorio_execucao()
-DADOS = estruturas.LowerDict[estruturas.LowerDict[str]]()
+DIRETORIO_EXECUCAO = Caminho.diretorio_execucao()
+DADOS = LowerDict[LowerDict[str]]()
 """`{ secao: { opcao: valor } }`"""
 
 def inicializar_configfile (diretorio = DIRETORIO_EXECUCAO) -> None:
@@ -21,7 +24,7 @@ def inicializar_configfile (diretorio = DIRETORIO_EXECUCAO) -> None:
     # lower seções e opções
     for secao in config:    
         if secao.lower() == "default": continue
-        DADOS[secao] = estruturas.LowerDict({
+        DADOS[secao] = LowerDict({
             opcao: config[secao][opcao]
             for opcao in config[secao]
         })
@@ -53,10 +56,10 @@ def possui_opcoes (secao: str, *opcoes: str) -> bool:
         for opcao in opcoes
     )
 
-def obter_opcao_ou[T: tipagem.primitivo] (secao: str, opcao: str, default: T = "") -> T:
+def obter_opcao_ou[T: primitivo] (secao: str, opcao: str, default: T = "") -> T:
     """Obter `opcao` de uma `secao` do configfile ou `default` caso não exista
     - Transforma o tipo da variável para o mesmo tipo do `default` informado"""
-    return util.transformar_tipo(DADOS[secao][opcao], type(default)) \
+    return transformar_tipo(DADOS[secao][opcao], type(default)) \
         if possui_secao(secao) and possui_opcao(secao, opcao) else default
 
 def obter_opcoes_obrigatorias (secao: str, *opcoes: str) -> tuple[str, ...]:

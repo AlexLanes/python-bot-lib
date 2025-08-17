@@ -13,7 +13,7 @@ from datetime import (
     timedelta as TimeDelta
 )
 # interno
-from .. import tipagem, logger, configfile, util, formatos, sistema, estruturas
+import bot
 
 @dataclasses.dataclass
 class Email:
@@ -21,9 +21,9 @@ class Email:
 
     uid: int
     """id do e-mail"""
-    remetente: tipagem.email
+    remetente: bot.tipagem.email
     """Remetente que enviou o e-mail"""
-    destinatarios: list[tipagem.email]
+    destinatarios: list[bot.tipagem.email]
     """Destinatários que receberam o e-mail"""
     assunto: str
     """Assunto do e-mail"""
@@ -37,22 +37,22 @@ class Email:
     """Anexos do e-mail
     - `for nome, tipo, conteudo in email.anexos:`"""
 
-def enviar_email (destinatarios: typing.Iterable[tipagem.email],
+def enviar_email (destinatarios: typing.Iterable[bot.tipagem.email],
                   assunto = "",
                   conteudo = "",
-                  anexos: list[sistema.Caminho] = []) -> None:
+                  anexos: list[bot.sistema.Caminho] = []) -> None:
     """Enviar email para uma lista de `destinatarios` com `assunto`, `conteudo` e lista de `anexos`
     - Abstração `smtplib`
     - `conteudo` pode ser uma string html se começar com "<"
     - Variáveis .ini `[email.enviar] -> user, password, host, [port: 587, ssl: False]`"""
-    logger.informar(f"Enviando e-mail '{assunto}' para {str(destinatarios)}")
+    bot.logger.informar(f"Enviando e-mail '{assunto}' para {str(destinatarios)}")
     assert destinatarios, "Pelo menos um e-mail é necessário para ser enviado"
 
     # variaveis do configfile
     secao = "email.enviar"
-    ssl = configfile.obter_opcao_ou(secao, "ssl", False)
-    port = configfile.obter_opcao_ou(secao, "port", 587)
-    user, password, host = configfile.obter_opcoes_obrigatorias(secao, "user", "password", "host")
+    ssl = bot.configfile.obter_opcao_ou(secao, "ssl", False)
+    port = bot.configfile.obter_opcao_ou(secao, "port", 587)
+    user, password, host = bot.configfile.obter_opcoes_obrigatorias(secao, "user", "password", "host")
 
     # remetente
     from_no_reply = f"no-reply <{user}>"
@@ -72,13 +72,13 @@ def enviar_email (destinatarios: typing.Iterable[tipagem.email],
     # anexos
     for caminho in anexos:
         if not caminho.arquivo():
-            logger.alertar(f"Anexo para o e-mail não encontrado: {caminho}")
+            bot.logger.alertar(f"Anexo para o e-mail não encontrado: {caminho}")
             continue
         with open(caminho.string, "rb") as arquivo:
             decodificar = any(formato in caminho.nome for formato in (".csv", ".txt", ".log"))
             conteudo = arquivo.read().decode(errors="ignore") if decodificar else arquivo.read()
             anexo = MIMEApplication(conteudo)
-            nome = util.remover_acentuacao(caminho.nome)
+            nome = bot.util.remover_acentuacao(caminho.nome)
             anexo.add_header("Content-Disposition", f'attachment; filename="{nome}"')
             mensagem.attach(anexo)
 
@@ -86,12 +86,12 @@ def enviar_email (destinatarios: typing.Iterable[tipagem.email],
     try:
         TipoSMTP = smtplib.SMTP_SSL if ssl else smtplib.SMTP
         with TipoSMTP(host, port, timeout=10.0) as smtp:
-            estruturas.Resultado(smtp.starttls)
+            bot.estruturas.Resultado(smtp.starttls)
             smtp.login(user, password)
             erro = smtp.sendmail(from_no_reply, destinatarios, mensagem.as_string()) # type: ignore
-            assert not erro, formatos.Json(erro).stringify(False)
+            assert not erro, bot.formatos.Json(erro).stringify(False)
     except Exception as erro:
-        logger.alertar(f"Erro ao enviar e-mail\n\t{type(erro).__name__}\n\t{erro}")
+        bot.logger.alertar(f"Erro ao enviar e-mail\n\t{type(erro).__name__}\n\t{erro}")
 
 def obter_emails (limite: int | slice | None = None,
                   query = "ALL",
@@ -108,14 +108,14 @@ def obter_emails (limite: int | slice | None = None,
         - (OR (TO 'example@gmail.com') (FROM 'example@gmail.com')) = Emails enviados para OU recebidos de"""
     limite = limite if isinstance(limite, slice) else slice(limite)
     # variaveis do configfile
-    user, password, host = configfile.obter_opcoes_obrigatorias("email.obter", "user", "password", "host")
+    user, password, host = bot.configfile.obter_opcoes_obrigatorias("email.obter", "user", "password", "host")
 
-    def extrair_email (email: str) -> tipagem.email:
+    def extrair_email (email: str) -> bot.tipagem.email:
         """Extrair apenas a parte do e-mail da string fornecida
         - `email` pode conter o nome da pessoa antes do email"""
-        resultado = re.search(r"[\w\-\.]+@([\w\-]+\.)+[\w\-]{2,4}", util.normalizar(email))
+        resultado = re.search(r"[\w\-\.]+@([\w\-]+\.)+[\w\-]{2,4}", bot.util.normalizar(email))
         if resultado == None:
-            logger.alertar(f"Uma extração de e-mail não retornou resultado: '{email}'")
+            bot.logger.alertar(f"Uma extração de e-mail não retornou resultado: '{email}'")
             return ""
         return resultado.group()
 
@@ -136,7 +136,7 @@ def obter_emails (limite: int | slice | None = None,
             assert isinstance(data, Datetime)
             return data.astimezone(brt)
         except Exception:
-            logger.alertar(f"Extração do datetime '{datetime}' do email resultou em falha")
+            bot.logger.alertar(f"Extração do datetime '{datetime}' do email resultou em falha")
             return Datetime.now(brt)
 
     with imaplib.IMAP4_SSL(host) as imap:

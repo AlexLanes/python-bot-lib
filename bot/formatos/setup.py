@@ -12,7 +12,7 @@ from xml.etree.ElementTree import (
     fromstring  as xml_from_string,
 )
 # interno
-from .. import tipagem, sistema, util
+import bot
 
 class Json:
     """Classe para validação e leitura de itens JSON acessando propriedades via `.` ou `[]`
@@ -214,18 +214,18 @@ class ElementoXML:
     ```"""
 
     __elemento: Element
-    __prefixos: dict[str, tipagem.url] = {}
+    __prefixos: dict[str, bot.tipagem.url] = {}
 
     def __init__ (self, nome: str,
                         texto: str | None = None,
-                        namespace: tipagem.url | None = None,
+                        namespace: bot.tipagem.url | None = None,
                         atributos: dict[str, str] | None = None) -> None:
         nome = f"{{{namespace}}}{nome}" if namespace else nome
         self.__elemento = Element(nome, atributos or {})
         self.__elemento.text = texto
 
     @classmethod
-    def parse (cls, xml: str | sistema.Caminho) -> ElementoXML:
+    def parse (cls, xml: str | bot.sistema.Caminho) -> ElementoXML:
         """Parse do `xml` para um `ElementoXML`
         - `xml` pode ser uma string xml ou o caminho até o arquivo .xml"""
         xml = str(xml).lstrip() # remover espaços vazios no começo
@@ -283,13 +283,13 @@ class ElementoXML:
         self.__elemento.tag = f"{{{namespace}}}{nome}" if namespace else nome
 
     @property
-    def namespace (self) -> tipagem.url | None:
+    def namespace (self) -> bot.tipagem.url | None:
         """`Namespace` do elemento
         - Não leva em conta o `xmlns` do parente"""
         return self.__nome_namespace()[1]
 
     @namespace.setter
-    def namespace (self, namespace: tipagem.url | None) -> None:
+    def namespace (self, namespace: bot.tipagem.url | None) -> None:
         """Setar `namespace` do elemento"""
         nome, _ = self.__nome_namespace()
         self.__elemento.tag = f"{{{namespace}}}{nome}" if namespace else nome
@@ -314,7 +314,7 @@ class ElementoXML:
         """Setar `atributos`"""
         self.__elemento.attrib = valor
 
-    def __nome_namespace (self) -> tuple[str, tipagem.url | None]:
+    def __nome_namespace (self) -> tuple[str, bot.tipagem.url | None]:
         """Extrair nome e namespace do `Element.tag`
         - `nome, namespace = self.__nome_namespace()`"""
         tag = self.__elemento.tag
@@ -347,7 +347,7 @@ class ElementoXML:
             for elemento in self.__elemento
         ]
 
-    def encontrar (self, xpath: str, namespaces: dict[str, tipagem.url] | None = None) -> ElementoXML | None:
+    def encontrar (self, xpath: str, namespaces: dict[str, bot.tipagem.url] | None = None) -> ElementoXML | None:
         """Encontrar elemento que resulte no `xpath` informado ou `None` caso não seja encontrado
         - `xpath` deve retornar no elemento apenas, não em texto ou atributo
         - `namespaces` para utilizar prefixos no `xpath`, informar um dicionario `{ ns: url } ou registrar_prefixo()`"""
@@ -357,7 +357,7 @@ class ElementoXML:
         elemento = self.__elemento.find(xpath, namespaces)
         return ElementoXML.__from_element(elemento) if elemento != None else None
 
-    def procurar (self, xpath: str, namespaces: dict[str, tipagem.url] | None = None) -> list[ElementoXML]:
+    def procurar (self, xpath: str, namespaces: dict[str, bot.tipagem.url] | None = None) -> list[ElementoXML]:
         """Procurar elementos que resultem no `xpath` informado
         - `xpath` deve retornar em elementos apenas, não em texto ou atributo
         - `namespaces` para utilizar prefixos no `xpath`, informar um dicionario `{ ns: url } ou registrar_prefixo()`"""
@@ -399,7 +399,7 @@ class ElementoXML:
         return ElementoXML.parse(str(self))
 
     @staticmethod
-    def registrar_prefixo (prefixo: str, namespace: tipagem.url) -> tipagem.url:
+    def registrar_prefixo (prefixo: str, namespace: bot.tipagem.url) -> bot.tipagem.url:
         """Registrar o `prefixo` para o determinado `namespace`
         - Retorna o `namespace`"""
         ElementoXML.__prefixos[prefixo] = namespace
@@ -475,7 +475,7 @@ class Unmarshaller[T]:
         obj = object.__new__(self.cls)
         caminho = kwargs.get("caminho", "$")
         chaves_normalizadas = {
-            util.normalizar(chave): chave
+            bot.util.normalizar(chave): chave
             for chave in item.keys()
         }
 
@@ -587,8 +587,8 @@ class Toml:
     dados: dict[str, Any]
     """Dados raiz do `toml`"""
 
-    def __init__ (self, caminho: str | sistema.Caminho) -> None:
-        caminho = sistema.Caminho(str(caminho))
+    def __init__ (self, caminho: str | bot.sistema.Caminho) -> None:
+        caminho = bot.sistema.Caminho(str(caminho))
         self.dados = tomllib.loads(caminho.path.read_text(encoding="utf-8"))
 
     def __repr__ (self) -> str:

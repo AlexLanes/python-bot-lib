@@ -2,7 +2,7 @@
 import sqlite3, typing
 # interno
 from .setup import criar_excel, ResultadoSQL
-from .. import logger, sistema, tipagem
+import bot
 
 class Sqlite:
     """Classe de abstração do módulo `sqlite3`
@@ -13,9 +13,9 @@ class Sqlite:
     conexao: sqlite3.Connection
     """Conexão com o sqlite3"""
 
-    def __init__ (self, database: str | sistema.Caminho = ":memory:", **kwargs: typing.Any) -> None:
+    def __init__ (self, database: str | bot.sistema.Caminho = ":memory:", **kwargs: typing.Any) -> None:
         database = str(database)
-        logger.informar(f"Iniciando conexão Sqlite com o database '{database}'")
+        bot.logger.informar(f"Iniciando conexão Sqlite com o database '{database}'")
         self.conexao = sqlite3.connect(database, **kwargs)
 
     def __del__ (self) -> None:
@@ -30,7 +30,7 @@ class Sqlite:
         """Fechar a conexão com o `sqlite`
         - Executado automaticamente quando o objeto sair do escopo"""
         self.conexao.close()
-        logger.informar(f"Conexão com o sqlite encerrada")
+        bot.logger.informar(f"Conexão com o sqlite encerrada")
 
     def tabelas (self) -> list[str]:
         """Nomes das tabelas disponíveis"""
@@ -60,7 +60,7 @@ class Sqlite:
         self.conexao.execute("PRAGMA foreign_keys = ON")
         return self
 
-    def execute (self, sql: str, *posicional: tipagem.tipoSQL, **nomeado: tipagem.tipoSQL) -> ResultadoSQL:
+    def execute (self, sql: str, *posicional: bot.tipagem.tipoSQL, **nomeado: bot.tipagem.tipoSQL) -> ResultadoSQL:
         """Executar uma única instrução SQL
         - `sql` Comando que será executado
         - Recomendado ser parametrizado com argumentos posicionais `?` **ou** nomeados `:nome`
@@ -74,7 +74,7 @@ class Sqlite:
             linhas = (linha for linha in cursor) if colunas else (tuple() for _ in [])
         )
 
-    def execute_many (self, sql: str, parametros: typing.Iterable[tipagem.nomeado] | typing.Iterable[tipagem.posicional]) -> ResultadoSQL:
+    def execute_many (self, sql: str, parametros: typing.Iterable[bot.tipagem.nomeado] | typing.Iterable[bot.tipagem.posicional]) -> ResultadoSQL:
         """Executar uma ou mais instruções SQL
         - `sql` Comando que será executado
         - `parametros` quantidade de argumentos, posicionais `?` **ou** nomeados `:nome`, que serão executados
@@ -87,7 +87,7 @@ class Sqlite:
             linhas = (linha for linha in cursor) if colunas else (tuple() for _ in [])
         )
 
-    def to_excel (self, caminho: sistema.Caminho) -> sistema.Caminho:
+    def to_excel (self, caminho: bot.sistema.Caminho) -> bot.sistema.Caminho:
         """Salvar as linhas de todas as tabelas da conexão no `caminho` formato excel
         - `caminho` deve terminar com `.xlsx`"""
         return criar_excel(

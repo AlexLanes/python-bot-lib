@@ -2,7 +2,7 @@
 import typing
 import itertools, functools, dataclasses
 # interno
-from .. import tipagem, database, sistema
+import bot
 # externo
 import polars
 from xlsxwriter import Workbook
@@ -19,10 +19,10 @@ def formatar_dataframe (df: polars.DataFrame,
         "fmt_str_lengths": tamanho_maximo_str, 
         "tbl_hide_column_data_types": esconder_tipo_coluna 
     }
-    with database.polars.Config(**kwargs):
+    with bot.database.polars.Config(**kwargs):
         return str(df)
 
-def criar_excel (caminho: sistema.Caminho, planilhas: dict[str, polars.DataFrame]) -> sistema.Caminho:
+def criar_excel (caminho: bot.sistema.Caminho, planilhas: dict[str, polars.DataFrame]) -> bot.sistema.Caminho:
     """Criar um arquivo excel em `caminho` com os dados informados em `planilhas`
     - `planilhas` Dicionário sendo a `key` o nome da planilha e `value` um `polars.Dataframe` com os dados
     - `caminho` deve terminar em `.xlsx`"""
@@ -79,7 +79,7 @@ class ResultadoSQL:
     - `None` indica que não se aplica ao comando sql"""
     colunas: tuple[str, ...]
     """Colunas das linhas retornadas (se houver)"""
-    linhas: typing.Iterable[tuple[tipagem.tipoSQL, ...]]
+    linhas: typing.Iterable[tuple[bot.tipagem.tipoSQL, ...]]
     """Generator das linhas retornadas (se houver)
     - Consumido quando iterado sobre"""
 
@@ -90,7 +90,7 @@ class ResultadoSQL:
         return sum(1 for _ in linhas)
 
     @functools.cached_property
-    def primeira_linha (self) -> tuple[tipagem.tipoSQL, ...] | None:
+    def primeira_linha (self) -> tuple[bot.tipagem.tipoSQL, ...] | None:
         """Cache da primeira linha no resultado
         - Não altera o gerador das `linhas`
         - `None` caso não possua"""
@@ -98,7 +98,7 @@ class ResultadoSQL:
         try: return next(linhas)
         except StopIteration: return None
 
-    def __iter__ (self) -> typing.Generator[tuple[tipagem.tipoSQL, ...], None, None]:
+    def __iter__ (self) -> typing.Generator[tuple[bot.tipagem.tipoSQL, ...], None, None]:
         """Generator do self.linhas"""
         for linha in self.linhas:
             yield linha
@@ -118,12 +118,12 @@ class ResultadoSQL:
     def __len__ (self) -> int:
         return self.quantidade_linhas
 
-    def __getitem__ (self, campo: str) -> tipagem.tipoSQL:
+    def __getitem__ (self, campo: str) -> bot.tipagem.tipoSQL:
         """Obter o `campo` da primeira linha"""
         if not self.primeira_linha: return
         return self.primeira_linha[self.colunas.index(campo)]
 
-    def to_dict (self) -> list[dict[str, tipagem.tipoSQL]]:
+    def to_dict (self) -> list[dict[str, bot.tipagem.tipoSQL]]:
         """Representação das linhas e colunas no formato `dict`
         - Consome o gerador das `linhas`"""
         return [

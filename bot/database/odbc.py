@@ -2,7 +2,7 @@
 import typing
 # interno
 from .setup import ResultadoSQL
-from .. import tipagem, logger
+import bot
 # externo
 import pyodbc
 
@@ -41,7 +41,7 @@ class DatabaseODBC:
         # escolher um driver dos encontrados (preferência ao `unicode`)
         unicode = [driver for driver in existentes if "unicode" in driver.lower()]
         nome_driver = unicode[0] if unicode else existentes[0]
-        logger.informar(f"Iniciando conexão ODBC com o driver '{nome_driver}'")
+        bot.logger.informar(f"Iniciando conexão ODBC com o driver '{nome_driver}'")
 
         # montar a conexão
         kwargs["driver"] = nome_driver
@@ -63,7 +63,7 @@ class DatabaseODBC:
         """Fechar a conexão com o database
         - Executado automaticamente quando o objeto sair do escopo"""
         self.conexao.close()
-        logger.informar(f"Conexão com o database odbc encerrada")
+        bot.logger.informar(f"Conexão com o database odbc encerrada")
 
     def reconectar (self) -> None:
         """Refazer a conexão caso encerrada"""
@@ -99,7 +99,7 @@ class DatabaseODBC:
         """Reverter as alterações, pós commit, feitas na conexão"""
         self.conexao.rollback()
 
-    def execute (self, sql: str, *posicional: tipagem.tipoSQL) -> ResultadoSQL:
+    def execute (self, sql: str, *posicional: bot.tipagem.tipoSQL) -> ResultadoSQL:
         """Executar uma única instrução SQL
         - `sql` Comando que será executado
         - Recomendado ser parametrizado com argumentos posicionais `?`
@@ -113,7 +113,7 @@ class DatabaseODBC:
             linhas = (tuple(linha) for linha in cursor) if colunas else (tuple() for _ in [])
         )
 
-    def execute_many (self, sql: str, parametros: typing.Iterable[tipagem.posicional], fast=False) -> None:
+    def execute_many (self, sql: str, parametros: typing.Iterable[bot.tipagem.posicional], fast=False) -> None:
         """Executar uma ou mais instruções SQL
         - `sql` Comando que será executado
         - `parametros` quantidade de argumentos posicionais `?` que serão executados

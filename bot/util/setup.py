@@ -1,9 +1,9 @@
 # std
 import re, time, typing, difflib, unicodedata
 # interno
-from .. import tipagem
+import bot
 
-def aguardar_condicao (condicao: typing.Callable[[], tipagem.SupportsBool],
+def aguardar_condicao (condicao: typing.Callable[[], bot.tipagem.SupportsBool],
                        timeout: int | float,
                        delay = 0.1) -> bool:
     """Repetir a função `condição` por `timeout` segundos até que resulte em `True`
@@ -87,14 +87,14 @@ def expandir_tempo (segundos: int | float) -> str:
 
     return " e ".join(tempos)
 
-def transformar_tipo[T: tipagem.primitivo] (valor: str, tipo: type[T]) -> T:
+def transformar_tipo[T: bot.tipagem.primitivo] (valor: str, tipo: type[T]) -> T:
     """Fazer a transformação do `valor` para `type(tipo)`
     - Função genérica"""
     match tipo():
-        case bool():    return valor.lower().strip() == "true"
-        case float():   return float(valor)
-        case int():     return int(valor)
-        case _:         return valor
+        case bool():    return valor.lower().strip() == "true" # type: ignore
+        case float():   return float(valor) # type: ignore
+        case int():     return int(valor) # type: ignore
+        case _:         return valor # type: ignore
 
 def Cronometro (resetar: bool = False) -> typing.Callable[[], float]:
     """Inicializa um cronômetro que retorna o tempo decorrido a cada chamada na função

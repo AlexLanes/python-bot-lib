@@ -1,8 +1,8 @@
 # std
 import typing, functools, warnings
 # interno
-from .. import util
 from . import Coordenada, Imagem, capturar_tela
+import bot
 # externo
 import numpy as np
 
@@ -103,7 +103,7 @@ class LeitorOCR:
 
         # 1 2 3
         coordenadas = [
-            (util.encontrar_texto(texto, extracao, lambda item: item[0]) or (None, None))[1]
+            (bot.util.encontrar_texto(texto, extracao, lambda item: item[0]) or (None, None))[1]
             for texto in textos
         ]
         if all(coordenadas) or all(c in coordenadas for _, c, _ in extracao):
@@ -151,7 +151,7 @@ class LeitorOCR:
                 if len(texto_extracao.split(" ")) <= 1: continue # desnecessário
                 # checar Match
                 combinacoes = gerar_combinacoes(texto_extracao, coordenada, qtd_palavras)
-                _, coordenada = util.encontrar_texto(texto, combinacoes, lambda item: item[0]) or (None, None)
+                _, coordenada = bot.util.encontrar_texto(texto, combinacoes, lambda item: item[0]) or (None, None)
                 if not coordenada or any(coordenada in c for c in coordenadas if c): continue # não encontrada ou sendo utilizada
                 # inserir coordenada e finalizar procura do `texto` atual
                 coordenadas[index] = coordenada

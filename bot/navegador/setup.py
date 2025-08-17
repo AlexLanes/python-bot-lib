@@ -7,7 +7,7 @@ from datetime import (
 )
 # interno
 from .mensagem import Mensagem
-from .. import util, tipagem, logger, sistema, formatos, imagem, estruturas
+import bot
 # externo
 import selenium.webdriver as wd
 import undetected_chromedriver as uc
@@ -24,7 +24,7 @@ from selenium.common.exceptions import (
 )
 
 COMANDO_VERSAO_CHROME = r'(Get-Item -Path "$env:PROGRAMFILES\Google\Chrome\Application\chrome.exe").VersionInfo.FileVersion'
-CONFIG_PRINT_PDF = formatos.Json({
+CONFIG_PRINT_PDF = bot.formatos.Json({
     "version": 2,
     "selectedDestinationId": "Save as PDF",
     "recentDestinations": [{
@@ -127,20 +127,20 @@ class ElementoWEB:
 
     @property
     @retry_staleness
-    def imagem (self) -> imagem.Imagem:
+    def imagem (self) -> bot.imagem.Imagem:
         """Capturar a imagem do elemento
         - Feito scroll do elemento"""
         assert (driver := self.__driver()), "Navegador encerrado"
         wd.ActionChains(driver).scroll_to_element(self.elemento).perform()
         png = self.sleep(2).elemento.screenshot_as_png
-        return imagem.Imagem.from_bytes(png)
+        return bot.imagem.Imagem.from_bytes(png)
 
     @property
     @retry_staleness
-    def atributos (self) -> estruturas.LowerDict[str]:
+    def atributos (self) -> bot.estruturas.LowerDict[str]:
         """Obter os atributos html do elemento"""
         assert (driver := self.__driver()), "Navegador encerrado"
-        return estruturas.LowerDict(
+        return bot.estruturas.LowerDict(
             driver.execute_script("""
                 let atributos = {}, elemento = arguments[0]
                 for (let attr of elemento.attributes) {
@@ -178,7 +178,7 @@ class ElementoWEB:
         assert (driver := self.__driver()), "Navegador encerrado"
 
         self.aguardar_clicavel()
-        clicado = util.aguardar_condicao(lambda: self.elemento.click() == None, 10, 0.5)
+        clicado = bot.util.aguardar_condicao(lambda: self.elemento.click() == None, 10, 0.5)
         if not clicado: wd.ActionChains(driver).scroll_to_element(self.elemento)\
                                                .move_to_element(self.elemento)\
                                                .click(self.elemento)\
@@ -189,13 +189,13 @@ class ElementoWEB:
     def limpar (self) -> typing.Self:
         """Limpar o texto do elemento, caso suportado
         - Aguardado estar ativo e atualizar valor"""
-        util.aguardar_condicao(lambda: self.ativo, 10, 0.5)
+        bot.util.aguardar_condicao(lambda: self.ativo, 10, 0.5)
 
         obter_valor = lambda: self.atributos.get("value", None) or self.texto
         valor = obter_valor().strip()
         self.elemento.clear()
 
-        if valor: util.aguardar_condicao(lambda: valor != obter_valor().strip(), 1, 0.2)
+        if valor: bot.util.aguardar_condicao(lambda: valor != obter_valor().strip(), 1, 0.2)
         return self.sleep()
 
     @retry_staleness
@@ -206,7 +206,7 @@ class ElementoWEB:
         try: self.hover()
         except Exception: pass
 
-        util.aguardar_condicao(lambda: self.ativo, 10, 0.5)
+        bot.util.aguardar_condicao(lambda: self.ativo, 10, 0.5)
         try:
             with self.aguardar_update(5):
                 self.elemento.send_keys(*texto)
@@ -318,7 +318,7 @@ class ElementoWEB:
             except (StaleElementReferenceException, ElementoNaoEncontrado): return True
             return outer != elemento.get_attribute("outerHTML") or atributos != self.atributos
 
-        if not util.aguardar_condicao(condicao, timeout, 0.5):
+        if not bot.util.aguardar_condicao(condicao, timeout, 0.5):
             raise TimeoutError(f"A espera pelo update do elemento não aconteceu após {timeout} segundos")
 
 class Navegador:
@@ -328,7 +328,7 @@ class Navegador:
     """Driver do `Selenium`"""
     timeout_inicial: float
     """Timeout informado na inicialização do navegador"""
-    diretorio_download: sistema.Caminho
+    diretorio_download: bot.sistema.Caminho
     """Caminho da pasta de download
     - `Edge | Chrome`"""
 
@@ -336,7 +336,7 @@ class Navegador:
         """Encerrar o driver quando a variável do navegador sair do escopo"""
         try:
             self.driver.quit()
-            logger.informar("Navegador fechado")
+            bot.logger.informar("Navegador fechado")
             del self.driver
         except Exception: pass
 
@@ -360,7 +360,7 @@ class Navegador:
         return self.driver.title
 
     @property
-    def url (self) -> tipagem.url:
+    def url (self) -> bot.tipagem.url:
         """Url atual da aba focada"""
         return self.driver.current_url
 
@@ -386,20 +386,20 @@ class Navegador:
 
     def pesquisar (self, url: str) -> typing.Self:
         """Pesquisar o url na aba focada"""
-        logger.informar(f"Pesquisando o url '{url}'")
+        bot.logger.informar(f"Pesquisando o url '{url}'")
         self.driver.get(url)
         return self
 
     def atualizar (self) -> typing.Self:
         """Atualizar a aba focada"""
-        logger.informar(f"Atualizando aba '{self.titulo}'")
+        bot.logger.informar(f"Atualizando aba '{self.titulo}'")
         self.driver.refresh()
         return self.sleep(2)
 
     def nova_aba (self) -> typing.Self:
         """Abrir uma nova aba e alterar o foco para ela"""
         self.driver.switch_to.new_window("tab")
-        logger.informar("Aberto uma nova aba")
+        bot.logger.informar("Aberto uma nova aba")
         return self
 
     def fechar_aba (self) -> typing.Self:
@@ -411,12 +411,12 @@ class Navegador:
             self.driver.switch_to.window(aba)
         self.driver.close()
         self.driver.switch_to.window(self.abas[0])
-        logger.informar(f"Fechado a aba '{titulo}' e focado na aba '{self.titulo}'")
+        bot.logger.informar(f"Fechado a aba '{titulo}' e focado na aba '{self.titulo}'")
         return self
 
     def limpar_abas (self) -> typing.Self:
         """Fechar as abas abertas, abrir uma nova e focar"""
-        logger.informar("Limpando as abas abertas do navegador")
+        bot.logger.informar("Limpando as abas abertas do navegador")
         nova_aba = self.nova_aba().aba
         for aba in self:
             if aba == nova_aba: continue
@@ -428,7 +428,7 @@ class Navegador:
         """Focar na aba com base no `identificador`
         - `None` para focar na primeira aba"""
         self.driver.switch_to.window(identificador or self.abas[0])
-        logger.informar(f"O navegador focou na aba '{self.titulo}'")
+        bot.logger.informar(f"O navegador focou na aba '{self.titulo}'")
         return self
 
     def encontrar (self, localizador: str | enum.Enum) -> ElementoWEB:
@@ -475,27 +475,27 @@ class Navegador:
         """Aguardar alguma aba conter o `título` e alterar o foco para ela
         - Exceção `TimeoutError` caso não finalize no tempo estipulado"""
         aba_com_titulo: str | None = None
-        titulo_normalizado = util.normalizar(titulo)
+        titulo_normalizado = bot.util.normalizar(titulo)
 
         def aba_contendo_titulo () -> bool:
             nonlocal aba_com_titulo
             for aba in self:
-                if titulo_normalizado in util.normalizar(self.titulo):
+                if titulo_normalizado in bot.util.normalizar(self.titulo):
                     aba_com_titulo = aba
                     return True
             return False
 
-        if not util.aguardar_condicao(aba_contendo_titulo, timeout, 1):
+        if not bot.util.aguardar_condicao(aba_contendo_titulo, timeout, 1):
             raise TimeoutError(f"Aba contendo o título '{titulo}' não foi encontrada após {timeout} segundos")
 
         return self.focar_aba(aba_com_titulo)
 
-    def aguardar_download (self, *termos: str, timeout=60) -> sistema.Caminho:
+    def aguardar_download (self, *termos: str, timeout=60) -> bot.sistema.Caminho:
         """Aguardar um novo arquivo, com nome contendo algum dos `termos`, no diretório de download por `timeout` segundos
         - Retorna o `Caminho` para o arquivo
         - Exceção `TimeoutError` caso não finalize no tempo estipulado"""
         inicio = Datetime.now() - Timedelta(milliseconds=500)
-        arquivo: sistema.Caminho | None = None
+        arquivo: bot.sistema.Caminho | None = None
         termos = tuple(str(termo).lower() for termo in termos)
         assert termos, "Pelo menos 1 termo é necessário para a busca"
 
@@ -513,7 +513,7 @@ class Navegador:
             ] or [None]
             return arquivo != None
 
-        if not util.aguardar_condicao(download_finalizar, timeout):
+        if not bot.util.aguardar_condicao(download_finalizar, timeout):
             erro = TimeoutError(f"Espera por download não encontrou nenhum arquivo novo após {timeout} segundos")
             erro.add_note(f"Termos esperados: {termos}")
             raise erro
@@ -522,7 +522,7 @@ class Navegador:
         assert arquivo
         return arquivo
 
-    def imprimir_pdf (self) -> sistema.Caminho:
+    def imprimir_pdf (self) -> bot.sistema.Caminho:
         """Imprimir a página/frame atual do navegador para `.pdf`
         - Retorna o `Caminho` para o arquivo"""
         self.diretorio_download.criar_diretorios()
@@ -536,9 +536,9 @@ class Edge (Navegador):
     - O Edge é o mais provável de estar disponível para utilização"""
 
     def __init__ (self, timeout=30.0,
-                        download: str | sistema.Caminho = "./downloads") -> None:
+                        download: str | bot.sistema.Caminho = "./downloads") -> None:
         options, argumentos = wd.EdgeOptions(), ARGUMENTOS_DEFAULT.copy()
-        self.diretorio_download = sistema.Caminho(download) if isinstance(download, str) else download
+        self.diretorio_download = bot.sistema.Caminho(download) if isinstance(download, str) else download
         for argumento in argumentos: options.add_argument(argumento)
         options.add_experimental_option("useAutomationExtension", False)
         options.add_experimental_option("excludeSwitches", ["enable-logging"])
@@ -568,7 +568,7 @@ class Edge (Navegador):
             """
         })
 
-        logger.informar("Navegador Edge iniciado")
+        bot.logger.informar("Navegador Edge iniciado")
 
     def __repr__ (self) -> str:
         return f"<Edge aba focada '{self.titulo}'>"
@@ -583,12 +583,12 @@ class Chrome (Navegador):
     - Possível de capturar as mensagens de rede pelo método `mensagens_rede`"""
 
     def __init__ (self, timeout=30.0,
-                        download: str | sistema.Caminho = "./downloads",
-                        extensoes: list[str | sistema.Caminho] = [],
-                        perfil: sistema.Caminho | str | None = None,
+                        download: str | bot.sistema.Caminho = "./downloads",
+                        extensoes: list[str | bot.sistema.Caminho] = [],
+                        perfil: bot.sistema.Caminho | str | None = None,
                         argumentos_adicionais: list[str] = []) -> None:
         # obter a versão do google chrome para o `undetected_chromedriver`, pois ele utiliza sempre a mais recente
-        sucesso, mensagem = sistema.executar(COMANDO_VERSAO_CHROME, powershell=True)
+        sucesso, mensagem = bot.sistema.executar(COMANDO_VERSAO_CHROME, powershell=True)
         versao = (mensagem.split(".") or " ")[0]
         if not sucesso or not versao.isdigit():
             raise Exception("Versão do Google Chrome não foi localizada")
@@ -596,12 +596,12 @@ class Chrome (Navegador):
         argumentos = { *ARGUMENTOS_DEFAULT, *argumentos_adicionais }
         if extensoes: argumentos.add(f"--load-extension={ ",".join(str(e).strip() for e in extensoes) }")
         if perfil:
-            perfil = sistema.Caminho(str(perfil))
+            perfil = bot.sistema.Caminho(str(perfil))
             argumentos.add(f"--user-data-dir={perfil.parente}")
             argumentos.add(f"--profile-directory={perfil.nome}")
 
         options = uc.ChromeOptions()
-        self.diretorio_download = sistema.Caminho(str(download))
+        self.diretorio_download = bot.sistema.Caminho(str(download))
         for argumento in argumentos:
             options.add_argument(argumento)
         options.set_capability("goog:loggingPrefs", { "performance": "ALL" }) # logs performance
@@ -623,17 +623,17 @@ class Chrome (Navegador):
         self.timeout_inicial = timeout
         self.driver.implicitly_wait(timeout)
 
-        logger.informar("Navegador Chrome iniciado")
+        bot.logger.informar("Navegador Chrome iniciado")
 
     def __repr__ (self) -> str:
         return f"<Chrome aba focada '{self.titulo}'>"
 
     @typing.override
     def __del__ (self) -> None:
-        logger.informar("Navegador fechado")
+        bot.logger.informar("Navegador fechado")
         try: getattr(self.driver, "quit", lambda: "")()
         # usado TASKKILL ao fim da execução caso tenha ocorrido erro
-        except Exception: sistema.executar("TASKKILL", "/F", "/IM", "chrome.exe", timeout=5)
+        except Exception: bot.sistema.executar("TASKKILL", "/F", "/IM", "chrome.exe", timeout=5)
 
     def mensagens_rede (self, filtro: typing.Callable[[Mensagem], bool] | None = None) -> list[Mensagem]:
         """Consultar as mensagens de rede produzidas pelas abas
@@ -641,7 +641,7 @@ class Chrome (Navegador):
         id_mensagem = collections.defaultdict(Mensagem)
         for log in self.driver.get_log("performance"):
             if not isinstance(log, dict): continue
-            json, _ = formatos.Json.parse(log.get("message", {}))
+            json, _ = bot.formatos.Json.parse(log.get("message", {}))
             if not json or not json.message.params.requestId: continue
 
             message = json.message
@@ -683,13 +683,13 @@ class Explorer (Navegador):
         self.timeout_inicial = timeout
         self.driver.implicitly_wait(timeout)
 
-        logger.informar("Navegador Edge, modo Internet Explorer, iniciado")
+        bot.logger.informar("Navegador Edge, modo Internet Explorer, iniciado")
 
     def __repr__ (self) -> str:
         return f"<Explorer aba focada '{self.titulo}'>"
 
     @typing.override
-    def aguardar_download (self, *termos: str, timeout=60) -> sistema.Caminho:
+    def aguardar_download (self, *termos: str, timeout=60) -> bot.sistema.Caminho:
         raise NotImplementedError("Método aguardar_download não disponível para o InternetExplorer")
 
 __all__ = [

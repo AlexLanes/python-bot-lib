@@ -1,4 +1,4 @@
 """Pacote destinado ao protocolo http"""
 
 from bot.http.setup import *
-from ..formatos import Json, ElementoXML
+from bot.formatos import Json, ElementoXML

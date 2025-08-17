@@ -1,7 +1,7 @@
 # std
 from urllib.parse import urlparse, parse_qs, quote
 # interno
-from ..estruturas import LowerDict
+import bot
 # externo
 from httpx import request, Client, AsyncClient
 
@@ -13,13 +13,13 @@ class Url:
     schema: str
     host: str
     path: str
-    query: LowerDict[list[str]]
+    query: bot.estruturas.LowerDict[list[str]]
     url: str
 
     def __init__ (self, url: str) -> None:
         self.url, parse = url, urlparse(url)
         self.schema, self.host = parse.scheme, parse.hostname or ""
-        self.path, self.query = parse.path, LowerDict(parse_qs(parse.query))
+        self.path, self.query = parse.path, bot.estruturas.LowerDict(parse_qs(parse.query))
 
     def __repr__ (self) -> str:
         return f"<Url '{self.url}'>"

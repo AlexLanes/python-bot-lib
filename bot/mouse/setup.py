@@ -3,17 +3,16 @@ from time import sleep
 from typing import Self
 # interno
 from .win_api import send_input_mouse_api
-from .. import util, tipagem
-from ..estruturas import Coordenada
+import bot
 # externo
 import win32api, win32con
 
-def transformar_posicao (coordenada: Coordenada | tuple[int, int] | None) -> tuple[int, int]:
+def transformar_posicao (coordenada: bot.estruturas.Coordenada | tuple[int, int] | None) -> tuple[int, int]:
     """Transformar a `coordenada` para posicao `(x, y)`"""
     match coordenada:
-        case Coordenada():   return coordenada.transformar()
+        case bot.estruturas.Coordenada(): return coordenada.transformar()
         case (int(), int()): return coordenada
-        case _:              return Mouse.posicao_atual()
+        case _: return Mouse.posicao_atual()
 
 class Mouse:
     """Classe de controle do mouse
@@ -39,14 +38,14 @@ class Mouse:
     @staticmethod
     def posicao_central () -> tuple[int, int]:
         """Obter a posição `(x, y)` central da tela"""
-        return Coordenada.tela().transformar()
+        return bot.estruturas.Coordenada.tela().transformar()
 
-    def mover (self, coordenada: tuple[int, int] | Coordenada) -> Self:
+    def mover (self, coordenada: tuple[int, int] | bot.estruturas.Coordenada) -> Self:
         """Mover o mouse, de forma instantânea, até a `coordenada`"""
         coordenada = transformar_posicao(coordenada)
         win32api.SetCursorPos(coordenada)
         sleep(self.DELAY_MOVER)
-        util.aguardar_condicao(
+        bot.util.aguardar_condicao(
             lambda: self.posicao_atual() == coordenada,
             timeout = 0.5
         )
@@ -60,10 +59,10 @@ class Mouse:
         sleep(self.DELAY_MOVER_RELATIVO)
         return self
 
-    def mover_deslizando (self, coordenada: tuple[int, int] | Coordenada) -> Self:
+    def mover_deslizando (self, coordenada: tuple[int, int] | bot.estruturas.Coordenada) -> Self:
         """Mover o mouse, pixel por pixel, até a `coordenada`"""
         posicao = transformar_posicao(coordenada)
-        cronometro, tempo_limite = util.Cronometro(), 5.0
+        cronometro, tempo_limite = bot.util.Cronometro(), 5.0
         direcao_movimento = lambda n: 1 if n > 0 else -1 if n < 0 else 0
         movimento_relativo = lambda: tuple(desejado - atual for desejado, atual in zip(posicao, self.posicao_atual()))
 
@@ -79,7 +78,7 @@ class Mouse:
         sleep(self.DELAY_MOVER)
         return self
 
-    def clicar (self, quantidade = 1, botao: tipagem.BOTOES_MOUSE = "left") -> Self:
+    def clicar (self, quantidade = 1, botao: bot.tipagem.BOTOES_MOUSE = "left") -> Self:
         """Clicar com o `botão` do mouse `quantidade` vezes na posição atual"""
         assert quantidade >= 1, "Quantidade de clicks deve ser pelo menos 1"
 
@@ -90,7 +89,7 @@ class Mouse:
 
         return self
 
-    def scroll_vertical (self, quantidade = 1, direcao: tipagem.DIRECOES_SCROLL = "baixo") -> Self:
+    def scroll_vertical (self, quantidade = 1, direcao: bot.tipagem.DIRECOES_SCROLL = "baixo") -> Self:
         """Realizar o scroll vertical `quantidade` vezes para a `direcao` na posição atual"""
         assert quantidade >= 1, "Quantidade de scrolls deve ser pelo menos 1"
 

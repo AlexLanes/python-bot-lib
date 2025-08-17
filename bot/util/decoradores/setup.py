@@ -4,7 +4,7 @@ import asyncio, cProfile, inspect, pstats
 from multiprocessing.pool import ThreadPool
 from multiprocessing.context import TimeoutError as Timeout
 # interno
-from ... import util, logger, database, sistema
+import bot
 
 P = typing.ParamSpec("P")
 
@@ -17,7 +17,7 @@ def timeout[R] (segundos: float) -> typing.Callable[[typing.Callable[P, R]], typ
         def wrapper (*args: P.args, **kwargs: P.kwargs) -> R:
             mensagem = f"Função({func.__name__}) não finalizou sua execução no tempo configurado de {segundos} segundos e resultou em Timeout"
             try: return ThreadPool(1).apply_async(func, args, kwargs).get(segundos)
-            except Timeout: logger.alertar(mensagem)
+            except Timeout: bot.logger.alertar(mensagem)
             raise TimeoutError(mensagem)
 
         return wrapper
@@ -60,7 +60,7 @@ def retry[R] (
                     except Exception: pass
                     excecao = grupo_excecoes.exceptions[-1]
                     mensagem_erro = type(excecao).__name__ + f"({ str(excecao).strip() })"
-                    logger.alertar(f"Tentativa {tentativa}/{tentativas} de execução da função({nome_funcao}) resultou em erro\n\t{mensagem_erro}")
+                    bot.logger.alertar(f"Tentativa {tentativa}/{tentativas} de execução da função({nome_funcao}) resultou em erro\n\t{mensagem_erro}")
                     # sleep() não necessário na última tentativa
                     if tentativa < tentativas: time.sleep(segundos)
                     # lançar a exceção na última tentativa
@@ -121,9 +121,9 @@ def tempo_execucao[R] (func: typing.Callable[P, R]) -> typing.Callable[P, R]: # 
     """Loggar o tempo de execução da função"""
     @functools.wraps(func)
     def wrapper (*args: P.args, **kwargs: P.kwargs) -> R: # type: ignore
-        cronometro, resultado = util.Cronometro(), func(*args, **kwargs)
-        tempo = util.expandir_tempo(cronometro())
-        logger.informar(f"Função({func.__name__}) executada em {tempo}")
+        cronometro, resultado = bot.util.Cronometro(), func(*args, **kwargs)
+        tempo = bot.util.expandir_tempo(cronometro())
+        bot.logger.informar(f"Função({func.__name__}) executada em {tempo}")
         return resultado
     return wrapper # type: ignore
 
@@ -132,7 +132,7 @@ def perfil_execucao (func: typing.Callable):
     - Tempos acumulados menores de 0.01 segundos são excluídos"""
     def perfil_execucao (*args, **kwargs):
         # Diretorio de execução atual para limpar o nome no dataframe
-        cwd = sistema.Caminho.diretorio_execucao().string
+        cwd = bot.sistema.Caminho.diretorio_execucao().string
         cwd = f"{cwd[0].lower()}{cwd[1:]}"
 
         # Executar função com o profile ativo e gerar o report
@@ -143,8 +143,8 @@ def perfil_execucao (func: typing.Callable):
         stats = stats.func_profiles
 
         # Loggar o Dataframe com algumas opções de formatação
-        df = database.formatar_dataframe(
-            database.polars.DataFrame({
+        df = bot.database.formatar_dataframe(
+            bot.database.polars.DataFrame({
                 "nome": (
                     funcao if stats[funcao].file_name == "~" 
                     else stats[funcao].file_name.removeprefix(cwd).lstrip("\\") + f":{stats[funcao].line_number}({funcao})"
@@ -154,9 +154,9 @@ def perfil_execucao (func: typing.Callable):
                 "tempo_execucao": (stats[funcao].tottime for funcao in stats),
                 "chamadas": (stats[funcao].ncalls for funcao in stats)
             })
-            .filter(database.polars.col("tempo_acumulado") >= 0.001)
+            .filter(bot.database.polars.col("tempo_acumulado") >= 0.001)
         )
-        logger.informar("\n" * 2 + 
+        bot.logger.informar("\n" * 2 + 
             f"1 - Nome da função: {func.__name__}\n" +
             f"2 - Tempo de execução: {tempo:.3f} segundos\n" +
             df + 

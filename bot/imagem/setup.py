@@ -3,14 +3,13 @@ from __future__ import annotations
 import time, base64, collections
 import tkinter, tempfile
 # interno
-from .. import util, tipagem
-from ..sistema import Caminho
-from ..estruturas import Coordenada, filas
+import bot
+from bot.estruturas import Coordenada
 # externo
 import cv2, numpy as np
 import win32gui, win32ui, win32con
 
-def cor_similar (cor1: tipagem.rgb, cor2: tipagem.rgb, tolerancia=20) -> bool:
+def cor_similar (cor1: bot.tipagem.rgb, cor2: bot.tipagem.rgb, tolerancia=20) -> bool:
     """Comparar se as cores `rgb` são similares com base na `tolerancia`
     - `tolerancia mínima` 0 (Cores são idênticas)
     - `tolerancia máxima` 441 (Branco x Preto)"""
@@ -54,8 +53,8 @@ class Imagem:
     pixels: np.ndarray
     """Pixels da imagem BGR ou Cinza"""
 
-    def __init__ (self, caminho: Caminho | str) -> None:
-        caminho = Caminho(str(caminho))
+    def __init__ (self, caminho: bot.sistema.Caminho | str) -> None:
+        caminho = bot.sistema.Caminho(str(caminho))
         self.pixels = cv2.imread(caminho.string)
 
     def __repr__ (self) -> str:
@@ -104,9 +103,9 @@ class Imagem:
         imagem.pixels = np.array(self.pixels)
         return imagem
 
-    def salvar (self, caminho: Caminho | str) -> Caminho:
+    def salvar (self, caminho: bot.sistema.Caminho | str) -> bot.sistema.Caminho:
         """Salvar a imagem como arquivo no `caminho`"""
-        caminho = Caminho(str(caminho))
+        caminho = bot.sistema.Caminho(str(caminho))
         cv2.imwrite(caminho.string, self.pixels)
         return caminho
 
@@ -159,7 +158,7 @@ class Imagem:
         imagem.pixels = cv2.resize(imagem.pixels, dsize=(largura, altura), interpolation=cv2.INTER_LINEAR)
         return imagem
 
-    def cores (self, limite: int | None = 10) -> list[tuple[tipagem.rgb, int]]:
+    def cores (self, limite: int | None = 10) -> list[tuple[bot.tipagem.rgb, int]]:
         """Obter a cor RGB e frequência de cada pixel da imagem
         - `limite` quantidade que será retornada das mais frequentes
         - `for cor, frequencia in imagem.cores()`"""
@@ -168,14 +167,14 @@ class Imagem:
         to_rgb = lambda bgr: (int(bgr), int(bgr), int(bgr)) if cinza else (int(bgr[2]), int(bgr[1]), int(bgr[0]))
         return collections.Counter(map(to_rgb, pixels)).most_common(limite)
 
-    def cor_pixel (self, posicao: tuple[int, int]) -> tipagem.rgb:
+    def cor_pixel (self, posicao: tuple[int, int]) -> bot.tipagem.rgb:
         """Obter a cor RGB do pixel na `posicao`"""
         cinza = len(self.pixels.shape) == 2
         to_rgb = lambda bgr: (int(bgr), int(bgr), int(bgr)) if cinza else (int(bgr[2]), int(bgr[1]), int(bgr[0]))
         pixel = self.pixels[posicao[1], posicao[0]]
         return to_rgb(pixel)
 
-    def procurar_imagens (self, confianca: tipagem.PORCENTAGENS = 0.9,
+    def procurar_imagens (self, confianca: bot.tipagem.PORCENTAGENS = 0.9,
                                 regiao: Coordenada | None = None,
                                 referencia: Imagem | None = None,
                                 cinza = False,
@@ -196,8 +195,8 @@ class Imagem:
         if referencia and cinza: referencia = referencia.cinza()
         if referencia and regiao: referencia = referencia.recortar(regiao)
 
-        cronometro = util.Cronometro()
-        confianca_coordenadas = filas.PriorityQueue[tuple[float, Coordenada]](comparador=lambda item: item[0])
+        cronometro = bot.util.Cronometro()
+        confianca_coordenadas = bot.estruturas.PriorityQueue[tuple[float, Coordenada]](comparador=lambda item: item[0])
         while not confianca_coordenadas:
             np_referencia = (referencia or capturar_tela(regiao, cinza)).pixels
             resultado = cv2.matchTemplate(np_imagem, np_referencia, cv2.TM_CCOEFF_NORMED)
@@ -215,7 +214,7 @@ class Imagem:
 
         return [c for _, c in confianca_coordenadas]
 
-    def procurar_imagem (self, confianca: tipagem.PORCENTAGENS = 0.9,
+    def procurar_imagem (self, confianca: bot.tipagem.PORCENTAGENS = 0.9,
                                regiao: Coordenada | None = None,
                                referencia: Imagem | None = None,
                                cinza = False,
