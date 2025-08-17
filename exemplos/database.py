@@ -94,8 +94,6 @@ db.reconectar() # Refaz a conexão caso encerrada
 # Veja como utilizar `ResultadoSQL`
 db.execute("select * from tabela") # Sem parâmetro
 db.execute("select * from tabela where nome = ?", ["Alex"]) # Com parâmetro posicional '?'
-db.execute("select * from tabela where nome = :nome", {"nome": "Alex"}) # Com parâmetro nomeado ':'
 # Executar uma ou mais instruções SQL
 # Veja como utilizar `ResultadoSQL`
 db.execute_many("insert into tabela values (?, ?)", [("Alex", 11), ("Fulano", 22)]) # (2 execuções) com parâmetros posicionais '?'
-db.execute_many("insert into tabela values (:nome, :codigo)", [{"nome": "Alex", "codigo": 11}]) # (1 execução) com parâmetros nomeados ':'
