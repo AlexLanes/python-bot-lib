@@ -145,7 +145,7 @@ class Json:
             caminho = "".join(["$", *self.__caminho])
             raise Exception(
                 f"Erro {self!r} ao se obter o valor no Caminho({caminho}); "
-                f"Esperado ({esperar}) Encontrado({self.tipo()})"
+                f"Esperado({esperar}) Encontrado({self.tipo()})"
             ) from None
 
     def unmarshal[T] (self, cls: type[T]) -> T:
@@ -623,49 +623,16 @@ class Toml:
         - Alternativa ao operador `in`"""
         return chave in self
 
-    def obter[T] (self, chave: str, tipo: type[T] = str) -> T:
+    def obter[T] (self, chave: str, tipo: type[T] | Any = str) -> T:
         """Obter a `chave` e esperar o `tipo`
         - Erro caso a `chave` não exista ou o `tipo` for inválido
-        - Alternativa `toml[chave]` não faz validação do `tipo`"""
+        - Alternativa `toml[chave]` que não faz validação do `tipo`"""
         valor = self[chave]
-        if not self.__validar_tipo(valor, tipo):
-            raise ValueError(f"Falha ao obter a chave '{chave}' no Toml | Tipo do valor incompatível com tipo '{tipo}'")
-        return valor
-
-    def __validar_tipo[T] (self, valor: Any, tipo: type[T]) -> bool:
-        origem = get_origin(tipo)
-
-        # Any
-        if tipo is Any: return True
-        # primitivos
-        if origem is None: return isinstance(valor, tipo)
-
-        # union
-        if origem in (types.UnionType, Union):
-            return any(self.__validar_tipo(valor, t)
-                       for t in get_args(tipo))
-
-        # list
-        if tipo is list or origem is list:
-            tipo_item, *_ = get_args(tipo) or [Any]
-            if not isinstance(valor, list):
-                return False
-            return all(
-                self.__validar_tipo(item, tipo_item)
-                for item in valor
-            )
-
-        # dict
-        if tipo is dict or origem is dict:
-            tipo_chave, tipo_valor = get_args(tipo) or (str, Any)
-            if tipo_chave is not str or not isinstance(valor, dict):
-                return False
-            return all(
-                self.__validar_tipo(v, tipo_valor)
-                for v in valor.values()
-            )
-
-        return False
+        try: return Unmarshaller(Unmarshaller).validar(tipo, valor)
+        except Exception: raise ValueError(
+            f"Falha ao obter a chave '{chave}' no Toml; "
+            f"Tipo esperado {tipo} incompatível com {type(valor)}"
+        ) from None
 
     def __parse_chaves_aninhadas (self, chave: str) -> list[str]:
         em_aberto, chaves = False, list[str]()
