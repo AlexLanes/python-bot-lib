@@ -471,7 +471,7 @@ class Unmarshaller[T]:
         return f"<Unmarshaller[{self.cls.__name__}]>"
 
     def parse (self, item: dict[str, Any], **kwargs: str) -> T:
-        """Realizar o parse do `item` conforme a classe informada`"""
+        """Realizar o parse do `item` conforme a classe informada"""
         obj = object.__new__(self.cls)
         caminho = kwargs.get("caminho", "$")
         chaves_normalizadas = {
