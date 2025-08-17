@@ -10,7 +10,7 @@ requires-python = ">=3.12"
 license = { text = "MIT" }
 urls = { Homepage = "https://github.com/AlexLanes/python-bot-lib" }
 dependencies = [
-  "uv>=0.6.16",
+  "uv>=0.8.11",
 
   # mouse / teclado / imagem / sistema / estruturas
   "pywin32",
