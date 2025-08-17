@@ -1,16 +1,16 @@
 """Biblioteca com funcionalidades gerais para criação de automações para o Windows"""
 
 # Não pode ser usado internamente importando relativamente
-from bot.logger  import logger
-from bot.mouse   import mouse
-from bot.teclado import teclado
+from bot.configfile.setup import configfile
+from bot.logger.setup     import logger
+from bot.mouse.setup      import mouse
+from bot.teclado.setup    import teclado
 
-from . import (
+from bot import (
     tipagem,
     util,
     sistema,
     estruturas,
-    configfile,
 
     argumentos,
     database,

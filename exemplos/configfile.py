@@ -1,7 +1,16 @@
 import bot
 
 """
-Supondo que o arquivo .ini na raiz do projeto esteja da seguinte forma
+Classe para inicialização de variáveis a partir de arquivo de configuração `.ini`  
+
+#### Inicializado automaticamente na primeira consulta
+
+- Para concatenação de valores, utilizar a sintaxe `${opção}` `${seção:opção}`
+- `$` é reservado, utilizar `$$` para contornar
+- `#` ou `;` comenta a linha se tiver no começo
+- Arquivos terminados em `.ini` devem estar presente em `DIRETORIO_EXECUCAO`
+
+# Supondo que o arquivo .ini na raiz do projeto esteja da seguinte forma
 
 [logger]
 flag_debug = False
