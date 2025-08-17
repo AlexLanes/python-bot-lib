@@ -1,9 +1,8 @@
 # std
 from __future__ import annotations
-import typing, functools, dataclasses
-import inspect, decimal, operator
+import typing, functools, dataclasses, decimal, operator
 # interno
-from ..sistema import Caminho
+from bot.sistema import Caminho
 # externo
 import win32api, win32con
 
@@ -177,34 +176,6 @@ class Resultado [T]:
         - Caso seja resultado de erro, retornado o mesmo resultado para propagar o erro"""
         if not self.ok(): return self # type: ignore
         return Resultado(func, self.__valor, *args, **kwargs)
-
-class InfoStack:
-    """Informações do `Stack` de execução"""
-
-    caminho: Caminho
-    """Caminho do arquivo"""
-    funcao: str
-    """Nome da função"""
-    linha: int
-    """Linha do item executado"""
-
-    def __init__ (self, index=1) -> None:
-        """Obter informações presente no stack dos callers
-        - `Default` arquivo que chamou o `InfoStack()`"""
-        frame = inspect.stack()[index]
-        self.caminho = Caminho(frame.filename)
-        self.linha, self.funcao = frame.lineno, frame.function
-
-    @staticmethod
-    def caminhos () -> list[Caminho]:
-        """Listar os caminhos dos callers no stack de execução
-        - `[0] topo stack`
-        - `[-1] começo stack`"""
-        return [
-            caminho
-            for frame in inspect.stack()
-            if (caminho := Caminho(frame.filename)).arquivo()
-        ]
 
 class LowerDict [T]:
     """Classe usada para obter/adicionar/remover chaves de um `dict` como `lower-case`
@@ -409,7 +380,6 @@ __all__ = [
     "Caminho",
     "Decimal",
     "LowerDict",
-    "InfoStack",
     "Resultado",
     "Coordenada",
 ]
