@@ -42,18 +42,8 @@ dependencies = [
 ocr = ["easyocr"]
 
 [build-system]
-requires = ["setuptools>=61.0", "wheel", "build"]
-build-backend = "setuptools.build_meta"
+requires = ["uv_build>=0.8.11,<0.9.0"]
+build-backend = "uv_build"
 
-[tool.setuptools.packages.find]
-where = ["."]
-include = ["bot"]
-
-[tool.setuptools]
-include-package-data = true
-
-[tool.setuptools.package-data]
-bot = ["**/*"]
-
-[tool.setuptools.exclude-package-data]
-bot = ["**/__pycache__/*", "**/*.pyc"]
+[tool.uv.build-backend]
+module-root = ""
