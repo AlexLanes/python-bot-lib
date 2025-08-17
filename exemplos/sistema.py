@@ -12,7 +12,7 @@ bot.sistema.informacoes_resolucao()         # Obter informações sobre resoluç
 bot.sistema.alterar_resolucao(1920, 1080)   # Alterar a resolução da tela
 
 bot.sistema.copiar_texto(texto="")          # Substituir o texto copiado da área de transferência pelo texto
-bot.sistema.texto_copiado()                 # Obter o texto copiado da área de transferênci
+bot.sistema.texto_copiado()                 # Obter o texto copiado da área de transferência
 
 
 
