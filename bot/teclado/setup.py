@@ -3,7 +3,7 @@ import contextlib
 from time import sleep
 from typing import Generator, Self
 # interno
-from bot.teclado.win_api import traduzir_tecla, send_input_tecla_api
+from .win_api import traduzir_tecla, send_input_tecla_api
 from bot.tipagem import char, BOTOES_TECLADO
 
 class Teclado:
@@ -14,6 +14,9 @@ class Teclado:
     DELAY_DIGITAR    = 0.02
     DELAY_ATALHO     = 0.05
     DELAY_PRESSIONAR = 0.05
+
+    def __repr__ (self) -> str:
+        return "<bot.Teclado>"
 
     def apertar (self, *teclas: BOTOES_TECLADO | char) -> Self:
         """Pressionar e soltar as `teclas` uma vez"""

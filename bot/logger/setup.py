@@ -6,8 +6,8 @@ from datetime import (
     timedelta as Timedelta
 )
 # interno
-from ..        import configfile
-from ..sistema import Caminho
+import bot
+from bot.sistema import Caminho
 
 DIRETORIO_EXECUCAO = Caminho.diretorio_execucao().string
 
@@ -48,6 +48,9 @@ class Logger:
         INICIALIZACAO_PACOTE.strftime(FORMATO_NOME_LOG_PERSISTENCIA)
     )
 
+    def __repr__ (self) -> str:
+        return "<bot.Logger>"
+
     @functools.cached_property
     def root_logger (self) -> logging.Logger:
         return logging.getLogger()
@@ -82,7 +85,7 @@ class Logger:
             encoding = "utf-8",
             datefmt  = self.FORMATO_DATA_LOG,
             format   = self.FORMATO_MENSAGEM_LOG,
-            level    = logging.DEBUG if configfile.obter_opcao_ou("logger", "flag_debug", False) else logging.INFO,
+            level    = logging.DEBUG if bot.configfile.obter_opcao_ou("logger", "flag_debug", False) else logging.INFO,
             handlers = self.bot_logger.handlers
         )
 
@@ -94,7 +97,7 @@ class Logger:
         - Registrado para executar ao fim do Python automaticamente
         - `Default:` 14 dias"""
         # obter limite
-        dias = configfile.obter_opcao_ou("logger", "dias_persistencia", 14)
+        dias = bot.configfile.obter_opcao_ou("logger", "dias_persistencia", 14)
         limite = Timedelta(days=dias)
         # limpar
         for caminho in Logger.CAMINHO_DIRETORIO_PERSISTENCIA:

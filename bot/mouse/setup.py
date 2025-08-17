@@ -4,13 +4,14 @@ from typing import Self
 # interno
 from .win_api import send_input_mouse_api
 import bot
+from bot.estruturas import Coordenada
 # externo
 import win32api, win32con
 
-def transformar_posicao (coordenada: bot.estruturas.Coordenada | tuple[int, int] | None) -> tuple[int, int]:
+def transformar_posicao (coordenada: Coordenada | tuple[int, int] | None) -> tuple[int, int]:
     """Transformar a `coordenada` para posicao `(x, y)`"""
     match coordenada:
-        case bot.estruturas.Coordenada(): return coordenada.transformar()
+        case Coordenada(): return coordenada.transformar()
         case (int(), int()): return coordenada
         case _: return Mouse.posicao_atual()
 
@@ -30,6 +31,9 @@ class Mouse:
         "right":  (win32con.MOUSEEVENTF_RIGHTDOWN,  win32con.MOUSEEVENTF_RIGHTUP)
     }
 
+    def __repr__ (self) -> str:
+        return "<bot.Mouse>"
+
     @staticmethod
     def posicao_atual () -> tuple[int, int]:
         """Obter a posição `(x, y)` atual do mouse"""
@@ -38,9 +42,9 @@ class Mouse:
     @staticmethod
     def posicao_central () -> tuple[int, int]:
         """Obter a posição `(x, y)` central da tela"""
-        return bot.estruturas.Coordenada.tela().transformar()
+        return Coordenada.tela().transformar()
 
-    def mover (self, coordenada: tuple[int, int] | bot.estruturas.Coordenada) -> Self:
+    def mover (self, coordenada: tuple[int, int] | Coordenada) -> Self:
         """Mover o mouse, de forma instantânea, até a `coordenada`"""
         coordenada = transformar_posicao(coordenada)
         win32api.SetCursorPos(coordenada)
@@ -59,7 +63,7 @@ class Mouse:
         sleep(self.DELAY_MOVER_RELATIVO)
         return self
 
-    def mover_deslizando (self, coordenada: tuple[int, int] | bot.estruturas.Coordenada) -> Self:
+    def mover_deslizando (self, coordenada: tuple[int, int] | Coordenada) -> Self:
         """Mover o mouse, pixel por pixel, até a `coordenada`"""
         posicao = transformar_posicao(coordenada)
         cronometro, tempo_limite = bot.util.Cronometro(), 5.0
