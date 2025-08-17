@@ -148,14 +148,14 @@ class Resultado [T]:
         """Obter o `valor` do resultado
         - Necessário validar se o resultado é de sucesso"""
         if not self.ok():
-            raise Exception(f"Tentando obter o valor de um resultado sem sucesso") from self.__erro
+            raise Exception(f"Tentado obter o valor de um resultado sem sucesso") from self.__erro
         return self.__valor # type: ignore
 
     def erro (self) -> Exception:
         """Obter o `erro` do resultado
         - Necessário validar se o resultado é de erro"""
         if self.ok():
-            raise Exception(f"Tentando obter o erro de um resultado com sucesso")
+            raise Exception(f"Tentado obter o erro de um resultado com sucesso")
         return self.__erro # type: ignore
 
     def valor_ou[D] (self, default: D) -> T | D:
