@@ -4,6 +4,7 @@ import bot
 LOG
 Classe configurada para criar, consultar e tratar os arquivos de log.  
 Possível alterar configurações mudando as constantes antes do logger ser inicializado
+
 #### Deve ser inicializado `bot.logger.inicializar_logger()`
 
 - Stream para o `stdout`
