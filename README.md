@@ -192,40 +192,33 @@ LeitorOCR()
 ### `logger`
 Pacote para realizar e tratar Logs
 ```python
-# Caminho para o arquivo log que é criado na raiz do projeto
-caminho_log_raiz()
-
-# Caminho para o arquivo log que é criado na inicialização do bot, caso requisitado, para persistência na pasta `/logs`
-caminho_log_persistencia()
+# Inicializar a formatação e os handlers
+inicializar_logger()
 
 # Log para diferentes níveis
-debug (mensagem: str) -> None
-informar (mensagem: str) -> None
-alertar (mensagem: str) -> None
-erro (mensagem: str, excecao: Exception | None = None) -> None
+debug (mensagem: str) -> Logger
+informar (mensagem: str) -> Logger
+alertar (mensagem: str) -> Logger
+erro (mensagem: str, excecao: Exception | None = None) -> Logger
 ```
 
 ### `mouse`
 Pacote para realizar ações com o mouse
 ```python
 # Mover o mouse, de forma instantânea, até a `coordenada`
-mover_mouse (coordenada: tuple[int, int] | Coordenada) -> None
+mover (coordenada: tuple[int, int] | Coordenada) -> Mouse
 
-# Clicar com o `botão` do mouse `quantidade` vezes na `coordenada` ou posição atual
-clicar_mouse (
-    botao: tipagem.BOTOES_MOUSE = "left",
+# Clicar com o `botão` do mouse `quantidade` vezes na posição atual
+clicar (
     quantidade = 1,
-    coordenada: Coordenada | tuple[int, int] | None = None,
-    delay = 0.1
-) -> None
+    botao: tipagem.BOTOES_MOUSE = "left",
+) -> Mouse
 
-# Realizar o scroll vertical `quantidade` vezes para a `direcao` na `coordenada` ou posição atual
+# Realizar o scroll vertical `quantidade` vezes para a `direcao` na posição atual
 scroll_vertical (
     quantidade = 1,
-    direcao: tipagem.DIRECOES_SCROLL = "baixo",
-    coordenada: Coordenada | tuple[int, int] | None = None,
-    delay = 0.05
-) -> None
+    direcao: bot.tipagem.DIRECOES_SCROLL = "baixo"
+) -> Mouse:
 ```
 
 ### `navegador`
@@ -286,15 +279,14 @@ JanelaUIA(lambda janela: bool)
 ### `teclado`
 Pacote para realizar ações com o teclado
 ```python
-# Apertar e soltar uma tecla `qtd` vezes
-apertar_tecla (
-    tecla: tipagem.BOTOES_TECLADO | tipagem.char,
-    quantidade = 1,
-    delay = 0.1
-) -> None
+# Pressionar e soltar as `teclas` uma vez
+apertar (*teclas: tipagem.BOTOES_TECLADO | tipagem.char) -> Teclado
 
-# Digitar o texto pressionando cada tecla do texto e soltando em seguida
-digitar_teclado (texto: str, delay=0.05) -> None
+# Digitar os caracteres no `texto`
+digitar (texto: str, delay=0.05) -> Teclado
+
+# Pressionar as `teclas` sequencialmente e soltá-las em ordem reversa
+atalho (*teclas: tipagem.BOTOES_TECLADO | tipagem.char) -> Teclado
 ```
 
 ### `tipagem`
