@@ -1,5 +1,3 @@
-# std
-import tomllib
 # interno
 import bot
 
@@ -17,13 +15,13 @@ def apagar_release (id_release: int) -> None:
     assert response.status_code == 204
 
 def obter_descricao_release () -> str:
-    with open("pyproject.toml", "rb") as reader:
-        pyproject = tomllib.load(reader)
+    toml = bot.formatos.Toml("pyproject.toml")
 
-    nome: str = pyproject["project"]["name"]
-    dependencias: list[str] = pyproject["project"]["dependencies"]
-    requer_python: str = pyproject["project"]["requires-python"]
-    pacotes = [pacote.path.stem for pacote in bot.estruturas.Caminho(".", nome).procurar(lambda c: not c.nome.startswith("_"))]
+    requer_python = toml.obter("project.requires-python")
+    dependencias = toml.obter("project.dependencies", list[str])
+    pacotes = [atributo
+               for atributo in dir(bot)
+               if not atributo.startswith("_")]
 
     return "<br>".join((
         f"**Python:** {requer_python!r}",
@@ -58,22 +56,14 @@ def obter_releases () -> dict[str, int]:
             "Authorization": f"Bearer {TOKEN}"
         }
     )
+    assert response.status_code == 200
 
-    releases, erro = bot.formatos.Json.parse(response.text)
-    assert response.status_code == 200 and not erro and releases.validar({
-        "type": "array",
-        "items": {
-            "type": "object",
-            "properties": {
-                "id": { "type": "number" },
-                "tag_name": { "type": "string" }
-            }
-        }
-    }), "Erro ao obter os releases"
-
+    releases = bot.formatos.Json\
+        .parse(response.text)\
+        .obter(list[dict])
     return {
         release["tag_name"]: release["id"]
-        for release in releases.valor()
+        for release in releases
         if release["tag_name"]
     }
 
