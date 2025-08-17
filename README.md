@@ -12,7 +12,42 @@ Utilizar o caminho para o arquivo **whl** baixado `bot @ file://.../bot-4.0-py3-
 
 > Os pacotes podem ser encontrados diretamentes no namespace **bot** após import da biblioteca **import bot** ou importado diretamente o pacote desejado **from bot import pacote**
 
-<br>
+
+## Changelog 🔧
+
+<details>
+<summary>v4.0</summary>
+
+- Alterado pacotes `logger`, `configfile`, `mouse` e `teclado` para utilizarem uma classe
+- Alteração geral no `estruturas.Resultado` e `formatos.Json`
+- Adicionado `sistema.criar_mutex()`
+- Renomeado `util.cronometro()` para `util.Cronometro()`
+
+</details>
+<details>
+<summary>v3.2</summary>
+
+- Alterado métodos e descrição das classes `Sqlite` e `DatabaseODBC` no pacote `database`
+- Adicionado parâmetro de tempo limite no `bot.video.GravadorTela()` e alterado default do `comprimir` para `False`
+- Alterado lógica do `bot.sistema.JanelaW32.focar()`
+
+</details>
+<details>
+<summary>v3.1</summary>
+
+- Criado o pacote `video`
+- Alterado nome do `sistema.abrir_programa` para `abrir_processo`
+
+</details>
+<details>
+<summary>v3.0</summary>
+
+- Removido dependência do `pywinauto`
+- Criado classes próprias para manipulação de Janelas e função para encerrar processos em `bot.sistema`
+- Atualizado métodos para encontrar elementos do `Navegador` para uma classe própria
+
+</details>
+
 
 ## Descrição breve dos pacotes com algumas funcionalidades
 Veja a descrição dos pacotes para mais detalhes e inspecionar as funções e classes disponíveis para um melhor contexto
