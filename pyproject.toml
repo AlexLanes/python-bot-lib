@@ -36,7 +36,6 @@ dependencies = [
   # sistema
   "psutil",
   "comtypes",
-  "pyperclip",
 ]
 
 [project.optional-dependencies]

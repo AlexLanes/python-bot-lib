@@ -1,11 +1,11 @@
 # std
-from __future__ import annotations
 import atexit, getpass, subprocess
 # interno
 from . import Caminho
+import bot
 # externo
-import pyperclip, psutil
-import win32event, win32api # pywin32
+import psutil
+import win32event, win32api, win32clipboard # pywin32
 
 CAMINHO_QRES = Caminho(__file__).parente / "QRes.exe"
 
@@ -69,33 +69,40 @@ def alterar_resolucao (largura: int, altura: int) -> None:
     """Alterar a resolução da tela
     - Utilizado o `QRes.exe` pois funciona para `RDPs`
     - A resolução deve estar presente nas disponíveis em configurações de tela do windows"""
-    from bot.logger import informar, alertar
-
     # checar
     desejada = (largura, altura)
     atual, _ = informacoes_resolucao()
     if atual == desejada:
-        return informar("Resolução da tela desejada já se encontra definida")
+        bot.logger.informar(f"Resolução da tela {desejada} já se encontra definida")
+        return
 
     # alterar
-    informar(f"Alterando a resolução da tela para {largura}x{altura}")
+    bot.logger.informar(f"Alterando a resolução da tela para {largura}x{altura}")
     _, resultado = executar(CAMINHO_QRES.string, f"/X:{largura}", f"/Y:{altura}")
 
     # confirmar
     sucesso = "Mode Ok..."
-    if sucesso in resultado: informar(f"Resolução da tela alterada")
-    else: alertar(f"Resolução da tela não foi alterada corretamente\n\t{" ".join(resultado.split("\n")[3:])}")
+    if sucesso not in resultado: 
+        erro = Exception(" ".join(resultado.split("\n")[3:]))
+        bot.logger.erro(f"Resolução da tela {desejada} não foi aplicada corretamente", erro)
+        raise erro
+
+    bot.logger.informar(f"Resolução da tela alterada para {desejada}")
 
 def copiar_texto (texto: str) -> None:
     """Substituir o texto copiado da área de transferência pelo `texto`"""
-    pyperclip.copy(texto)
+    win32clipboard.OpenClipboard()
+    try:
+        win32clipboard.EmptyClipboard()
+        win32clipboard.SetClipboardText(texto, win32clipboard.CF_UNICODETEXT)
+    finally:
+        win32clipboard.CloseClipboard()
 
-def texto_copiado (apagar=False) -> str:
-    """Obter o texto copiado da área de transferência
-    - `apagar` determina se o texto será apagado após ser obtido"""
-    texto = pyperclip.paste()
-    if apagar: copiar_texto("")
-    return texto
+def texto_copiado() -> str:
+    """Obter o texto copiado da área de transferência"""
+    win32clipboard.OpenClipboard()
+    try: return win32clipboard.GetClipboardData(win32clipboard.CF_UNICODETEXT)
+    finally: win32clipboard.CloseClipboard()
 
 def encerrar_processos_usuario (*nome_processo: str) -> int:
     """Encerrar os processos do usuário atual que comecem com algum nome em `nome_processo`
