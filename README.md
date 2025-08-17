@@ -3,12 +3,12 @@
 ⚠️ <span style="color: red;"><strong>Python</strong> <code>&gt;=3.12</code></span> ⚠️
 
 > **Instalação via url do release no github:**  
-Via pip `pip install https://github.com/DCLICK-RPA/dclick-rpa-python-bot-lib/releases/download/v3.2/bot-3.2-py3-none-any.whl`  
-Via uv `uv add https://github.com/DCLICK-RPA/dclick-rpa-python-bot-lib/releases/download/v3.2/bot-3.2-py3-none-any.whl`
+Via pip `pip install https://github.com/DCLICK-RPA/dclick-rpa-python-bot-lib/releases/download/v4.0/bot-4.0-py3-none-any.whl`  
+Via uv `uv add https://github.com/DCLICK-RPA/dclick-rpa-python-bot-lib/releases/download/v4.0/bot-4.0-py3-none-any.whl`
 
 > **Para referenciar como dependência:**  
-Utilizar o link para o arquivo **whl** do release `bot @ https://github.com/DCLICK-RPA/dclick-rpa-python-bot-lib/releases/download/v3.2/bot-3.2-py3-none-any.whl`  
-Utilizar o caminho para o arquivo **whl** baixado `bot @ file://.../bot-3.2-py3-none-any.whl`
+Utilizar o link para o arquivo **whl** do release `bot @ https://github.com/DCLICK-RPA/dclick-rpa-python-bot-lib/releases/download/v4.0/bot-4.0-py3-none-any.whl`  
+Utilizar o caminho para o arquivo **whl** baixado `bot @ file://.../bot-4.0-py3-none-any.whl`
 
 > Os pacotes podem ser encontrados diretamentes no namespace **bot** após import da biblioteca **import bot** ou importado diretamente o pacote desejado **from bot import pacote**
 
