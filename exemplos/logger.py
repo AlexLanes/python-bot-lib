@@ -5,14 +5,13 @@ LOG
 Classe configurada para criar, consultar e tratar os arquivos de log.  
 Possível alterar configurações mudando as constantes antes do logger ser inicializado
 
-#### Deve ser inicializado `bot.logger.inicializar_logger()`
+#### Inicializado automaticamente (Possível ser desativado)
 
 - Stream para o `stdout`
 - Cria um LOG no diretório de execução para fácil acesso `CAMINHO_LOG_RAIZ`
 - Salva um LOG no diretório de persistência `CAMINHO_LOG_PERSISTENCIA`
-- Variáveis .ini `[logger] -> [dias_persistencia: 14, flag_debug: False]`
+- Variáveis .ini `[logger] -> [dias_persistencia: 14, flag_debug: False, flag_desativar: False]`
 """
-bot.logger.inicializar_logger()
 bot.logger.debug("mensagem")    # Log nível 'DEBUG' (Desativado por padrão no configfile)
 bot.logger.informar("mensagem") # Log nível 'INFO'
 bot.logger.alertar("mensagem")  # Log nível 'WARNING'
