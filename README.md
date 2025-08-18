@@ -227,9 +227,6 @@ LeitorOCR()
 ### `logger`
 Pacote para realizar e tratar Logs
 ```python
-# Inicializar a formatação e os handlers
-inicializar_logger()
-
 # Log para diferentes níveis
 debug (mensagem: str) -> Logger
 informar (mensagem: str) -> Logger
@@ -318,7 +315,7 @@ Pacote para realizar ações com o teclado
 apertar (*teclas: tipagem.BOTOES_TECLADO | tipagem.char) -> Teclado
 
 # Digitar os caracteres no `texto`
-digitar (texto: str, delay=0.05) -> Teclado
+digitar (texto: str) -> Teclado
 
 # Pressionar as `teclas` sequencialmente e soltá-las em ordem reversa
 atalho (*teclas: tipagem.BOTOES_TECLADO | tipagem.char) -> Teclado
