@@ -20,11 +20,11 @@ class Mouse:
     - Alterar constantes `DELAY_...` para modificar tempo de espera após ação"""
 
     DELAY_CLICK = 0.1
-    DELAY_MOVER = 0.025
+    DELAY_MOVER = 0.1
     DELAY_SCROLL = 0.05
     DELAY_MOVER_RELATIVO = 0.001
 
-    UMA_LINHA_SCROLL = 120
+    UMA_LINHA_SCROLL: int = 120
     EVENTOS_BOTOES = {
         "left":   (win32con.MOUSEEVENTF_LEFTDOWN,   win32con.MOUSEEVENTF_LEFTUP),
         "middle": (win32con.MOUSEEVENTF_MIDDLEDOWN, win32con.MOUSEEVENTF_MIDDLEUP),
