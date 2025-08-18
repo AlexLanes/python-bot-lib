@@ -16,7 +16,7 @@ class ConfigFile:
     - Arquivos terminados em `.ini` devem estar presente em `DIRETORIO_EXECUCAO`
     ```"""
 
-    INICIALIZADO = False
+    INICIALIZADO: bool = False
     DIRETORIO_EXECUCAO = Caminho.diretorio_execucao()
     DADOS = LowerDict[LowerDict[str]]()
     """`{ secao: { opcao: valor } }`"""
