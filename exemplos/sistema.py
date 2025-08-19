@@ -98,7 +98,7 @@ e.class_name            # Classname do elemento
 e.coordenada            # Coordenada do elemento
 e.visivel               # Checar se o elemento está visível
 e.ativo                 # Checar se o elemento está ativo
-e.caixa_selecao         # Obter a interface da caixa de seleção de uma `CheckBox`ntrar o primeiro elemento descendente, com a menor profundidade, e de acordo com o `filtro`
+e.caixa_selecao         # Obter a interface da caixa de seleção de uma `CheckBox`
 
 e.textos(separador = " | ") # Textos dos descendentes concatenados pelo `separador`
 e.sleep(segundos=1)         # Aguardar por `segundos` até continuar a execução
