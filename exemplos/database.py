@@ -60,8 +60,8 @@ db.to_excel(bot.estruturas.Caminho("dados.xlsx")) # Salvar as linhas de todas as
 # Executar uma única instrução SQL
 # Veja como utilizar `ResultadoSQL`
 db.execute("select * from tabela") # Sem parâmetro
-db.execute("select * from tabela where nome = ?", ["Alex"]) # Com parâmetro posicional '?'
-db.execute("select * from tabela where nome = :nome", {"nome": "Alex"}) # Com parâmetro nomeado ':'
+db.execute("select * from tabela where nome = ?", "Alex") # Com parâmetro posicional '?'
+db.execute("select * from tabela where nome = :nome", nome="Alex") # Com parâmetro nomeado ':'
 # Executar uma ou mais instruções SQL
 # Veja como utilizar `ResultadoSQL`
 db.execute_many("insert into tabela values (?, ?)", [("Alex", 11), ("Fulano", 22)]) # (2 execuções) com parâmetros posicionais '?'
@@ -93,7 +93,7 @@ db.reconectar() # Refaz a conexão caso encerrada
 # Executar uma única instrução SQL
 # Veja como utilizar `ResultadoSQL`
 db.execute("select * from tabela") # Sem parâmetro
-db.execute("select * from tabela where nome = ?", ["Alex"]) # Com parâmetro posicional '?'
+db.execute("select * from tabela where nome = ?", "Alex") # Com parâmetro posicional '?'
 # Executar uma ou mais instruções SQL
 # Veja como utilizar `ResultadoSQL`
 db.execute_many("insert into tabela values (?, ?)", [("Alex", 11), ("Fulano", 22)]) # (2 execuções) com parâmetros posicionais '?'
