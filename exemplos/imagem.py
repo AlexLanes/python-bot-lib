@@ -7,6 +7,7 @@ Classe especializada no tratamento de imagem
 imagem = bot.imagem.Imagem("imagem.jpg")
 bot.imagem.Imagem(bot.sistema.Caminho("imagem.png"))
 bot.imagem.Imagem.from_bytes(b'')
+bot.imagem.Imagem.from_base64('')
 
 # Atributos
 imagem.pixels       # Pixels da imagem BGR ou Cinza
