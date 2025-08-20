@@ -779,15 +779,15 @@ class JanelaW32:
             win32gui.ShowWindow(self.hwnd, win32con.SW_RESTORE)
             bot.util.aguardar_condicao(lambda: self.elemento.visivel, timeout=5, delay=0.5)
 
+        flags = win32con.SWP_NOMOVE | win32con.SWP_NOSIZE | win32con.SWP_SHOWWINDOW \
+                                    | win32con.SWP_NOACTIVATE if self.elemento.visivel else 0
         def trazer_para_o_foco () -> bool:
             try:
-                win32gui.SetWindowPos(self.hwnd, win32con.HWND_TOPMOST, 0, 0, 0, 0, win32con.SWP_NOMOVE | win32con.SWP_NOSIZE)
-                win32gui.SetWindowPos(self.hwnd, win32con.HWND_NOTOPMOST, 0, 0, 0, 0, win32con.SWP_NOMOVE | win32con.SWP_NOSIZE)
+                win32gui.SetWindowPos(self.hwnd, win32con.HWND_TOPMOST, 0, 0, 0, 0, flags)
                 win32gui.BringWindowToTop(self.hwnd)
                 win32gui.SetForegroundWindow(self.hwnd)
-                return win32gui.GetForegroundWindow() == self.hwnd
-            except Exception:
-                return False
+                return self.focada
+            except Exception: return False
         focado = bot.util.aguardar_condicao(trazer_para_o_foco, timeout=5)
 
         # O Windows pode não permitir
