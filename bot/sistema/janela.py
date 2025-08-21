@@ -135,14 +135,37 @@ class ElementoW32:
     def __hash__ (self) -> int:
         return hash(repr(self))
 
-    def __getitem__[T: ElementoW32] (self: T, index: int) -> T:
-        """Obter o elemento filho `index` ordenado pela coordenada"""
+    @typing.overload
+    def __getitem__[T: ElementoW32] (self: T, value: int | str) -> T: ...
+    @typing.overload
+    def __getitem__[T: ElementoW32] (self: T, value: tuple[int, ...]) -> list[T]: ...
+    def __getitem__[T: ElementoW32] (self: T, value: object) -> T | list[T]:
+        """Obter elemento(s) filho(s) ordenado(s) pela coordenada
+        - `int` index
+        - `str` texto ou class_name
+        - `(int, ...)` + de 1 index"""
         filhos = self.janela.ordernar_elementos_coordenada(
             self.filhos(aguardar=5)
         )
-        try: return filhos[index]
-        except IndexError:
-            raise IndexError(f"Filho do {self} não encontrado no index '{index}'")
+        match value:
+            case str() as texto:
+                try: return next(filho for filho in filhos
+                                 if texto.lower() in (filho.class_name.lower(), filho.texto.lower()))
+                except StopIteration:
+                    raise Exception(f"Filho do elemento na {self.janela} não encontrado com texto ou class_name '{texto}'")
+
+            case int() as index:
+                try: return filhos[index]
+                except IndexError:
+                    raise IndexError(f"Filho do elemento na {self.janela} não encontrado no index '{index}'")
+
+            case tuple() as indexes if all(isinstance(index, int) for index in indexes):
+                try: return [filhos[index] for index in indexes]
+                except IndexError:
+                    raise IndexError(f"Filhos do elemento na {self.janela} não encontrados nos índices '{indexes}'")
+
+            case _:
+                raise ValueError(f"Tipo {type(value)} inesperado ao se obter elemento")
 
     @property
     def texto (self) -> str:
@@ -340,13 +363,13 @@ class ElementoW32:
 
     def print_arvore (self) -> None:
         """Realizar o `print()` da árvore de elementos"""
-        def print_nivel (elemento: ElementoW32, prefixo="") -> None:
-            prefixo += "|   " if elemento.profundidade > 0 else ""
-            print(f"{prefixo}{elemento}")
+        def print_nivel (elemento: ElementoW32, prefixo: str) -> None:
+            prefixo += "|   " if elemento.profundidade > self.profundidade else ""
+            print(prefixo, elemento, sep="")
             for filho in elemento.filhos(lambda e: True):
                 print_nivel(filho, prefixo)
 
-        print_nivel(self)
+        print_nivel(self, "")
 
     def to_uia (self) -> ElementoUIA:
         """Criar um instância do `ElementoW32` como `ElementoUIA`"""
@@ -641,9 +664,13 @@ class JanelaW32:
     elemento = janela.elemento
     elemento.filhos()           # Filhos imediatos
     elemento.descendentes()     # Todos os elementos
-    elemento.encontrar(...)     # Encontrar o primeiro elemento descendente, com a menor profundidade, de acordo com o `filtro`
+    elemento.encontrar(...)     # Encontrar o primeiro elemento descendente de acordo com o `filtro`
     elemento.clicar("left")     # Clicar com o `botão` no centro do elemento
     elemento.digitar("texto")   # Digitar o `texto` no elemento
+    # Encontrar ordenando pela posição Y e X
+    primeiro = elemento[0]              # Obter elemento pelo index
+    primeiro, ultimo = elemento[0, -1]  # Obter elementos pelo index
+    elemento["texto ou class_name"]     # Obter elemento pelo texto ou class_name
     ...
     ```
 
@@ -929,7 +956,7 @@ class JanelaW32:
 
     def print_arvore (self) -> None:
         """Realizar o `print()` da árvore de elementos da janela e das janelas do processo"""
-        for janela in (self, *self.janelas_processo()):
+        for janela in (self, *self.janelas_processo(lambda j: True)):
             janela.elemento.print_arvore()
             print()
 
@@ -1008,13 +1035,17 @@ class JanelaUIA (JanelaW32):
     elemento = janela.elemento
     elemento.filhos()           # Filhos imediatos
     elemento.descendentes()     # Todos os elementos
-    elemento.encontrar(...)     # Encontrar o primeiro elemento descendente, com a menor profundidade, de acordo com o `filtro`
+    elemento.encontrar(...)     # Encontrar o primeiro elemento descendente de acordo com o `filtro`
     elemento.clicar("left")     # Clicar com o `botão` no centro do elemento
     elemento.digitar("texto")   # Digitar o `texto` no elemento
+    # Encontrar ordenando pela posição Y e X
+    primeiro = elemento[0]              # Obter elemento pelo index
+    primeiro, ultimo = elemento[0, -1]  # Obter elementos pelo index
+    elemento["texto ou class_name"]     # Obter elemento pelo texto ou class_name
     ...
 
     # Específico UIA
-    elemento.value              # Propriedade `value` do elemento. Útil para inputs
+    elemento.valor              # Propriedade `value` do elemento. Útil para inputs
     elemento.aba                # Checar se o elemento é uma aba
     elemento.barra_menu         # Checar se o elemento é uma barra de menu
     elemento.botao              # Checar se o elemento é um botão
