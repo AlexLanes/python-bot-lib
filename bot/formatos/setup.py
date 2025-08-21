@@ -1,6 +1,6 @@
 # std
 from __future__ import annotations
-import copy, types, tomllib
+import copy, types, tomllib, inspect
 import json as jsonlib
 from typing import Any, Generator, Literal, Self, get_args, get_origin, Union
 from xml.etree.ElementTree import (
@@ -457,6 +457,10 @@ class Unmarshaller[T]:
     PRIMITIVOS = (str, int, float, bool, types.NoneType)
 
     def __init__(self, cls: type[T]) -> None:
+        # Confirmar classe
+        assert inspect.isclass(cls) and cls.__module__ != "builtins",\
+            f"Unmarshaller espera uma classe | Recebido({cls})"
+
         self.cls = cls
         if cls.__repr__ is object.__repr__:
             cls.__repr__ = lambda self: str(self.__dict__)
