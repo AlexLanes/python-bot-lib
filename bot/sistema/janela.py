@@ -135,14 +135,14 @@ class ElementoW32:
     def __hash__ (self) -> int:
         return hash(repr(self))
 
-    def __getitem__ (self, index: int) -> ElementoW32:
+    def __getitem__[T: ElementoW32] (self: T, index: int) -> T:
         """Obter o elemento filho `index` ordenado pela coordenada"""
         filhos = self.janela.ordernar_elementos_coordenada(
             self.filhos(aguardar=5)
         )
         try: return filhos[index]
         except IndexError:
-            raise IndexError(f"Filho não encontrado no index '{index}' | {self} | Filhos {filhos}")
+            raise IndexError(f"Filho do {self} não encontrado no index '{index}'")
 
     @property
     def texto (self) -> str:
@@ -380,15 +380,6 @@ class ElementoUIA (ElementoW32):
         self.parente = parente # type: ignore
         self.profundidade = profundidade
         self.uiaelement = uiaelement or ElementoUIA.UIA.ElementFromHandle(hwnd)
-
-    def __getitem__ (self, index: int) -> ElementoUIA:
-        """Obter o elemento filho `index` ordenado pela coordenada"""
-        filhos = self.janela.ordernar_elementos_coordenada(
-            self.filhos(aguardar=5)
-        )
-        try: return filhos[index]
-        except IndexError:
-            raise IndexError(f"Filho não encontrado no index '{index}' | {self} | Filhos {filhos}")
 
     @property
     def texto (self) -> str:
