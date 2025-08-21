@@ -104,6 +104,11 @@ class Mouse:
 
         return self
 
+    def sleep (self, segundos: int | float = 1) -> Self:
+        """Aguardar por `segundos` até continuar a execução"""
+        sleep(segundos)
+        return self
+
 mouse = Mouse()
 """Classe de controle do mouse
 - Alterar constantes `DELAY_...` para modificar tempo de espera após ação"""
