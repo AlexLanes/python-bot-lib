@@ -640,16 +640,24 @@ class JanelaW32:
 
     ### Criação
     ```
-    JanelaW32.from_foco()                                            # Janela focada
-    JanelaW32(lambda j: "titulo" in j.titulo and j.elemento.visivel) # Procurar a janela com filtro dinâmico
-    JanelaW32(lambda j: ..., aguardar=10)                            # Aguardar por 10 segundos até encontrar a janela
-    JanelaW32.iniciar("notepad", shell=True, aguardar=30)            # Iniciar uma janela via novo processo
+    JanelaW32.from_foco()                                       # Janela focada
+    JanelaW32(lambda j: "titulo" in j.titulo and j.visivel)     # Procurar a janela com filtro dinâmico
+    JanelaW32(lambda j: ..., aguardar=10)                       # Aguardar por 10 segundos até encontrar a janela
+    JanelaW32.iniciar("notepad", shell=True, aguardar=30)       # Iniciar uma janela via novo processo
     ```
+
+    ### Importante
+    - Utilizar sempre o `.visivel` nos filtros para garantir que a `janela/elemento` está aparecendo
+    - Utilizar `.focar()` após obter uma janela para trazer para frente e aguardar estar responsível
+    - Utilizar o `.aguardar()` para aguardar a janela/elemento estar responsível
+        - Utilizado pelo `.focar()`
+        - Utilizado pelos métodos de interação dos elementos
 
     ### Propriedades
     ```
     janela.titulo
     janela.class_name
+    janela.visivel    # Checar se a janela está visível
     janela.coordenada # Região na tela da janela
     janela.processo   # Processo do módulo `psutil` para controle via `PID`
     janela.focada     # Checar se a janela está em primeiro plano
@@ -769,7 +777,7 @@ class JanelaW32:
                 delay = 0.5
             )
             return cls(
-                lambda j: j.titulo and j.elemento.visivel
+                lambda j: j.titulo and j.visivel
                                    and j.titulo not in titulos_antes,
                 aguardar = aguardar
             ).focar()
@@ -798,6 +806,11 @@ class JanelaW32:
     def coordenada (self) -> bot.estruturas.Coordenada:
         """Região na tela da janela"""
         return self.elemento.coordenada
+    @property
+    def visivel (self) -> bool:
+        """Checar se a janela está visível
+        - Importante utilização nos filtros para não interagir com a janela cedo demais"""
+        return self.elemento.visivel
 
     @functools.cached_property
     def elemento (self) -> ElementoW32:
@@ -833,10 +846,10 @@ class JanelaW32:
         """Trazer a janela para primeiro plano"""
         if self.minimizada:
             win32gui.ShowWindow(self.hwnd, win32con.SW_RESTORE)
-            bot.util.aguardar_condicao(lambda: self.elemento.visivel, timeout=5, delay=0.5)
+            bot.util.aguardar_condicao(lambda: self.visivel, timeout=5, delay=0.5)
 
         flags = win32con.SWP_NOMOVE | win32con.SWP_NOSIZE | win32con.SWP_SHOWWINDOW \
-                                    | win32con.SWP_NOACTIVATE if self.elemento.visivel else 0
+                                    | win32con.SWP_NOACTIVATE if self.visivel else 0
         def trazer_para_o_foco () -> bool:
             try:
                 win32gui.SetWindowPos(self.hwnd, win32con.HWND_TOPMOST, 0, 0, 0, 0, flags)
@@ -891,7 +904,7 @@ class JanelaW32:
         - `filtro` para escolher as janelas. `Default: visível e ativo`"""
         self.aguardar()
         encontrados: list[T] = []
-        filtro = filtro or (lambda j: j.elemento.visivel and j.elemento.ativo)
+        filtro = filtro or (lambda j: j.visivel and j.elemento.ativo)
 
         def callback (hwnd, _) -> typing.Literal[True]:
             if hwnd == self.hwnd: return True
@@ -1012,16 +1025,24 @@ class JanelaUIA (JanelaW32):
 
     ### Criação
     ```
-    JanelaUIA.from_foco()                                            # Janela focada
-    JanelaUIA(lambda j: "titulo" in j.titulo and j.elemento.visivel) # Procurar a janela com filtro dinâmico
-    JanelaUIA(lambda j: ..., aguardar=10)                            # Aguardar por 10 segundos até encontrar a janela
-    JanelaUIA.iniciar("notepad", shell=True, aguardar=30)            # Iniciar uma janela via novo processo
+    JanelaUIA.from_foco()                                   # Janela focada
+    JanelaUIA(lambda j: "titulo" in j.titulo and j.visivel) # Procurar a janela com filtro dinâmico
+    JanelaUIA(lambda j: ..., aguardar=10)                   # Aguardar por 10 segundos até encontrar a janela
+    JanelaUIA.iniciar("notepad", shell=True, aguardar=30)   # Iniciar uma janela via novo processo
     ```
+
+    ### Importante
+    - Utilizar sempre o `.visivel` nos filtros para garantir que a `janela/elemento` está aparecendo
+    - Utilizar `.focar()` após obter uma janela para trazer para frente
+    - Utilizar o `.aguardar()` para aguardar a janela/elemento estar responsível
+        - Utilizado pelo `.focar()`
+        - Utilizado pelos métodos de interação dos elementos
 
     ### Propriedades
     ```
     janela.titulo
     janela.class_name
+    janela.visivel    # Checar se a janela está visível
     janela.coordenada # Região na tela da janela
     janela.processo   # Processo do módulo `psutil` para controle via `PID`
     janela.focada     # Checar se a janela está em primeiro plano

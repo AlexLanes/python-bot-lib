@@ -1,4 +1,5 @@
 import bot
+from bot.sistema import JanelaW32
 
 """
 Funções
@@ -57,62 +58,67 @@ Utilizado em conjunto com o `inpect.exe` instalado com o SDK do Windows
 JanelaW32 - Mais rápido porém mais simples
 JanelaUIA - Possui tudo do W32 + algumas coisas específicas
 """
-# Inicialização 
-j = bot.sistema.JanelaW32(lambda j: "título" in j.titulo) # Dinâmico, conforme lambda informado
-bot.sistema.JanelaW32.from_foco() # Obter a janela com o foco do sistema
 
-# Atributos
-j.titulo            # Texto do elemento
-j.class_name        # Classname da janela
-j.coordenada        # Coordenada da janela
-j.processo          # Processo do módulo `psutil` para controle via `PID`
-j.maximizada        # Checar se a janela está maximizada
-j.minimizada        # Checar se a janela está minimizada
-j.focada            # Checar se a janela está focada
-j.fechada           # Checar se a janela está fechada
+### Criação
+janela = JanelaW32.from_foco()                              # Janela focada
+JanelaW32(lambda j: "titulo" in j.titulo and j.visivel)     # Procurar a janela com filtro dinâmico
+JanelaW32(lambda j: ..., aguardar=10)                       # Aguardar por 10 segundos até encontrar a janela
+JanelaW32.iniciar("notepad", shell=True, aguardar=30)       # Iniciar uma janela via novo processo
 
-# Métodos
-j.maximizar()           # Maximizar janela
-j.minimizar()           # Minimizar janela
-j.focar()               # Focar janela
-j.fechar()              # Enviar a mensagem de fechar para janela e retornar indicador se fechou corretamente
-j.destruir()            # Enviar a mensagem de destruir para janela e retornar indicador se fechou corretamente
-j.encerrar()            # Enviar a mensagem de fechar para janela e encerrar pelo processo caso continue aberto
-j.aguardar()            # Aguarda `timeout` segundos até que a thread da GUI fique ociosa
-j.janelas_processo()    # Janelas do mesmo processo da `janela` mas que estão fora de sua árvore
-j.dialogo("")           # Encontrar janela de diálogo com `class_name`
-j.popup("")             # Encontrar janela de popup com `class_name`
-j.print_arvore()        # Realizar o `print()` da árvore de elementos da janela e das janelas do processo
-j.to_uia()              # Obter uma instância da `JanelaW32` como `JanelaUIA`
+### Importante
+"""
+- Utilizar sempre o `.visivel` nos filtros para garantir que a `janela/elemento` está aparecendo
+- Utilizar `.focar()` após obter uma janela para trazer para frente e aguardar estar responsível
+- Utilizar o `.aguardar()` para aguardar a janela/elemento estar responsível
+    - Utilizado pelo `.focar()`
+    - Utilizado pelos métodos de interação dos elementos
+"""
 
-# Métodos estáticos
-bot.sistema.JanelaW32.titulos_janelas_visiveis() # Obter os títulos das janelas visíveis
-bot.sistema.JanelaW32.ordernar_elementos_coordenada([]) # Ordenar os `elementos` pela posição Y e X
+### Propriedades
+janela.titulo
+janela.class_name
+janela.visivel    # Checar se a janela está visível
+janela.coordenada # Região na tela da janela
+janela.processo   # Processo do módulo `psutil` para controle via `PID`
+janela.focada     # Checar se a janela está em primeiro plano
+janela.minimizada
+janela.maximizada
+janela.fechada
 
-# Acesso, busca e iteração com elementos
-e = j.elemento
-e.parente               # Parente do elemento
-e.profundidade          # Profundidade do elemento (Começa no 0)
-e.texto                 # Texto do elemento
-e.class_name            # Classname do elemento
-e.coordenada            # Coordenada do elemento
-e.visivel               # Checar se o elemento está visível
-e.ativo                 # Checar se o elemento está ativo
-e.caixa_selecao         # Obter a interface da caixa de seleção de uma `CheckBox`
+### Elementos
+# Elemento superior da janela para acessar, procurar e manipular elementos
+elemento = janela.elemento
+elemento.filhos()           # Filhos imediatos
+elemento.descendentes()     # Todos os elementos
+elemento.encontrar(...)     # Encontrar o primeiro elemento descendente de acordo com o `filtro`
+elemento.clicar("left")     # Clicar com o `botão` no centro do elemento
+elemento.digitar("texto")   # Digitar o `texto` no elemento
+# Encontrar ordenando pela posição Y e X
+primeiro = elemento[0]              # Obter elemento pelo index
+primeiro, ultimo = elemento[0, -1]  # Obter elementos pelo index
+elemento["texto ou class_name"]     # Obter elemento pelo texto ou class_name
+...
 
-e.textos(separador = " | ") # Textos dos descendentes concatenados pelo `separador`
-e.sleep(segundos=1)         # Aguardar por `segundos` até continuar a execução
-e.aguardar()                # Aguarda `timeout` segundos até que a thread da GUI fique ociosa
-e.focar()                   # Focar o elemento
-e.clicar()                  # Clicar com o `botão` no centro do elemento
-e.apertar("enter")          # Apertar e soltar as `teclas` uma por vez
-e.digitar("")               # Digitar o `texto` no elemento
-e.atalho("ctrl", "c")       # Apertar as `teclas` sequencialmente e depois soltá-las em ordem reversa
-e.scroll()                  # Realizar scroll no elemento `quantidade` vezes na `direção`
-e.print_arvore()            # Realizar o `print()` da árvore de elementos
-e.to_uia()                  # Criar um instância do `ElementoW32` como `ElementoUIA`
+### Métodos
+janela.maximizar()
+janela.minimizar()
+janela.focar()              # Trazer a janela para primeiro plano
+janela.aguardar()           # Aguarda `timeout` segundos até que a thread da GUI fique ociosa
+janela.sleep()              # Aguardar por `segundos` até continuar a execução
+janela.janelas_processo()   # Janelas do mesmo processo da `janela`
+janela.janela_processo(...) # Obter janela do mesmo processo da `janela` de acordo com o `filtro`
+janela.print_arvore()       # Realizar o `print()` da árvore de elementos da janela e das janelas do processo
 
-e.filhos()                                  # Elementos filhos de primeiro nível
-e.descendentes()                            # Todos os elementos descendentes
-e.encontrar(lambda e: e.class_name == "")   # Encontrar o primeiro elemento descendente, com a menor profundidade, e de acordo com o filtro
-e[0]                                        # Primeiro filho, na posição `index`, ordenado pelas coordenadas
+### Métodos acessores
+janela.to_uia()     # Obter uma instância da `JanelaW32` como `JanelaUIA`
+janela.dialogo()    # Encontrar janela de diálogo com `class_name`
+janela.popup()      # Encontrar janela de popup com `class_name`
+
+### Métodos destrutores
+janela.fechar()     # Enviar a mensagem de fechar para janela e retornar indicador se fechou corretamente
+janela.destruir()   # Enviar a mensagem de destruir para janela e retornar indicador se fechou corretamente
+janela.encerrar()   # Enviar a mensagem de fechar para janela e encerrar pelo processo caso não feche
+
+### Métodos estáticos
+JanelaW32.titulos_janelas_visiveis()                  # Obter os títulos das janelas visíveis
+JanelaW32.ordernar_elementos_coordenada(elementos=[]) # Ordenar os `elementos` pela posição Y e X
