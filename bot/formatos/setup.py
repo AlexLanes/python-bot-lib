@@ -1,6 +1,6 @@
 # std
 from __future__ import annotations
-import copy, types, tomllib, inspect
+import copy, datetime, types, tomllib, inspect
 import json as jsonlib
 from typing import Any, Generator, Literal, Self, get_args, get_origin, Union
 from xml.etree.ElementTree import (
@@ -156,8 +156,9 @@ class Json:
 
     def stringify (self, indentar: bool = True) -> str:
         """Transformar o item para o formato string"""
-        def tratamentos (obj):
+        def tratamentos (obj: Any) -> Any:
             if type(obj) in (int, float, str, bool, type(None)): return obj
+            if isinstance(obj, datetime.datetime): return obj.isoformat(sep="T", timespec="seconds")
             if hasattr(obj, "__dict__"): return obj.__dict__
             if hasattr(obj, "__iter__"): return [tratamentos(item) for item in obj]
             if hasattr(obj, "__str__"): return obj.__str__()
