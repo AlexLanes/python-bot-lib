@@ -22,6 +22,18 @@ def formatar_dataframe (df: polars.DataFrame,
     with bot.database.polars.Config(**kwargs):
         return str(df)
 
+@bot.estruturas.Resultado.decorador
+def escapar_tag_xml (df: polars.DataFrame) -> polars.DataFrame:
+    return df.select([
+        polars.col(col)
+            .str.replace_all("<", "&lt;")
+            .str.replace_all(">", "&gt;")
+        if df.schema[col] == polars.String
+        else polars.col(col)
+
+        for col in df.columns
+    ])
+
 def criar_excel (caminho: bot.sistema.Caminho, planilhas: dict[str, polars.DataFrame]) -> bot.sistema.Caminho:
     """Criar um arquivo excel em `caminho` com os dados informados em `planilhas`
     - `planilhas` Dicionário sendo a `key` o nome da planilha e `value` um `polars.Dataframe` com os dados
@@ -30,6 +42,7 @@ def criar_excel (caminho: bot.sistema.Caminho, planilhas: dict[str, polars.DataF
 
     with Workbook(caminho.string) as excel:
         for nome_planilha, df in planilhas.items():
+            df = escapar_tag_xml(df).valor_ou(df)
             df.write_excel(excel, nome_planilha, autofit=True)
 
     return caminho
