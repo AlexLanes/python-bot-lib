@@ -770,7 +770,8 @@ class JanelaW32:
             )
             return cls(
                 lambda j: j.titulo and j.elemento.visivel
-                                   and j.titulo not in titulos_antes
+                                   and j.titulo not in titulos_antes,
+                aguardar = aguardar
             ).focar()
 
         except Exception as erro:
