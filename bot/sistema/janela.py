@@ -852,7 +852,7 @@ class JanelaW32:
         def trazer_para_o_foco () -> bool:
             try:
                 win32gui.SetWindowPos(self.hwnd, win32con.HWND_TOPMOST, 0, 0, 0, 0, flags)
-                win32gui.BringWindowToTop(self.hwnd)
+                win32gui.SetWindowPos(self.hwnd, win32con.HWND_NOTOPMOST, 0, 0, 0, 0, flags)
                 win32gui.SetForegroundWindow(self.hwnd)
                 return self.focada
             except Exception: return False
