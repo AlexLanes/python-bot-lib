@@ -186,8 +186,7 @@ class ElementoW32:
     def visivel (self) -> bool:
         return (
             win32gui.IsWindowVisible(self.hwnd) == 1
-            and (c := self.coordenada).largura > 0
-            and c.altura > 0
+            and bool(self.coordenada)
         )
 
     @property
@@ -426,8 +425,7 @@ class ElementoUIA (ElementoW32):
     def visivel (self) -> bool:
         return (
             self.uiaelement.CurrentIsOffscreen == 0
-            and (c := self.coordenada).largura > 0
-            and c.altura > 0
+            and bool(self.coordenada)
         )
 
     @property
@@ -861,8 +859,7 @@ class JanelaW32:
         # O Windows pode não permitir
         # Clicando em cima da janela resolve
         if not focado:
-            topo = self.coordenada.transformar(yOffset=0.01)
-            bot.mouse.mover(topo).clicar()
+            bot.mouse.mover(self.coordenada.topo()).clicar()
             trazer_para_o_foco()
 
         return self.aguardar().sleep(0.1)
@@ -1145,8 +1142,7 @@ class JanelaUIA (JanelaW32):
         )
 
         # mover o mouse para o topo para não interferir
-        topo = self.coordenada.transformar(0.5, 0)
-        bot.mouse.mover(topo)
+        bot.mouse.mover(self.coordenada.topo())
 
         for opcao in map(str.lower, opcoes):
             opcao_encontrada = False
