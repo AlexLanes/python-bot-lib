@@ -27,8 +27,8 @@ class Coordenada:
         return Coordenada(
             win32api.GetSystemMetrics(win32con.SM_XVIRTUALSCREEN),
             win32api.GetSystemMetrics(win32con.SM_YVIRTUALSCREEN),
-            win32api.GetSystemMetrics(win32con.SM_CXSCREEN),
-            win32api.GetSystemMetrics(win32con.SM_CYSCREEN)
+            win32api.GetSystemMetrics(win32con.SM_CXSCREEN) - 1,
+            win32api.GetSystemMetrics(win32con.SM_CYSCREEN) - 1,
         )
 
     @classmethod
@@ -48,6 +48,9 @@ class Coordenada:
 
     def __len__ (self) -> int:
         return 4
+
+    def __bool__ (self) -> bool:
+        return 0 not in (self.altura, self.largura)
 
     def __contains__ (self, other: Coordenada | tuple[int, int]) -> bool:
         """Testar se o ponto central da coordenada está dentro da outra
@@ -83,6 +86,11 @@ class Coordenada:
         - `(x-esquerda, y-cima, x-direita, y-baixo)`"""
         x, y, largura, altura = self
         return (x, y, largura + x, altura + y)
+
+    def topo (self) -> tuple[int, int]:
+        """Posição do topo central
+        - O mesmo que `self.transformar(0.5, 0.01)`"""
+        return self.transformar(0.5, 0.01)
 
 class Resultado [T]:
     """Classe para capturar o `return | Exception` de chamadas de uma função
