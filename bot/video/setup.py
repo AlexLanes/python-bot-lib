@@ -142,7 +142,9 @@ class GravadorTela:
         assert len(nome_extensao.split(".")) >= 2, f"Informe a extensão junto com o nome do arquivo: '{nome_extensao}'"
         self.nome_extensao = nome_extensao
 
+        bot.sistema.encerrar_processos_usuario("ffmpeg")
         self.processo = bot.sistema.abrir_processo(*self.argumentos)
+
         if self.processo.poll() is not None or not bot.util.aguardar_condicao(lambda: self.caminho.existe(), timeout=5):
             try:
                 stdout, stderr = self.processo.communicate(timeout=10)
