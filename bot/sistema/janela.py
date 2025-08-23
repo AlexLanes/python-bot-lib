@@ -869,11 +869,13 @@ class JanelaW32:
         return not win32gui.IsWindow(self.hwnd)
     def fechar (self, timeout: float | int = 10.0) -> bool:
         """Enviar a mensagem de fechar para janela e retornar indicador se fechou corretamente"""
-        win32gui.PostMessage(self.hwnd, win32con.WM_CLOSE, 0, 0)
+        if not self.fechada:
+            win32gui.PostMessage(self.hwnd, win32con.WM_CLOSE, 0, 0)
         return bot.util.aguardar_condicao(lambda: self.fechada, timeout)
     def destruir (self, timeout: float | int = 10.0) -> bool:
         """Enviar a mensagem de destruir para janela e retornar indicador se fechou corretamente"""
-        win32gui.PostMessage(self.hwnd, win32con.WM_DESTROY, 0, 0)
+        if not self.fechada:
+            win32gui.PostMessage(self.hwnd, win32con.WM_DESTROY, 0, 0)
         if not self.fechada:
             win32gui.PostMessage(self.hwnd, win32con.WM_QUIT, 0, 0)
         return bot.util.aguardar_condicao(lambda: self.fechada, timeout)
