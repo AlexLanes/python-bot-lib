@@ -240,7 +240,7 @@ class ElementoW32:
         while primeiro or (not descendentes and cronometro() < aguardar):
             primeiro = False
 
-            for filho in self.filhos():
+            for filho in self.filhos(lambda e: True):
                 try:
                     if filtro(filho): descendentes.append(filho)
                 except Exception: pass
@@ -255,17 +255,19 @@ class ElementoW32:
         - `AssertionError` caso não encontre"""
         assert aguardar >= 0, "Tempo para aguardar por elemento deve ser >= 0"
 
+        filtro_todos = lambda e: True
         primeiro, cronometro = True, bot.util.Cronometro()
+
         while primeiro or cronometro() < aguardar:
             primeiro = False
 
-            elementos = bot.estruturas.Deque(self.filhos())
+            elementos = bot.estruturas.Deque(self.filhos(filtro_todos))
             while elementos:
                 elemento = elementos.popleft()
                 try:
                     if filtro(elemento): return elemento
                 except Exception: pass
-                elementos.extend(elemento.filhos())
+                elementos.extend(elemento.filhos(filtro_todos))
 
         raise AssertionError("Nenhum elemento descendente encontrado para o filtro")
 
@@ -564,7 +566,8 @@ class ElementoUIA (ElementoW32):
     def focar (self) -> typing.Self:
         if not self.janela.focada:
             self.janela.focar()
-        self.uiaelement.SetFocus()
+        try: self.uiaelement.SetFocus()
+        except Exception: pass
         return self.aguardar()
 
     def clicar (self, botao: bot.tipagem.BOTOES_MOUSE = "left",
