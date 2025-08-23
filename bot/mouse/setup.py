@@ -45,7 +45,9 @@ class Mouse:
         return Coordenada.tela().transformar()
 
     def mover (self, coordenada: tuple[int, int] | Coordenada) -> Self:
-        """Mover o mouse, de forma instantânea, até a `coordenada`"""
+        """Mover o mouse, de forma instantânea, até a `coordenada`
+        - `Coordenada()` posição central
+        - `(int, int)` posição exata"""
         coordenada = transformar_posicao(coordenada)
         win32api.SetCursorPos(coordenada)
         sleep(self.DELAY_MOVER)
@@ -64,7 +66,9 @@ class Mouse:
         return self
 
     def mover_deslizando (self, coordenada: tuple[int, int] | Coordenada) -> Self:
-        """Mover o mouse, pixel por pixel, até a `coordenada`"""
+        """Mover o mouse, pixel por pixel, até a `coordenada`
+        - `Coordenada()` posição central
+        - `(int, int)` posição exata"""
         posicao = transformar_posicao(coordenada)
         cronometro, tempo_limite = bot.util.Cronometro(), 5.0
         direcao_movimento = lambda n: 1 if n > 0 else -1 if n < 0 else 0
