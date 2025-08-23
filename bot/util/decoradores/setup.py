@@ -89,7 +89,7 @@ def prefixar_erro[R] (
                 msg_erro = str(erro)
                 msg_prefixo = prefixo(args, kwargs) if callable(prefixo) else prefixo
                 mensagem_prefixada = msg_erro if msg_erro.startswith(msg_prefixo) else f"{msg_prefixo}; {msg_erro}"
-                raise tipo_excecao(mensagem_prefixada).with_traceback(erro.__traceback__) from None
+                raise tipo_excecao(mensagem_prefixada, *erro.args[1 :]).with_traceback(erro.__traceback__) from None
 
         return wrapper
     return prefixar_erro
@@ -103,7 +103,7 @@ def prefixar_erro_classe[R] (prefixo: str) -> typing.Callable[[R], R]:
             tipo_excecao = type(erro)
             msg_erro = str(erro)
             mensagem_prefixada = msg_erro if msg_erro.startswith(prefixo) else f"{prefixo}; {msg_erro}"
-            raise tipo_excecao(mensagem_prefixada).with_traceback(erro.__traceback__) from None
+            raise tipo_excecao(mensagem_prefixada, *erro.args[1 :]).with_traceback(erro.__traceback__) from None
         return valor if not isinstance(valor, types.MethodType) else prefixar_erro(prefixo)(valor)
 
     def prefixar_erro_classe (cls: R) -> R:
