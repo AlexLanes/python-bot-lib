@@ -149,8 +149,12 @@ class ElementoW32:
         )
         match value:
             case str() as texto:
-                try: return next(filho for filho in filhos
-                                 if texto.lower() in (filho.class_name.lower(), filho.texto.lower()))
+                normalizar = bot.util.normalizar
+                try: return next(
+                    filho
+                    for filho in filhos
+                    if normalizar(texto) in (normalizar(filho.class_name), normalizar(filho.texto))
+                )
                 except StopIteration:
                     raise Exception(f"Filho do elemento na {self.janela} não encontrado com texto ou class_name '{texto}'")
 
