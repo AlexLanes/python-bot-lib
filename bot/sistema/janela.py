@@ -52,7 +52,7 @@ class Dialogo:
         return bot.util.aguardar_condicao(lambda: not win32gui.IsWindow(hwnd), timeout=3)
 
     def fechar (self, timeout: float | int = 10.0) -> bool:
-        """Enviar a mensagem de fechar para o popup e retornar indicador se fechou corretamente"""
+        """Enviar a mensagem de fechar para o diálogo e retornar indicador se fechou corretamente"""
         hwnd = self.elemento.hwnd
         win32gui.PostMessage(hwnd, win32con.WM_CLOSE, 0, 0)
         return bot.util.aguardar_condicao(lambda: not win32gui.IsWindow(hwnd), timeout)
@@ -79,8 +79,52 @@ class Dialogo:
         assert bot.util.aguardar_condicao(lambda: not win32gui.IsWindow(hwnd), timeout=3),\
             "Diálogo não fechou conforme esperado"
 
-class Popup (Dialogo):
-    """Popup do windows"""
+class Popup:
+    """Popup do windows com opções"""
+
+    elemento: ElementoUIA
+
+    def __init__ (self, elemento: ElementoW32) -> None:
+        self.elemento = elemento.to_uia()
+
+    def __repr__ (self) -> str:
+        return f"<{type(self).__name__} {self.elemento}>"
+
+    def __eq__ (self, value: object) -> bool:
+        return isinstance(value, type(self)) and self.elemento == value.elemento
+
+    def fechar (self, timeout: float | int = 10.0) -> bool:
+        """Enviar a mensagem de fechar para o popup e retornar indicador se fechou corretamente"""
+        hwnd = self.elemento.hwnd
+        win32gui.PostMessage(hwnd, win32con.WM_CLOSE, 0, 0)
+        return bot.util.aguardar_condicao(lambda: not win32gui.IsWindow(hwnd), timeout)
+
+    def menu (self, *opcoes: str) -> typing.Self:
+        """Selecionar as `opções` no popup
+        - Utilizado o ElementoUIA para buscar por `barra_menu`"""
+        # Mover para fora do diálogo para não interferir
+        bot.mouse.mover((0, 0))
+
+        utilizados = set[JanelaUIA]()
+        for opcao in map(bot.util.normalizar, opcoes):
+            try:
+                janela_popup = JanelaUIA(
+                    lambda j: j not in utilizados and j.elemento.barra_menu,
+                    aguardar = 1
+                )
+                utilizados.add(janela_popup)
+                elemento = janela_popup.elemento.encontrar(
+                    lambda e: bot.util.normalizar(e.texto) == opcao and e.item_barra_menu,
+                    aguardar = 1
+                )
+            except Exception:
+                raise Exception(f"Nenhum elemento em popup encontrado para a opção de menu '{opcao}'")
+
+            if (expansivel := elemento.expansivel): expansivel.Expand()
+            elif invocavel := elemento.invocavel: invocavel.Invoke()
+            else: elemento.clicar(focar=False)
+
+        return self
 
 class CaixaSelecaoW32:
     """Classe para tratar a caixa de seleção do W32"""
