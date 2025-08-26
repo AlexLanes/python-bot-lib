@@ -120,7 +120,7 @@ class Popup:
             except Exception:
                 raise Exception(f"Nenhum elemento em popup encontrado para a opção de menu '{opcao}'")
 
-            if (expansivel := elemento.expansivel): expansivel.Expand()
+            if expansivel := elemento.expansivel: expansivel.Expand()
             elif invocavel := elemento.invocavel: invocavel.Invoke()
             else: elemento.clicar(focar=False)
 
@@ -180,37 +180,48 @@ class ElementoW32:
         return hash(repr(self))
 
     @typing.overload
-    def __getitem__[T: ElementoW32] (self: T, value: int | str) -> T: ...
+    def __getitem__[T: ElementoW32] (self: T, value: int | str | tuple[str, int]) -> T: ...
     @typing.overload
     def __getitem__[T: ElementoW32] (self: T, value: tuple[int, ...]) -> list[T]: ...
     def __getitem__[T: ElementoW32] (self: T, value: object) -> T | list[T]:
-        """Obter elemento(s) filho(s) ordenado(s) pela coordenada
-        - `int` index
-        - `str` texto ou class_name
-        - `(int, ...)` + de 1 index"""
+        """Obter elemento filho visível ordenado pela coordenada
+        - `int`         -> `index`
+        - `str`         -> `texto/class_name`
+        - `(str, int)`  -> `texto/class_name` no `index`
+        - `(int, ...)`  -> 2 ou mais `index`"""
+        normalizar = bot.util.normalizar
         filhos = self.janela.ordernar_elementos_coordenada(
-            self.filhos(aguardar=5)
+            self.aguardar().filhos(aguardar=5)
         )
+
         match value:
+            case int() as index:
+                try: return filhos[index]
+                except IndexError:
+                    raise IndexError(f"Elemento filho na {self.janela} não encontrado no index '{index}'")
+
             case str() as texto:
-                normalizar = bot.util.normalizar
                 try: return next(
                     filho
                     for filho in filhos
                     if normalizar(texto) in (normalizar(filho.class_name), normalizar(filho.texto))
                 )
                 except StopIteration:
-                    raise Exception(f"Filho do elemento na {self.janela} não encontrado com texto ou class_name '{texto}'")
+                    raise Exception(f"Elemento filho na {self.janela} não encontrado com texto/class_name '{texto}'")
 
-            case int() as index:
-                try: return filhos[index]
+            case (str() as texto, int() as index):
+                try: return [
+                    filho
+                    for filho in filhos
+                    if normalizar(texto) in (normalizar(filho.class_name), normalizar(filho.texto))
+                ][index]
                 except IndexError:
-                    raise IndexError(f"Filho do elemento na {self.janela} não encontrado no index '{index}'")
+                    raise Exception(f"Elemento filho na {self.janela} não encontrado com texto/class_name '{texto}' no index '{index}'")
 
             case tuple() as indexes if all(isinstance(index, int) for index in indexes):
                 try: return [filhos[index] for index in indexes]
                 except IndexError:
-                    raise IndexError(f"Filhos do elemento na {self.janela} não encontrados nos índices '{indexes}'")
+                    raise IndexError(f"Elementos filhos na {self.janela} não encontrados nos índices '{indexes}'")
 
             case _:
                 raise ValueError(f"Tipo {type(value)} inesperado ao se obter elemento")
@@ -724,11 +735,12 @@ class JanelaW32:
     elemento.encontrar(...)     # Encontrar o primeiro elemento descendente de acordo com o `filtro`
     elemento.clicar("left")     # Clicar com o `botão` no centro do elemento
     elemento.digitar("texto")   # Digitar o `texto` no elemento
-    # Encontrar ordenando pela posição Y e X
-    primeiro = elemento[0]              # Obter elemento pelo index
-    primeiro, ultimo = elemento[0, -1]  # Obter elementos pelo index
-    elemento["texto ou class_name"]     # Obter elemento pelo texto ou class_name
     ...
+    # Encontrar visível e ordenando pela posição Y e X
+    primeiro = elemento[0]              # Obter elemento via `index`
+    elemento["texto/class_name"]        # Obter primeiro elemento via `texto/class_name`
+    elemento["texto/class_name", 0]     # Obter `texto/class_name` no `index`
+    primeiro, ultimo = elemento[0, -1]  # Obter elementos via `index`
     ```
 
     ### Métodos
@@ -1109,11 +1121,13 @@ class JanelaUIA (JanelaW32):
     elemento.encontrar(...)     # Encontrar o primeiro elemento descendente de acordo com o `filtro`
     elemento.clicar("left")     # Clicar com o `botão` no centro do elemento
     elemento.digitar("texto")   # Digitar o `texto` no elemento
-    # Encontrar ordenando pela posição Y e X
-    primeiro = elemento[0]              # Obter elemento pelo index
-    primeiro, ultimo = elemento[0, -1]  # Obter elementos pelo index
-    elemento["texto ou class_name"]     # Obter elemento pelo texto ou class_name
     ...
+    # Encontrar visível e ordenando pela posição Y e X
+    primeiro = elemento[0]              # Obter elemento via `index`
+    elemento["texto/class_name"]        # Obter primeiro elemento via `texto/class_name`
+    elemento["texto/class_name", 0]     # Obter `texto/class_name` no `index`
+    primeiro, ultimo = elemento[0, -1]  # Obter elementos via `index`
+    ```
 
     # Específico UIA
     elemento.valor              # Propriedade `value` do elemento. Útil para inputs
