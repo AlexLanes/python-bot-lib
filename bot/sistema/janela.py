@@ -403,17 +403,22 @@ class ElementoW32:
         else: bot.teclado.digitar(texto)
         return self.aguardar().sleep(0.1)
 
-    def atalho (self, *teclas: bot.tipagem.char | bot.tipagem.BOTOES_TECLADO) -> typing.Self:
-        """Pressionar as teclas sequencialmente e soltá-las em ordem reversa"""
-        self.focar()
+    def atalho (self, *teclas: bot.tipagem.char | bot.tipagem.BOTOES_TECLADO,
+                      focar: bool = True) -> typing.Self:
+        """Pressionar as teclas sequencialmente e soltá-las em ordem reversa
+        - `focar` indicador se dever ser feito o foco no elemento"""
+        if focar: self.focar()
         bot.teclado.atalho(*teclas)
         return self.aguardar().sleep(0.1)
 
-    def scroll (self, quantidade: int = 1, direcao: bot.tipagem.DIRECOES_SCROLL = "baixo") -> typing.Self:
-        """Realizar scroll no elemento `quantidade` vezes na `direção`"""
+    def scroll (self, quantidade: int = 1,
+                      direcao: bot.tipagem.DIRECOES_SCROLL = "baixo",
+                      focar: bool = True) -> typing.Self:
+        """Realizar scroll no elemento `quantidade` vezes na `direção`
+        - `focar` indicador se dever ser feito o foco no elemento"""
         assert quantidade >= 1, "Quantidade de scrolls deve ser pelo menos 1"
 
-        self.focar()
+        if focar: self.focar()
         bot.mouse.mover(self.coordenada)
         for _ in range(quantidade):
             bot.mouse.scroll_vertical(direcao=direcao)
