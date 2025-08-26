@@ -10,6 +10,10 @@ import comtypes.client
 comtypes.client.GetModule('UIAutomationCore.dll')
 from comtypes.gen import UIAutomationClient as uiaclient
 
+TABELA_SUBSTITUIÇÃO_CHARS = str.maketrans({
+    "&": "", # remove &
+    "\r": "" # remove \r
+})
 BOTOES_VIRTUAIS_MOUSE = {
     "left":   (win32con.WM_LBUTTONDOWN, win32con.WM_LBUTTONUP, win32con.MK_LBUTTON),
     "middle": (win32con.WM_MBUTTONDOWN, win32con.WM_MBUTTONUP, win32con.MK_MBUTTON),
@@ -229,8 +233,10 @@ class ElementoW32:
     @property
     def texto (self) -> str:
         """Texto do elemento
-        - Realizado `strip()` e removido o char `&` que pode vir a aparecer"""
-        return win32gui.GetWindowText(self.hwnd).strip().replace("&", "")
+        - Realizado `strip()` e removido o chars `(&, \\r)`"""
+        return win32gui.GetWindowText(self.hwnd)\
+            .strip()\
+            .translate(TABELA_SUBSTITUIÇÃO_CHARS)
 
     @functools.cached_property
     def class_name (self) -> str:
@@ -471,7 +477,9 @@ class ElementoUIA (ElementoW32):
 
     @property
     def texto (self) -> str:
-        return str(self.uiaelement.CurrentName or "").strip().replace("&", "")
+        return str(self.uiaelement.CurrentName or "")\
+            .strip()\
+            .translate(TABELA_SUBSTITUIÇÃO_CHARS)
 
     @functools.cached_property
     def class_name (self) -> str:
