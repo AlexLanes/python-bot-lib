@@ -10,7 +10,7 @@ import comtypes.client
 comtypes.client.GetModule('UIAutomationCore.dll')
 from comtypes.gen import UIAutomationClient as uiaclient
 
-TABELA_SUBSTITUIÇÃO_CHARS = str.maketrans({
+TABELA_SUBSTITUICAO_CHARS = str.maketrans({
     "&": "", # remove &
     "\r": "" # remove \r
 })
@@ -160,15 +160,12 @@ class ElementoW32:
     hwnd: int
     janela: JanelaW32
     profundidade: int
-    parente: ElementoW32 | None
 
     def __init__ (self, hwnd: int,
                         janela: JanelaW32,
-                        parente: ElementoW32 | None = None,
                         profundidade: int = 0) -> None:
         self.hwnd = int(hwnd or 0)
         self.janela = janela
-        self.parente = parente
         self.profundidade = profundidade
 
     def __repr__ (self) -> str:
@@ -231,12 +228,23 @@ class ElementoW32:
                 raise ValueError(f"Tipo {type(value)} inesperado ao se obter elemento")
 
     @property
+    def parente (self) -> ElementoW32:
+        """Elemento na árvore de elementos que `self` é filho
+        - `AssertionError` caso `profundidade==0`"""
+        assert self.profundidade != 0, "Tentado obter o parente de um elemento de profundidade 0"
+        return ElementoW32(
+            win32gui.GetAncestor(self.hwnd, 1),
+            self.janela,
+            self.profundidade - 1
+        )
+
+    @property
     def texto (self) -> str:
         """Texto do elemento
         - Realizado `strip()` e removido o chars `(&, \\r)`"""
         return win32gui.GetWindowText(self.hwnd)\
             .strip()\
-            .translate(TABELA_SUBSTITUIÇÃO_CHARS)
+            .translate(TABELA_SUBSTITUICAO_CHARS)
 
     @functools.cached_property
     def class_name (self) -> str:
@@ -278,7 +286,7 @@ class ElementoW32:
         def callback (hwnd, _) -> bool:
             if win32gui.GetParent(hwnd) == self.hwnd:
                 try:
-                    e = Elemento(hwnd, self.janela, self, self.profundidade + 1)
+                    e = Elemento(hwnd, self.janela, self.profundidade + 1)
                     if filtro(e): filhos.append(e)
                 except Exception: pass
             return True
@@ -447,16 +455,15 @@ class ElementoW32:
         return ElementoUIA(
             self.hwnd,
             self.janela.to_uia(),
-            self.parente.to_uia() if self.parente else None,
-            profundidade = self.profundidade
+            self.profundidade,
         )
 
 class ElementoUIA (ElementoW32):
     """Elemento para o backend UIA"""
 
+    hwnd: int
     janela: JanelaUIA
     profundidade: int
-    parente: ElementoUIA | None
     uiaelement: uiaclient.IUIAutomationElement
 
     UIA = comtypes.client.CreateObject(
@@ -466,20 +473,29 @@ class ElementoUIA (ElementoW32):
 
     def __init__ (self, hwnd: int,
                         janela: JanelaUIA,
-                        parente: ElementoUIA | None = None,
-                        uiaelement: uiaclient.IUIAutomationElement | None = None,
-                        profundidade: int = 0) -> None:
+                        profundidade: int = 0,
+                        uiaelement: uiaclient.IUIAutomationElement | None = None) -> None:
         self.hwnd = int(hwnd or 0)
         self.janela = janela # type: ignore
-        self.parente = parente # type: ignore
         self.profundidade = profundidade
         self.uiaelement = uiaelement or ElementoUIA.UIA.ElementFromHandle(hwnd)
+
+    @property
+    def parente (self) -> ElementoUIA:
+        assert self.profundidade > 0, "Tentado obter o parente de um elemento de profundidade 0"
+        element = self.UIA.ControlViewWalker.GetParentElement(self.uiaelement)
+        return ElementoUIA(
+            element.CurrentNativeWindowHandle,
+            self.janela,
+            self.profundidade - 1,
+            element,
+        )
 
     @property
     def texto (self) -> str:
         return str(self.uiaelement.CurrentName or "")\
             .strip()\
-            .translate(TABELA_SUBSTITUIÇÃO_CHARS)
+            .translate(TABELA_SUBSTITUICAO_CHARS)
 
     @functools.cached_property
     def class_name (self) -> str:
@@ -628,7 +644,7 @@ class ElementoUIA (ElementoW32):
 
             for i in range(finder.Length):
                 filho: uiaclient.IUIAutomationElement = finder.GetElement(i)
-                e = ElementoUIA(filho.CurrentNativeWindowHandle, self.janela, self, filho, self.profundidade + 1)
+                e = ElementoUIA(filho.CurrentNativeWindowHandle, self.janela, self.profundidade + 1, filho)
                 try:
                     if filtro(e): filhos.append(e)
                 except Exception: pass
@@ -1050,7 +1066,7 @@ class JanelaW32:
 
     def to_uia (self) -> JanelaUIA:
         """Obter uma instância da `JanelaW32` como `JanelaUIA`"""
-        return JanelaUIA.from_hwnd(self.hwnd)
+        return self if isinstance(self, JanelaUIA) else JanelaUIA.from_hwnd(self.hwnd)
 
     @staticmethod
     def titulos_janelas_visiveis () -> set[str]:
@@ -1238,7 +1254,7 @@ class JanelaUIA (JanelaW32):
 
                 for i in range(finder.Length):
                     filho: uiaclient.IUIAutomationElement = finder.GetElement(i)
-                    e = ElementoUIA(filho.CurrentNativeWindowHandle, self, barra_menu, filho, barra_menu.profundidade + 1)
+                    e = ElementoUIA(filho.CurrentNativeWindowHandle, self, barra_menu.profundidade + 1, filho)
                     if not e.item_barra_menu or opcao != e.texto.lower():
                         continue
 
