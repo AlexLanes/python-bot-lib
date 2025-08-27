@@ -789,6 +789,7 @@ class JanelaW32:
     janela.to_uia()     # Obter uma instância da `JanelaW32` como `JanelaUIA`
     janela.dialogo()    # Encontrar janela de diálogo com `class_name`
     janela.popup()      # Encontrar janela de popup com `class_name`
+    janela.tooltips()   # Obter os textos concatenados por `;` das `tooltips` (Caixa de texto com informação sobre o elemento)
     ```
 
     ### Métodos destrutores
@@ -1058,6 +1059,28 @@ class JanelaW32:
             for janela in self.janelas_processo(lambda j: j.class_name == class_name and j.elemento.ativo):
                 return Popup(janela.elemento)
 
+    def tooltips (self, *class_name: str, aguardar: int = 5) -> str:
+        """Obter os textos concatenados por `;` das `tooltips` (Caixa de texto com informação sobre o elemento)
+        ### Útil em alguns para obter contexto quando realizar hover de mouse
+        - `class_name` para informar demais `class_name` para serem procurados
+        - `aguardar` tempo em segundos para aguardar por algum elemento"""
+        assert aguardar >= 0, "Tempo para aguardar pelo popup deve ser >= 0"
+
+        janelas = list[JanelaUIA]()
+        class_names = { "tooltips_class32", "thintwindow", *map(str.lower, class_name) }
+
+        primeiro, cronometro = True, bot.util.Cronometro()
+        while primeiro or (not janelas and cronometro() < aguardar):
+            primeiro = False
+            janelas = self.to_uia().janelas_processo(
+                lambda j: (elemento := j.elemento)
+                            and (elemento.uiaelement.CurrentControlType == uiaclient.UIA_ToolTipControlTypeId
+                                or elemento.class_name.lower() in class_names)
+                            and elemento.texto
+            )
+
+        return "; ".join(j.titulo for j in janelas)
+
     def print_arvore (self) -> None:
         """Realizar o `print()` da árvore de elementos da janela e das janelas do processo"""
         for janela in (self, *self.janelas_processo(lambda j: True)):
@@ -1185,6 +1208,7 @@ class JanelaUIA (JanelaW32):
     ```
     janela.dialogo()    # Encontrar janela de diálogo com `class_name`
     janela.popup()      # Encontrar janela de popup com `class_name`
+    janela.tooltips()   # Obter os textos concatenados por `;` das `tooltips` (Caixa de texto com informação sobre o elemento)
     ```
 
     ### Métodos destrutores
