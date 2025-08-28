@@ -55,7 +55,7 @@ class Imagem:
 
     def __init__ (self, caminho: bot.sistema.Caminho | str) -> None:
         caminho = bot.sistema.Caminho(str(caminho))
-        self.pixels = cv2.imread(caminho.string)
+        self.pixels = cv2.imread(caminho.string) # type: ignore
 
     def __repr__ (self) -> str:
         shape = self.pixels.shape
