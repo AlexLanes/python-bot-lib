@@ -33,10 +33,18 @@ def normalizar (string: str) -> str:
 
 def encontrar_texto[T] (texto: str,
                         opcoes: typing.Iterable[T],
-                        key: typing.Callable[[T], str] | None = None) -> T | None:
+                        key: typing.Callable[[T], str] | None = None,
+                        similaridade_minima: float = 0.75) -> T | None:
     """Encontrar a melhor opção em `opções` onde igual ou parecido ao `texto`
     - `None` caso nenhuma opção gerou um resultado satisfatório
-    - `key` pode ser informado uma função para apontar para a `str` caso `opções` não seja uma `list[str]`"""
+    - `key` pode ser informado uma função para apontar para a `str` caso `opções` não seja uma `list[str]`
+    - Ordem dos métodos de procura
+        1. exato
+        2. normalizado exato
+        3. normalizado com replace de caracteres parecidos
+        4. similaridade entre textos usando `difflib.SequenceMatcher` com o valor `similaridade_minima`
+            - `similaridade_minima` entre 0.0 e 1.0
+            - `similaridade_minima=0` para desativar"""
     opcoes = list(opcoes)
     key_to_text = key or (lambda opcao: opcao)
     textos = [key_to_text(opcao) for opcao in opcoes]
@@ -54,7 +62,7 @@ def encontrar_texto[T] (texto: str,
     # opção normalizada com replace de caracteres parecidos
     texto_replace = texto_normalizado
     textos_replace = textos_normalizados.copy()
-    for chars, replace in [(r"[l1!]", "i"), (r"[0dq]", "o")]:
+    for chars, replace in [("[l1!]", "i"), ("[0dq]", "o"), ("rn", "m")]:
         texto_replace = re.sub(chars, replace, texto_replace)
         for index, texto in enumerate(textos_replace):
             textos_replace[index] = re.sub(chars, replace, texto)
@@ -63,15 +71,14 @@ def encontrar_texto[T] (texto: str,
 
     # comparando similaridade dos caracteres
     # algorítimo `gestalt pattern matching`
+    # punir uma quantidade se tiver diferença no tamanho
     def calcular_similaridade (a: str, b: str) -> float:
-        # punir uma quantidade se tiver diferença no tamanho
-        # ou punir bastante se for a mesma quantidade de caracteres
-        punicao_tamanho = abs((len(a) - len(b)) * 0.05) or 0.15
+        punicao_tamanho = abs((len(a) - len(b)) * 0.1)
         return difflib.SequenceMatcher(None, a, b).ratio() - punicao_tamanho
 
     similaridades = [calcular_similaridade(texto_normalizado, t) for t in textos_normalizados]
     maior = max(similaridades) if similaridades else 0
-    return opcoes[similaridades.index(maior)] if maior >= 0.6 else None
+    return opcoes[similaridades.index(maior)] if maior >= similaridade_minima else None
 
 def expandir_tempo (segundos: int | float) -> str:
     """Expandir a medida `segundos` para as duas primeiras unidades de grandeza
