@@ -6,7 +6,7 @@ from .win_api import send_input_mouse_api
 import bot
 from bot.estruturas import Coordenada
 # externo
-import win32api, win32con
+import win32api, win32con, win32gui
 
 def transformar_posicao (coordenada: Coordenada | tuple[int, int] | None) -> tuple[int, int]:
     """Transformar a `coordenada` para posicao `(x, y)`"""
@@ -112,6 +112,22 @@ class Mouse:
         """Aguardar por `segundos` até continuar a execução"""
         sleep(segundos)
         return self
+
+    def rgb (self) -> bot.tipagem.rgb:
+        """Obter a cor `(R, G, B)` do pixel na posição atual do mouse"""
+        device_context: int = 0
+        try:
+            device_context = win32gui.GetDC(0)
+            x, y = self.posicao_atual()
+            pixel = win32gui.GetPixel(device_context, x, y)
+            return (
+                pixel & 0xff,
+                (pixel >> 8) & 0xff,
+                (pixel >> 16) & 0xff,
+            )
+        finally:
+            if device_context:
+                win32gui.ReleaseDC(0, device_context)
 
 mouse = Mouse()
 """Classe de controle do mouse
