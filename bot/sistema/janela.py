@@ -876,6 +876,15 @@ class JanelaW32:
         except Exception as erro:
             raise AssertionError(f"Falha ao iniciar uma janela com os argumentos '{" ".join(argumentos)}' | {erro}")
 
+    @classmethod
+    def aguardar_nova_janela[T: JanelaW32] (cls: type[T], aguardar: int | float = 15) -> T:
+        """Obter uma janela que irá abrir após executar alguma ação"""
+        titulos = JanelaW32.titulos_janelas_visiveis()
+        return cls(
+            lambda j: j.titulo and j.visivel and j.titulo not in titulos,
+            aguardar = aguardar
+        )
+
     def __repr__ (self) -> str:
         return f"<{type(self).__name__} '{self.titulo}' class_name='{self.class_name}'>"
 
