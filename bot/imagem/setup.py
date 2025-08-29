@@ -1,7 +1,7 @@
 # std
 from __future__ import annotations
 import time, base64, collections
-import tkinter, tempfile
+import tkinter, tempfile, typing
 # interno
 import bot
 from bot.estruturas import Coordenada
@@ -48,7 +48,47 @@ def capturar_tela (regiao: Coordenada | None = None, cinza=False) -> Imagem:
     return imagem
 
 class Imagem:
-    """Classe para manipulação e procura de imagem"""
+    """Classe para manipulação e procura de imagem
+
+    ### Inicialização
+    ```
+    imagem = Imagem("caminho.png")
+    Imagem(bot.sistema.Caminho("caminho.png"))
+    Imagem.from_bytes(b"")
+    Imagem.from_base64("")
+    ```
+
+    ### Transformações
+    ```
+    imagem.png -> bytes
+    imagem.png_base64           # Codificar a imagem para `data:image/png;base64`
+    imagem.copiar()             # Criar uma cópia da imagem
+    imagem.recortar(Coordenada) # Criar uma nova imagem recortada
+    imagem.cinza()              # Criar uma nova imagem como cinza
+    imagem.binarizar()          # Criar uma nova imagem binaria
+    imagem.inverter()           # Criar uma nova imagem com as cores invertidas
+    imagem.redimensionar(float) # Criar uma nova imagem redimensionada para a % `escala`
+    ```
+
+    ### Sistema
+    ```
+    imagem.salvar(caminho)  # Salvar a imagem como arquivo no `caminho`
+    imagem.exibir()         # Exibir a imagem em uma janela
+    ```
+
+    ### Cores
+    ```
+    imagem.cores(limite=10)     # Obter a cor RGB e frequência de cada pixel da imagem
+    imagem.cor_pixel(posicao)   # Obter a cor RGB do pixel na `posicao`
+    imagem.encontrar_cor(rgb)   # Encontrar a posição `(x, y)` de um pixel que tenha a `cor` rgb
+    ```
+
+    ### Procura de Imagem
+    ```
+    imagem.procurar_imagem(...)  # Procurar a coordenada em que a imagem aparece na `referencia` ou tela caso `None`
+    imagem.procurar_imagens(...) # Procurar as coordenadas em que a imagem aparece na `referencia` ou tela caso `None`
+    ```
+    """
 
     pixels: np.ndarray
     """Pixels da imagem BGR ou Cinza"""
@@ -173,6 +213,35 @@ class Imagem:
         to_rgb = lambda bgr: (int(bgr), int(bgr), int(bgr)) if cinza else (int(bgr[2]), int(bgr[1]), int(bgr[0]))
         pixel = self.pixels[posicao[1], posicao[0]]
         return to_rgb(pixel)
+
+    def encontrar_cor (
+            self,
+            cor: bot.tipagem.rgb,
+            posicao: typing.Literal["primeiro", "ultimo", "media"] = "media"
+        ) -> tuple[int, int] | None:
+        """Encontrar a posição `(x, y)` de um pixel que tenha a `cor` rgb
+        - `None` caso não encontrado"""
+        r, g, b = cor
+        bgr = (b, g, r)
+
+        # Encontrar as posicoes
+        mask = np.all(self.pixels == bgr, axis=-1)
+        posicoes = np.argwhere(mask)
+        if posicoes.size == 0:
+            return None
+
+        match posicao:
+            case "primeiro":
+                y, x = posicoes[0]
+                return (x, y)
+            case "ultimo":
+                y, x = posicoes[-1]
+                return (x, y)
+            case "media":
+                y_mean, x_mean = posicoes.mean(axis=0)
+                return (int(round(x_mean)), int(round(y_mean)))
+            case _:
+                raise ValueError(f"Modo '{posicao}' inesperado")
 
     def procurar_imagens (self, confianca: bot.tipagem.PORCENTAGENS = 0.9,
                                 regiao: Coordenada | None = None,
