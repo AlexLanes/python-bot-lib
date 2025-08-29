@@ -11,7 +11,7 @@ import win32api, win32con, win32gui
 def transformar_posicao (coordenada: Coordenada | tuple[int, int] | None) -> tuple[int, int]:
     """Transformar a `coordenada` para posicao `(x, y)`"""
     match coordenada:
-        case Coordenada(): return coordenada.transformar()
+        case Coordenada(): return coordenada.centro()
         case (int(), int()): return coordenada
         case _: return Mouse.posicao_atual()
 
@@ -42,7 +42,7 @@ class Mouse:
     @staticmethod
     def posicao_central () -> tuple[int, int]:
         """Obter a posição `(x, y)` central da tela"""
-        return Coordenada.tela().transformar()
+        return Coordenada.tela().centro()
 
     def mover (self, coordenada: tuple[int, int] | Coordenada) -> Self:
         """Mover o mouse, de forma instantânea, até a `coordenada`

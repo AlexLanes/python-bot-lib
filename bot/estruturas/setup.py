@@ -92,6 +92,11 @@ class Coordenada:
         - O mesmo que `self.transformar(0.5, 0.01)`"""
         return self.transformar(0.5, 0.01)
 
+    def centro (self) -> tuple[int, int]:
+        """Posição central
+        - O mesmo que `self.transformar(0.5, 0.5)`"""
+        return self.transformar(0.5, 0.5)
+
 class Resultado [T]:
     """Classe para capturar o `return | Exception` de chamadas de uma função
     - Alternativa para não propagar o erro e nem precisar utilizar `try-except`
