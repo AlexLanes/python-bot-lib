@@ -256,6 +256,11 @@ class ElementoW32:
         return bot.estruturas.Coordenada.from_box(box)
 
     @property
+    def imagem (self) -> bot.imagem.Imagem:
+        coordenada = self.focar().coordenada
+        return bot.imagem.capturar_tela(coordenada)
+
+    @property
     def visivel (self) -> bool:
         return (
             win32gui.IsWindowVisible(self.hwnd) == 1
