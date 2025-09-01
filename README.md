@@ -22,6 +22,7 @@ Utilizar o caminho para o arquivo **whl** baixado `bot @ file://.../bot-4.0-py3-
 - Alteração geral no `estruturas.Resultado` e `formatos.Json`
 - Adicionado `sistema.criar_mutex()`
 - Renomeado `util.cronometro()` para `util.Cronometro()`
+- Incluído execução do `bot.mouse` como módulo `-m`
 
 </details>
 <details>
@@ -252,6 +253,11 @@ scroll_vertical (
     direcao: bot.tipagem.DIRECOES_SCROLL = "baixo"
 ) -> Mouse:
 ```
+
+Possível de ser executado como módulo para fazer 
+um loop de `print()` com a posição e cor da posição atual do mouse
+- python -m `bot.mouse`
+- uv run -m `bot.mouse`
 
 ### `navegador`
 Pacote para navegadores Web.  
