@@ -217,7 +217,7 @@ class Imagem:
     def encontrar_cor (
             self,
             cor: bot.tipagem.rgb,
-            posicao: typing.Literal["primeiro", "ultimo", "media"] = "media"
+            modo: typing.Literal["primeiro", "ultimo", "media"] = "media"
         ) -> tuple[int, int] | None:
         """Encontrar a posição `(x, y)` de um pixel que tenha a `cor` rgb
         - `None` caso não encontrado"""
@@ -230,7 +230,7 @@ class Imagem:
         if posicoes.size == 0:
             return None
 
-        match posicao:
+        match modo:
             case "primeiro":
                 y, x = posicoes[0]
                 return (x, y)
@@ -241,7 +241,7 @@ class Imagem:
                 y_mean, x_mean = posicoes.mean(axis=0)
                 return (int(round(x_mean)), int(round(y_mean)))
             case _:
-                raise ValueError(f"Modo '{posicao}' inesperado")
+                raise ValueError(f"Modo '{modo}' inesperado")
 
     def procurar_imagens (self, confianca: bot.tipagem.PORCENTAGENS = 0.9,
                                 regiao: Coordenada | None = None,
