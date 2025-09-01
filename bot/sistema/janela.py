@@ -445,6 +445,21 @@ class ElementoW32:
 
         return self.sleep(0.1)
 
+    def encontrar_cor (
+            self,
+            cor: bot.tipagem.rgb,
+            modo: typing.Literal["primeiro", "ultimo", "media"] = "media"
+        ) -> tuple[int, int] | None:
+        """Encontrar a posição `(x, y)` de um pixel que tenha a `cor` rgb
+        - Corrigido a posição retornada da imagem para a tela
+        - `None` caso não encontrado"""
+        if posicao := self.imagem.encontrar_cor(cor, modo):
+            c = self.coordenada
+            return (
+                posicao[0] + c.x,
+                posicao[1] + c.y
+            )
+
     def print_arvore (self) -> None:
         """Realizar o `print()` da árvore de elementos"""
         def print_nivel (elemento: ElementoW32, prefixo: str) -> None:
@@ -1080,20 +1095,28 @@ class JanelaW32:
         - `aguardar` tempo em segundos para aguardar por algum elemento"""
         assert aguardar >= 0, "Tempo para aguardar pelo popup deve ser >= 0"
 
-        janelas = list[JanelaUIA]()
-        class_names = { "tooltips_class32", "thintwindow", *map(str.lower, class_name) }
-
-        primeiro, cronometro = True, bot.util.Cronometro()
-        while primeiro or (not janelas and cronometro() < aguardar):
-            primeiro = False
-            janelas = self.to_uia().janelas_processo(
-                lambda j: (elemento := j.elemento)
-                            and (elemento.uiaelement.CurrentControlType == uiaclient.UIA_ToolTipControlTypeId
-                                or elemento.class_name.lower() in class_names)
-                            and elemento.texto
+        elementos = list[ElementoUIA]()
+        class_names = { "tooltip", "hint", *map(str.lower, class_name) }
+        def classname_tooltip (elemento: ElementoUIA) -> bool:
+            return (
+                elemento.uiaelement.CurrentControlType == uiaclient.UIA_ToolTipControlTypeId
+                or any(class_name in elemento.class_name.lower() for class_name in class_names)
             )
 
-        return "; ".join(j.titulo for j in janelas)
+        primeiro, cronometro = True, bot.util.Cronometro()
+        while primeiro or (not elementos and cronometro() < aguardar):
+            primeiro = False
+
+            for janela in self.to_uia().janelas_processo(lambda _: True):
+                elemento = janela.elemento
+                if classname_tooltip(elemento):
+                    elementos.append(elemento)
+                    continue
+
+                try: elementos.append(elemento.encontrar(lambda e: classname_tooltip(e)))
+                except Exception: pass
+
+        return "; ".join(elemento.texto for elemento in elementos)
 
     def print_arvore (self) -> None:
         """Realizar o `print()` da árvore de elementos da janela e das janelas do processo"""
