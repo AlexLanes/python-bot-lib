@@ -1,6 +1,6 @@
 # std
 from __future__ import annotations
-import time, typing, functools
+import time, typing, functools, contextlib
 # interno
 import bot
 # externo
@@ -876,34 +876,41 @@ class JanelaW32:
     def iniciar[T: JanelaW32] (cls: type[T], *argumentos: str, shell: bool = True, aguardar: int | float = 30) -> T:
         """Iniciar uma janela no sistema a partir dos `argumentos`
         - Alguns aplicativos podem abrir mais de uma janela, utilizar o `self.janelas_processo()` para verificar"""
-        titulos_antes = JanelaW32.titulos_janelas_visiveis()
-        processo = bot.sistema.abrir_processo(*argumentos, shell=shell)
-
         try:
-            returncode = bot.estruturas.Resultado(processo.wait, 1).valor_ou(None)
-            assert returncode in (None, 0), f"Processo finalizado com erro | returncode({returncode})"
-            bot.util.aguardar_condicao(
-                lambda: titulos_antes.symmetric_difference(JanelaW32.titulos_janelas_visiveis()),
-                timeout = aguardar,
-                delay = 0.5
-            )
-            return cls(
-                lambda j: j.titulo and j.visivel
-                                   and j.titulo not in titulos_antes,
-                aguardar = aguardar
-            ).focar()
+            with cls.aguardar_nova_janela(aguardar) as janela:
+                processo = bot.sistema.abrir_processo(*argumentos, shell=shell)
+                returncode = bot.estruturas.Resultado(processo.wait, 1).valor_ou(None)
+                assert returncode in (None, 0), f"Processo finalizado com erro | returncode({returncode})"
+            return janela.focar()
 
         except Exception as erro:
             raise AssertionError(f"Falha ao iniciar uma janela com os argumentos '{" ".join(argumentos)}' | {erro}")
 
     @classmethod
-    def aguardar_nova_janela[T: JanelaW32] (cls: type[T], aguardar: int | float = 15) -> T:
-        """Obter uma janela que irá abrir após executar alguma ação"""
-        titulos = JanelaW32.titulos_janelas_visiveis()
-        return cls(
-            lambda j: j.titulo and j.visivel and j.titulo not in titulos,
+    @contextlib.contextmanager
+    def aguardar_nova_janela[T: JanelaW32] (cls: type[T], aguardar: int | float = 15) -> typing.Generator[T, None, None]:
+        """Aguardar e obter uma janela (visível) que irá abrir após executar alguma ação
+        - `Exception` caso não seja aberta nenhuma nova janela
+        - Dentro do contexto apenas realizar a ação que abrirá a nova janela
+        - Acessar a variável `as janela` apenas após o contexto
+
+        #### Utilizar com o `with`
+        ```
+        with JanelaW32.aguardar_nova_janela(aguardar=2) as janela:
+            bot.sistema.abrir_processo("notepad")
+        print(janela.titulo)
+        ```"""
+        titulos_visiveis = lambda: cls.titulos_janelas_visiveis()
+        titulos_antes = titulos_visiveis()
+        janela = cls.from_hwnd(0)
+        yield janela
+
+        try: janela.hwnd = cls(
+            lambda j: j.titulo and j.visivel and j.titulo in titulos_antes.symmetric_difference(titulos_visiveis()),
             aguardar = aguardar
-        )
+        ).hwnd
+        except Exception:
+            raise Exception(f"Nenhuma nova janela foi encontrada após o tempo de espera") from None
 
     def __repr__ (self) -> str:
         return f"<{type(self).__name__} '{self.titulo}' class_name='{self.class_name}'>"
