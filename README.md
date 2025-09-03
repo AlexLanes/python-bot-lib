@@ -161,7 +161,7 @@ ElementoXML(
 # Classe para validação e parse de um `dict` para uma classe customizada
 Unmarshaller[T] (cls: type[T])
     # Realizar o parse do `item` conforme a classe informada
-    .parse(item: dict[str, Any]) -> tuple[T, str | None]
+    .parse(item: dict[str, Any]) -> T
 ```
 
 ### `ftp`
@@ -214,7 +214,7 @@ capturar_tela(
 Imagem(caminho: Caminho | str)
 ```
 
->Pacote opcional para realizar OCR.  
+> Pacote opcional para realizar OCR.  
 Necessário realizar a instalação adicional `bot[ocr]`
 ```Python
 # Classe de abstração do pacote `EasyOCR` para ler/detectar textos em imagens
