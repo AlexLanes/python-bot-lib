@@ -64,6 +64,10 @@ janela = JanelaW32.from_foco()                              # Janela focada
 JanelaW32(lambda j: "titulo" in j.titulo and j.visivel)     # Procurar a janela com filtro dinâmico
 JanelaW32(lambda j: ..., aguardar=10)                       # Aguardar por 10 segundos até encontrar a janela
 JanelaW32.iniciar("notepad", shell=True, aguardar=30)       # Iniciar uma janela via novo processo
+# Aguardar e obter uma janela (visível) que irá abrir após executar alguma ação
+with JanelaW32.aguardar_nova_janela(aguardar=2) as janela:
+    ...
+print(janela.titulo)
 
 ### Importante
 """
