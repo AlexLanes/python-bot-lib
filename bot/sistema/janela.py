@@ -43,45 +43,49 @@ class Dialogo:
             if elemento.texto and not elemento.botao
         )
 
+    def aguardar_fechar (self, timeout: float = 5) -> bool:
+        """Aguardar o diálogo fechar por `timeout` segundos e retornar o indicador"""
+        return bot.util.aguardar_condicao(
+            lambda: not win32gui.IsWindow(self.elemento.hwnd),
+            timeout = timeout
+        )
+
+    def fechar (self, timeout: float = 10.0) -> bool:
+        """Enviar a mensagem de fechar para o diálogo e retornar indicador se fechou corretamente"""
+        win32gui.PostMessage(self.elemento.hwnd, win32con.WM_CLOSE, 0, 0)
+        return self.aguardar_fechar(timeout)
+
     def clicar (self, botao: str = "Não") -> bool:
         """Clicar no botão com o texto `botão`
         - Texto normalizado, então acentuação ou & não faz diferença
         - `AssertionError` caso não seja encontrado
         - Retornado indicador se o diálogo fechou corretamente"""
-        hwnd = self.elemento.hwnd
         botao = bot.util.normalizar(botao)
         self.elemento\
             .encontrar(lambda e: botao in bot.util.normalizar(e.texto))\
             .clicar()
-        return bot.util.aguardar_condicao(lambda: not win32gui.IsWindow(hwnd), timeout=3)
-
-    def fechar (self, timeout: float | int = 10.0) -> bool:
-        """Enviar a mensagem de fechar para o diálogo e retornar indicador se fechou corretamente"""
-        hwnd = self.elemento.hwnd
-        win32gui.PostMessage(hwnd, win32con.WM_CLOSE, 0, 0)
-        return bot.util.aguardar_condicao(lambda: not win32gui.IsWindow(hwnd), timeout)
+        time.sleep(0.5)
+        return self.aguardar_fechar()
 
     def negar (self) -> None:
         """Negar o diálogo clicando nas opções `("nao", "ok", "no")`
         - Checado se fechou corretamente"""
         botoes = ("nao", "ok", "no")
-        hwnd = self.elemento.hwnd
         self.elemento\
             .encontrar(lambda e: bot.util.normalizar(e.texto) in botoes)\
             .clicar()
-        assert bot.util.aguardar_condicao(lambda: not win32gui.IsWindow(hwnd), timeout=3),\
-            "Diálogo não fechou conforme esperado"
+        time.sleep(0.5)
+        assert self.aguardar_fechar(3), "Diálogo não fechou conforme esperado"
 
     def confirmar (self) -> None:
         """Confirmar o diálogo clicando nas opções `("sim", "ok", "yes")`
         - Checado se fechou corretamente"""
         botoes = ("sim", "ok", "yes")
-        hwnd = self.elemento.hwnd
         self.elemento\
             .encontrar(lambda e: bot.util.normalizar(e.texto) in botoes)\
             .clicar()
-        assert bot.util.aguardar_condicao(lambda: not win32gui.IsWindow(hwnd), timeout=3),\
-            "Diálogo não fechou conforme esperado"
+        time.sleep(0.5)
+        assert self.aguardar_fechar(3), "Diálogo não fechou conforme esperado"
 
 class Popup:
     """Popup do windows com opções"""
@@ -1124,6 +1128,22 @@ class JanelaW32:
                 except Exception: pass
 
         return "; ".join(elemento.texto for elemento in elementos)
+
+    def capturar_dialogos (self, callback_tratamento: typing.Callable[[Dialogo], None] | None = None,
+                                 aguardar: int | float = 0.5) -> None:
+        """Realizar a captura de diálogo(s) na janela e aplicar o `callback_tratamento` para realizar alguma ação no diálogo
+        - `AssertionError` caso algum diálogo continue aparecendo após o tratamento"""
+        if callback_tratamento is not None:
+            for _ in range(10):
+                dialogo = self.aguardar().dialogo(aguardar=aguardar)
+                if not dialogo: break
+
+                texto = dialogo.texto
+                callback_tratamento(dialogo)
+                assert dialogo.aguardar_fechar(), f"Diálogo não fechou corretamente: '{texto}'"
+
+        if dialogo := self.aguardar().dialogo(aguardar=aguardar):
+            raise AssertionError(f"Diálogo inesperado: '{dialogo.texto}'")
 
     def print_arvore (self) -> None:
         """Realizar o `print()` da árvore de elementos da janela e das janelas do processo"""
