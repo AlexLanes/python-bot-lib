@@ -35,30 +35,29 @@ class LeitorOCR:
 
     ### Detecção de Coordenadas de textos
     ```
-    leitor.detectar_tela()              # Extrair coordenadas de textos da tela inteira
-    leitor.detectar_tela(Coordenada)    # Extrair coordenadas de textos de parte da tela
-    leitor.detectar_imagem(imagem)      # Extrair coordenadas da `imagem`
+    leitor.detectar_tela()              # Detectar coordenadas de texto na tela inteira
+    leitor.detectar_tela(Coordenada)    # Detectar coordenadas de texto em parte da tela
+    leitor.detectar_imagem(imagem)      # Detectar coordenadas de texto na `imagem`
+    leitor.detectar_linhas(imagem)      # Detectar coordenadas de texto na `imagem` e agrupar pela linha
     ```
 
     ### Extração de textos
     ```
-    leitor.ler_tela()                   # Extrair informações da tela inteira -> `(texto, coordenada, confiança)`
-    leitor.ler_tela(Coordenada)         # Extrair informações de parte da tela -> `(texto, coordenada, confiança)`
-    leitor.ler_imagem(imagem)           # Extrair informações da `imagem` -> `(texto, coordenada, confiança)`
-    leitor.ler_texto_imagem(imagem)     # Ler e retornar os textos extraídos da `imagem` concatenados -> str
+    leitor.ler_tela()               # Extrair informações da tela inteira
+    leitor.ler_tela(Coordenada)     # Extrair informações de parte da tela
+    leitor.ler_imagem(imagem)       # Extrair informações da `imagem`
+    leitor.ler_texto_imagem(imagem) # Ler e retornar os textos extraídos da `imagem` concatenados
+    leitor.ler_linhas(imagem)       # Extrair dados da `imagem` concatenando as linhas em uma `str`
 
-    # Extrair as colunas e linhas da `imagem` de uma tabela ()
+    # Extrair as colunas e linhas da `imagem` de uma tabela
     # Funciona apenas para tabelas com os nomes das colunas `left-align`
     leitor.ler_tabela(imagem)                               # Todas as colunas
-    leitor.ler_tabela(imagem, ("Coluna1", "Coluna2", ...))  # Restringir colunas
+    leitor.ler_tabela(imagem, ("Coluna1", "Coluna2", ...))  # Restringir e corrigir nome das colunas
     ```
 
     ### Útil
     ```
-    # Concatenar as linhas da `extração` em uma só `str`
-    leitor.concatenar_linhas(...)
-
-    # Pode ser necessário pois o OCR não gera resultados 100% correto
+    # Pode ser necessário pois o OCR não gera resultados precisos
     bot.util.encontrar_texto(...)   # Encontrar a melhor opção em `opções` onde igual ou parecido ao `texto`
     leitor.encontrar_textos(...)    # Encontrar as coordenadas dos `textos` na `extraçao` retornada pela a leitura da tela ou imagem
     ```
@@ -76,7 +75,7 @@ class LeitorOCR:
     """Inclinação máxima para ser considerado mesclar as caixas de texto"""
     width_ths: float = 0.4
     """Distância horizontal máxima para mesclar caixas
-    - Diminuir o default `o.4` caso as `Coordenadas` estejam sendo mescladas"""
+    - Diminuir o default `0.4` caso as `Coordenadas` estejam sendo mescladas"""
     allowlist: str | None = None
     """Caracteres permitidos a serem retornados pelos métodos de leitura
     - Default utilizado pelo modelo da linguagem"""
@@ -89,12 +88,26 @@ class LeitorOCR:
             gpu = gpu
         )
 
+    def ler_imagem (self, imagem: Imagem) -> list[tuple[str, Coordenada, float]]:
+        """Extrair dados de `(texto, coordenada, confiança)` da `imagem`"""
+        return [
+            (texto, Coordenada.from_box((box[0][0], box[0][1], box[1][0], box[2][1])), confianca) # type: ignore
+            for box, texto, confianca in self.reader.readtext(
+                imagem.pixels,
+                decoder   = self.decoder,
+                mag_ratio = self.mag_ratio,
+                min_size  = self.min_size,
+                slope_ths = self.slope_ths,
+                width_ths = self.width_ths,
+                allowlist = self.allowlist,
+            )
+        ]
+
     def ler_tela (self, regiao: Coordenada | None = None) -> list[tuple[str, Coordenada, float]]:
-        """Extrair informações da tela
-        - `regiao` para limitar a área de extração
-        - `for texto, coordenada, confianca in leitor.ler_tela()`"""
+        """Extrair dados de `(texto, coordenada, confiança)` da da tela
+        - `regiao` para limitar a área de extração"""
         imagem = capturar_tela(regiao, True)
-        extracoes = self.__ler(imagem)
+        extracoes = self.ler_imagem(imagem)
 
         # corrigir offset com a regiao informada
         for _, coordenada, _ in extracoes:
@@ -104,25 +117,25 @@ class LeitorOCR:
 
         return extracoes
 
-    def ler_imagem (self, imagem: Imagem) -> list[tuple[str, Coordenada, float]]:
-        """Extrair informações da `imagem`
-        - `for texto, coordenada, confianca in leitor.ler_imagem()`"""
-        return self.__ler(imagem)
-
     def ler_texto_imagem (self, imagem: Imagem, concatenador: str = " ") -> str:
         """Ler e retornar os textos extraídos da `imagem` concatenados
-        - É comparado a confiança do texto da `imagem`, `imagem.cinza()` e `imagem.binarizar()` e retornado a melhor"""
-        dados = self.ler_imagem(imagem)
-        confianca_dados = sum(confianca for _, _, confianca in dados)
+        - É comparado a confiança da `imagem, .inverter(), .cinza(), .binarizar()` e retornado a melhor"""
+        maior_confianca = 0.0
+        dados_maior_confianca = list[tuple[str, Coordenada, float]]()
+        regioes = tuple(map(imagem.recortar, self.detectar_imagem(imagem)))
 
-        for modificador in (lambda: imagem.cinza(), lambda: imagem.binarizar()):
-            dados_transformados = self.ler_imagem(modificador())
-            confianca = sum(confianca for _, _, confianca in dados_transformados)
-            if confianca < confianca_dados: continue
-            confianca_dados = confianca
-            dados = dados_transformados
+        for modificador in (lambda i: i,                    # imagem normal
+                            lambda i: Imagem.inverter(i),   # imagem invertida
+                            lambda i: Imagem.cinza(i),      # imagem cinza
+                            lambda i: Imagem.binarizar(i)): # imabem binarizada
 
-        return concatenador.join(texto for texto, *_ in dados)
+            dados = [item for regiao in map(modificador, regioes)
+                          for item in self.ler_imagem(regiao)]
+            confianca_atual = sum(confianca for _, _, confianca in dados)
+            if confianca_atual > maior_confianca:
+                dados_maior_confianca, maior_confianca = dados, confianca_atual
+
+        return concatenador.join(texto for texto, _, _ in dados_maior_confianca)
 
     def ler_tabela (self, imagem: Imagem,
                           nomes_colunas: typing.Iterable[str] | None = None,
@@ -130,30 +143,24 @@ class LeitorOCR:
         """Extrair as colunas e linhas da `imagem` de uma tabela
         ### Limitação: Funciona apenas para tabelas com os nomes das colunas `left-align`
         - `nomes_colunas` limitar, renomear e buscar pelas colunas desejadas
-        - `margem_y_linhas` para juntar linhas com a margem de erro `Y`
+        - `margem_y_linhas` para agrupar linhas com a margem de erro `Y`
         - Diminiur `leitor.width_ths` caso os nomes das colunas estiverem sendo mesclados
         - Retornado as linhas sendo `{ nome_coluna: (texto_coluna, Coordenada do texto na `imagem`) }`"""
         tabela = list[dict[str, tuple[str, Coordenada]]]()
-        largura_imagem = imagem.pixels.shape[1]
-
-        # Detectar e agrupar as linhas da `imagem`
-        linhas = list[list[Coordenada]]()
-        for coordenada in self.__detectar(imagem):
-            # Nova linha
-            if not linhas or linhas[-1][0].y + margem_y_linhas <= coordenada.y:
-                linhas.append([coordenada])
-            # Mesma linha
-            else: linhas[-1].append(coordenada)
+        linhas = self.detectar_linhas(imagem, margem_y_linhas)
 
         if not linhas: return tabela
         coordenada_headers, *coordenada_linhas = linhas
+        if not coordenada_linhas: return tabela
 
-        # Corrigir a largura da coluna para ir até antes da próxima coluna
+        # Corrigir a largura dos headers para ir até antes do começo do próximo header
+        # Funciona apenas caso os headers sejam `left-align`
+        largura_imagem = imagem.pixels.shape[1]
         for i, coordenada in enumerate(coordenada_headers):
             acrescimo_largura = coordenada_headers[i + 1].x if i < len(coordenada_headers) - 1 else largura_imagem
             coordenada.largura += acrescimo_largura - coordenada.x - coordenada.largura - 2
 
-        # Extrair nome dos headers
+        # Extrair o nome dos headers
         headers = {
             nome: coordenada
             for coordenada in coordenada_headers
@@ -191,41 +198,27 @@ class LeitorOCR:
 
         return tabela
 
-    def __ler (self, imagem: Imagem) -> list[tuple[str, Coordenada, float]]:
-        """Receber a imagem e extrair os dados"""
+    def ler_linhas (self, imagem: Imagem, margem_y: int = 5) -> list[tuple[str, Coordenada]]:
+        """Extrair dados da `imagem` concatenando as linhas em uma `str`
+        - `margem_y` para agrupar linhas com a margem de erro `Y`
+        - Retornado uma lista das linhas sendo `(texto, Coordenada)`"""
         return [
-            (texto, Coordenada.from_box((box[0][0], box[0][1], box[1][0], box[2][1])), confianca) # type: ignore
-            for box, texto, confianca in self.reader.readtext(
-                imagem.pixels,
-                decoder   = self.decoder,
-                mag_ratio = self.mag_ratio,
-                min_size  = self.min_size,
-                slope_ths = self.slope_ths,
-                width_ths = self.width_ths,
-                allowlist = self.allowlist,
+            (
+                self.ler_texto_imagem(
+                    imagem.recortar(coordenada := Coordenada(
+                        x = linha[0].x,
+                        y = min(coordenada.y for coordenada in linha),
+                        largura = (linha[-1].x + linha[-1].largura - linha[0].x) if len(linha) > 1 else linha[0].largura,
+                        altura = max(coordenada.altura for coordenada in linha)
+                    ))
+                ),
+                coordenada
             )
+            for linha in self.detectar_linhas(imagem, margem_y)
         ]
 
-    def detectar_tela (self, regiao: Coordenada | None = None) -> list[Coordenada]:
-        """Extrair coordenadas de textos da tela
-        - `regiao` para limitar a área de extração"""
-        imagem = capturar_tela(regiao, True)
-        coordenadas = self.__detectar(imagem)
-
-        # corrigir offset com a regiao informada
-        for coordenada in coordenadas:
-            if not regiao: break
-            coordenada.x += regiao.x
-            coordenada.y += regiao.y
-    
-        return coordenadas
-
     def detectar_imagem (self, imagem: Imagem) -> list[Coordenada]:
-        """Extrair coordenadas da `imagem`"""
-        return self.__detectar(imagem)
-
-    def __detectar (self, imagem: Imagem) -> list[Coordenada]:
-        """Receber a imagem e detectar as coordenadas"""
+        """Detectar coordenadas de texto na `imagem`"""
         boxes, _ = self.reader.detect(
             imagem.pixels,
             mag_ratio = self.mag_ratio,
@@ -235,9 +228,49 @@ class LeitorOCR:
         )
         boxes: list[tuple[np.int32, ...]] = np.concatenate(boxes) # type: ignore
         return [
-            Coordenada.from_box((x1, y1, x2, y2)) # type: ignore
+            Coordenada.from_box((
+                max(0, x1), # corrigir possível negativo
+                max(0, y1), # corrigir possível negativo
+                x2,
+                y2
+            )) # type: ignore
             for x1, x2, y1, y2 in boxes
         ]
+
+    def detectar_tela (self, regiao: Coordenada | None = None) -> list[Coordenada]:
+        """Detectar coordenadas de texto na tela
+        - `regiao` para limitar a área de extração"""
+        imagem = capturar_tela(regiao, True)
+        coordenadas = self.detectar_imagem(imagem)
+
+        # corrigir offset com a regiao informada
+        for coordenada in coordenadas:
+            if not regiao: break
+            coordenada.x += regiao.x
+            coordenada.y += regiao.y
+    
+        return coordenadas
+
+    def detectar_linhas (self, imagem: Imagem, margem_y: int = 5) -> list[list[Coordenada]]:
+        """Detectar coordenadas de texto na `imagem` e agrupar pela linha
+        - `margem_y` para agrupar linhas com a margem de erro `Y`"""
+        linhas = list[list[Coordenada]]()
+        coordenadas = self.detectar_imagem(imagem)
+        coordenadas.sort(key=lambda c: c.y)
+
+        # Agregar linhas pelo Y
+        for coordenada in coordenadas:
+            # Nova linha
+            if not linhas or linhas[-1][0].y + margem_y <= coordenada.y:
+                linhas.append([coordenada])
+            # Mesma linha
+            else: linhas[-1].append(coordenada)
+
+        # Ordenar linhas pelo X
+        for linha in linhas:
+            linha.sort(key=lambda c: c.x)
+
+        return linhas
 
     @staticmethod
     def encontrar_textos (textos: typing.Iterable[str],
@@ -312,26 +345,5 @@ class LeitorOCR:
                 break
 
         return coordenadas
-
-    @staticmethod
-    def concatenar_linhas (extracao: list[tuple[str, Coordenada, float]],
-                           margem_y: int = 5) -> list[tuple[str, int]]:
-        """Concatenar as linhas da `extração` em uma só `str`
-        - `margem_y` para juntar linhas com a margem de erro `Y`
-        - Retornado uma lista das linhas sendo `(linha, Y central da linha)`"""
-        linhas = list[tuple[list[str], int]]()
-
-        for texto, coordenada, _ in extracao:
-            centro_y = coordenada.y + coordenada.altura // 2
-            # Nova linha
-            if not linhas or linhas[-1][1] + margem_y <= centro_y:
-                linhas.append(([texto], centro_y))
-            # Mesma linha
-            else: linhas[-1][0].append(texto)
-
-        return [
-            (" ".join(textos), centro_y)
-            for textos, centro_y in linhas
-        ]
 
 __all__ = ["LeitorOCR"]

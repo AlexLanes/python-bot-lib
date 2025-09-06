@@ -1,10 +1,18 @@
 import bot
 from bot.imagem import Imagem, Coordenada, LeitorOCR
 
+
+"""
+Capturar tela
+"""
+bot.imagem.capturar_tela() # Tela inteira
+bot.imagem.capturar_tela(cinza=True) # Tela inteira como cinza
+bot.imagem.capturar_tela(Coordenada(0, 0, 100, 100)) # Porção da tela
+
+
 """
 Classe para manipulação e procura de imagem
 """
-
 ### Inicialização
 imagem = Imagem("caminho.png")
 Imagem(bot.sistema.Caminho("caminho.png"))
@@ -42,7 +50,6 @@ Classe de abstração do pacote `EasyOCR` para ler/detectar textos em imagens
 - `gpu=True` Caso possua GPU da NVIDIA, instalar o `CUDA Toolkit` e instalar as bibliotecas indicadas pelo [pytorch](https://pytorch.org/get-started/locally)
 - Possui alguns parâmetros customizáveis para alterar o leitor e detector
 """
-
 ### Inicialização
 # Default utilizado a linguagem `en`, que é o mais otimizado, e sem `gpu`
 leitor = LeitorOCR()
@@ -58,35 +65,27 @@ leitor.width_ths    # Distância horizontal máxima para mesclar caixas
 leitor.allowlist    # Caracteres permitidos a serem retornados pelos métodos de leitura
 
 ### Detecção de Coordenadas de textos
-leitor.detectar_tela()          # Extrair coordenadas de textos da tela inteira
-leitor.detectar_tela(...)       # Extrair coordenadas de textos de parte da tela
-leitor.detectar_imagem(imagem)  # Extrair coordenadas da `imagem`
+leitor.detectar_tela()          # Detectar coordenadas de texto na tela inteira
+leitor.detectar_tela(...)       # Detectar coordenadas de texto em parte da tela
+leitor.detectar_imagem(imagem)  # Detectar coordenadas de texto na `imagem`
+leitor.detectar_linhas(imagem)  # Detectar coordenadas de texto na `imagem` e agrupar pela linha
 
 ### Extração de textos
-leitor.ler_tela()               # Extrair informações da tela inteira -> `(texto, coordenada, confiança)`
-leitor.ler_tela(...)            # Extrair informações de parte da tela -> `(texto, coordenada, confiança)`
-leitor.ler_imagem(imagem)       # Extrair informações da `imagem` -> `(texto, coordenada, confiança)`
-leitor.ler_texto_imagem(imagem) # Ler e retornar os textos extraídos da `imagem` concatenados -> str
+leitor.ler_tela()               # Extrair informações da tela inteira
+leitor.ler_tela(...)            # Extrair informações de parte da tela
+leitor.ler_imagem(imagem)       # Extrair informações da `imagem`
+leitor.ler_texto_imagem(imagem) # Ler e retornar os textos extraídos da `imagem` concatenados
+leitor.ler_linhas(imagem)       # Extrair dados da `imagem` concatenando as linhas em uma `str`
 
-# Extrair as colunas e linhas da `imagem` de uma tabela ()
+# Extrair as colunas e linhas da `imagem` de uma tabela
 # Funciona apenas para tabelas com os nomes das colunas `left-align`
-leitor.ler_tabela(imagem)                           # Todas as colunas
-leitor.ler_tabela(imagem, ("Coluna1", "Coluna2"))   # Restringir colunas
+leitor.ler_tabela(imagem)                               # Todas as colunas
+leitor.ler_tabela(imagem, ("Coluna1", "Coluna2", ...))  # Restringir e corrigir nome das colunas
 
 ### Útil
-# Concatenar as linhas da `extração` em uma só `str`
-leitor.concatenar_linhas(...)
 # Pode ser necessário pois o OCR não gera resultados 100% correto
 bot.util.encontrar_texto(...)   # Encontrar a melhor opção em `opções` onde igual ou parecido ao `texto`
 leitor.encontrar_textos(...)    # Encontrar as coordenadas dos `textos` na `extraçao` retornada pela a leitura da tela ou imagem
-
-
-"""
-Capturar tela
-"""
-bot.imagem.capturar_tela() # Tela inteira
-bot.imagem.capturar_tela(cinza=True) # Tela inteira como cinza
-bot.imagem.capturar_tela(Coordenada(0, 0, 100, 100)) # Porção da tela
 
 
 """
