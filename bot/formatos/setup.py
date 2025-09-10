@@ -419,7 +419,7 @@ class Unmarshaller[T]:
         - `|` `Union`
         - `dict`
         - `list`
-        - `class` tratado as propriedades como `dict`
+        - Alguma `class` seja do próprio Python ou uma classe com propriedades
 
     ```
     from bot.formatos import Unmarshaller
@@ -508,18 +508,18 @@ class Unmarshaller[T]:
         if isinstance(esperar, str):
             esperar = Unmarshaller.cls_seen.get(esperar, esperar) # type: ignore
 
-        origin = get_origin(esperar)
-
-        # any
-        if esperar is Any:
+        # Any ou mesmo tipo
+        if esperar is Any or esperar is type(valor):
             return valor
 
-        # primitivo
+        # primitivos
         if any(esperar is t and isinstance(valor, t)
                for t in self.PRIMITIVOS):
             return valor
 
-        # class
+        origin = get_origin(esperar)
+
+        # Class
         if hasattr(esperar, '__annotations__'):
             if not isinstance(valor, dict):
                 raise self.criar_erro(caminho, dict, valor)
@@ -527,14 +527,14 @@ class Unmarshaller[T]:
                 Unmarshaller.cls_seen[esperar.__name__] = esperar # type: ignore
             return Unmarshaller(esperar).parse(valor, caminho=caminho)
 
-        # literal
+        # Literal
         if origin is Literal:
             expected_values = get_args(esperar)
             if expected_values and valor not in expected_values:
                 raise self.criar_erro(caminho, Literal[expected_values], valor)
             return valor
 
-        # union
+        # Union
         if origin in (types.UnionType, Union):
             for t in get_args(esperar):
                 try: return self.validar(t, valor, caminho)
@@ -568,7 +568,7 @@ class Unmarshaller[T]:
         return Exception(
             f"Erro {repr(self).strip("<>")} no Caminho({caminho}) "
             f"Esperado({esperado}) "
-            f"Encontrado({valor})"
+            f"Encontrado({type(valor)}) Valor({valor})"
         )
 
 class Toml:
