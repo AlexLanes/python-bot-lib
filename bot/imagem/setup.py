@@ -96,7 +96,18 @@ class Imagem:
     def __init__ (self, caminho: bot.sistema.Caminho | str) -> None:
         caminho = bot.sistema.Caminho(str(caminho))
         assert caminho.existe(), f"Imagem não encontrada {caminho!r}"
-        self.pixels = cv2.imread(caminho.string) # type: ignore
+
+        match caminho.sufixo:
+            case ".gif":
+                vc = cv2.VideoCapture(caminho.string)
+                ok, dados = vc.read()
+                vc.release()
+                assert ok, f"Erro ao ler imagem .gif '{caminho.string}'"
+                self.pixels = dados
+            case _:
+                dados = cv2.imread(caminho.string)
+                assert dados is not None, f"Erro ao ler imagem '{caminho.string}'"
+                self.pixels = dados
 
     def __repr__ (self) -> str:
         shape = self.pixels.shape
