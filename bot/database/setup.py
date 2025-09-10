@@ -76,14 +76,19 @@ class ResultadoSQL:
     - linha: tuple[tipagem.tipoSQL, ...] = next(resultado.linhas)
     - for linha in resultado.linhas: ...
     - for linha in resultado: ...
+
+    # Transformações das linhas retornadas
     - resultado.to_dict()
     - resultado.to_dataframe()
+    - resultado.unmarshal(classe)
+    - resultado.transformar(nome_coluna=lambda valor: str(valor), ...)
     ```
 
     ### Fácil acesso a primeira linha
     ```
-    - resultado["nome_coluna"]
-    - resultado.primeira_linha["nome_coluna"]
+    - resultado.primeira_linha # None caso não retornado linhas
+    - resultado[0] # Obter valor pelo index da coluna
+    - resultado["nome_coluna"] # Obter valor pelo nome exato da coluna
     ```
     """
 
@@ -131,10 +136,21 @@ class ResultadoSQL:
     def __len__ (self) -> int:
         return self.quantidade_linhas
 
-    def __getitem__ (self, campo: str) -> bot.tipagem.tipoSQL:
-        """Obter o `campo` da primeira linha"""
-        if not self.primeira_linha: return
-        return self.primeira_linha[self.colunas.index(campo)]
+    def __getitem__ (self, value: str | int) -> bot.tipagem.tipoSQL:
+        """Obter um valor na primeira linha
+        - `str` nome exato do campo
+        - `int` index
+        - Retornado `None` caso não tenha linha retornada"""
+        if not self.primeira_linha:
+            return
+
+        match value:
+            case str() as campo:
+                return self.primeira_linha[self.colunas.index(campo)]
+            case int() as index:
+                return self.primeira_linha[index]
+            case _:
+                raise ValueError(f"Esperado(str | int) ao se obter valor na primeira linha do ResultadoSQL; Recebido({type(value)})")
 
     def to_dict (self) -> list[dict[str, bot.tipagem.tipoSQL]]:
         """Representação das linhas e colunas no formato `dict`
@@ -160,6 +176,28 @@ class ResultadoSQL:
             { coluna: str for coluna in self.colunas } if transformar_string else self.colunas,
             nan_to_null=True
         )
+
+    def unmarshal[T] (self, cls: type[T]) -> list[T]:
+        """Realizar o unmarshal das linhas conforme a classe `cls`"""
+        u = bot.formatos.Unmarshaller(cls)
+        return [
+            u.parse(linha)
+            for linha in self.to_dict()
+        ]
+
+    def transformar (self, **colunas: typing.Callable[[bot.tipagem.tipoSQL], typing.Any]) -> typing.Self:
+        """Aplicar uma transformação no valor das colunas informadas
+        - `resultado.transformar(nome_coluna = lambda valor: str(valor), ...)`"""
+        linhas = self.linhas
+        transformacoes = bot.estruturas.LowerDict(colunas)
+        self.linhas = (
+            tuple(
+                transformacoes[coluna](valor) if coluna in transformacoes else valor
+                for coluna, valor in zip(map(str.lower, self.colunas), linha)
+            )
+            for linha in linhas
+        )
+        return self
 
 __all__ = [
     "polars",
