@@ -1,8 +1,8 @@
 # std
 import sqlite3, typing
 # interno
-from .setup import criar_excel, ResultadoSQL
 import bot
+from bot.database.setup import criar_excel, ResultadoSQL
 
 class Sqlite:
     """Classe de abstração do módulo `sqlite3`
@@ -30,7 +30,7 @@ class Sqlite:
         """Fechar a conexão com o `sqlite`
         - Executado automaticamente quando o objeto sair do escopo"""
         self.conexao.close()
-        bot.logger.informar(f"Conexão com o sqlite encerrada")
+        bot.logger.informar(f"Conexão com o {self!r} encerrada")
 
     def tabelas (self) -> list[str]:
         """Nomes das tabelas disponíveis"""
@@ -74,7 +74,7 @@ class Sqlite:
             linhas = (linha for linha in cursor) if colunas else (tuple() for _ in [])
         )
 
-    def execute_many (self, sql: str, parametros: typing.Iterable[bot.tipagem.nomeado] | typing.Iterable[bot.tipagem.posicional]) -> ResultadoSQL:
+    def execute_many (self, sql: str, parametros: typing.Iterable[bot.tipagem.posicional] | typing.Iterable[bot.tipagem.nomeado]) -> ResultadoSQL:
         """Executar uma ou mais instruções SQL
         - `sql` Comando que será executado
         - `parametros` quantidade de argumentos, posicionais `?` **ou** nomeados `:nome`, que serão executados

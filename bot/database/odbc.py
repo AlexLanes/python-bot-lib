@@ -1,13 +1,13 @@
 # std
 import typing
 # interno
-from .setup import ResultadoSQL
 import bot
+from bot.database.setup import ResultadoSQL
 # externo
 import pyodbc
 
 class DatabaseODBC:
-    """Classe para manipulação de Databases via drivers ODBC
+    """Classe para manipulação de Databases via driver ODBC
     - Abstração do `pyodbc`
     - Testado com PostgreSQL, MySQL e SQLServer
 
@@ -70,7 +70,7 @@ class DatabaseODBC:
         """Fechar a conexão com o database
         - Executado automaticamente quando o objeto sair do escopo"""
         self.conexao.close()
-        bot.logger.informar(f"Conexão com o database odbc encerrada")
+        bot.logger.informar(f"Conexão com o {self!r} encerrada")
 
     def reconectar (self) -> typing.Self:
         """Refazer a conexão caso encerrada"""
