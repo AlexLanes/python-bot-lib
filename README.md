@@ -23,6 +23,7 @@ Utilizar o caminho para o arquivo **whl** baixado `bot @ file://.../bot-4.0-py3-
 - Adicionado `sistema.criar_mutex()`
 - Renomeado `util.cronometro()` para `util.Cronometro()`
 - Incluído execução do `bot.mouse` como módulo `-m`
+- Criado nova classe de manipulação de database `bot.database.DatabaseOracle`
 
 </details>
 <details>
