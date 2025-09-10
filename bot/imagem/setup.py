@@ -109,6 +109,10 @@ class Imagem:
                 assert dados is not None, f"Erro ao ler imagem '{caminho.string}'"
                 self.pixels = dados
 
+        # remover transparência caso possua
+        if len(self.pixels.shape) == 3 and self.pixels.shape[2] == 4:
+            self.pixels = cv2.cvtColor(self.pixels, cv2.COLOR_BGRA2BGR)
+
     def __repr__ (self) -> str:
         shape = self.pixels.shape
         altura, largura, *_ = shape
