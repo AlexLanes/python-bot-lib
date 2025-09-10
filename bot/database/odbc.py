@@ -18,6 +18,8 @@ class DatabaseODBC:
 
     ### Inicialização
     - `nome_driver` Nome do odbc driver. Não precisa ser exato mas deve estar em `DatabaseODBC.listar_drivers()`
+    - `timeout` tempo limite para obter a conexão
+    - `encoding` utilizado na conversão de strings para o Python. `None` usado o default do `pyodbc`
     - Demais configurações para a conexão podem ser informadas no `**kwargs`
         - `uid` usuário
         - `pwd` senha
@@ -27,29 +29,34 @@ class DatabaseODBC:
         - `BoolsAsChar=0` para o PostgreSQL retornar os `BOOLEAN` como `bool` e não `str`
     """
 
-    odbc_args: str
-    """Argumentos de conexão ODBC"""
     conexao: pyodbc.Connection
     """Objeto de conexão com o database"""
 
-    def __init__ (self, nome_driver: str, **kwargs: str | int) -> None:
+    def __init__ (self, nome_driver: str, timeout: int = 5, encoding: str | None = None, **kwargs: str | int) -> None:
         # verificar se o driver existe
         existentes = [driver for driver in self.listar_drivers() 
                       if nome_driver.lower() in driver.lower()]
         if not existentes: raise ValueError(f"Driver ODBC '{nome_driver}' não encontrado")
-
         # escolher um driver dos encontrados (preferência ao `unicode`)
         unicode = [driver for driver in existentes if "unicode" in driver.lower()]
         nome_driver = unicode[0] if unicode else existentes[0]
         bot.logger.informar(f"Iniciando conexão ODBC com o driver '{nome_driver}'")
 
-        # montar a conexão
+        # montar o argumento de conexão
         kwargs["driver"] = nome_driver
-        self.odbc_args = ";".join(
+        odbc_args = ";".join(
             f"{nome}={valor}" 
             for nome, valor in kwargs.items()
         )
-        self.conexao = pyodbc.connect(self.odbc_args, autocommit=False, timeout=5)
+
+        # criar conexão
+        kwargs_pydobc = {
+            "autocommit": False,
+            "timeout": timeout
+        }
+        if encoding: kwargs["encoding"] = encoding
+        self.__criar_conexao = lambda: pyodbc.connect(odbc_args, **kwargs_pydobc)
+        self.conexao = self.__criar_conexao()
 
     def __del__ (self) -> None:
         """Fechar a conexão quando sair do escopo"""
@@ -65,11 +72,21 @@ class DatabaseODBC:
         self.conexao.close()
         bot.logger.informar(f"Conexão com o database odbc encerrada")
 
-    def reconectar (self) -> None:
+    def reconectar (self) -> typing.Self:
         """Refazer a conexão caso encerrada"""
-        try: self.conexao.execute("SELECT 1")
-        except pyodbc.OperationalError:
-            self.conexao = pyodbc.connect(self.odbc_args, autocommit=False, timeout=5)
+        try:
+            self.conexao.execute("SELECT 1")
+            return self
+        except pyodbc.OperationalError: pass
+
+        try:
+            if not self.conexao.closed:
+                self.conexao.close()
+            del self.conexao
+            self.conexao = self.__criar_conexao()
+            return self
+        except Exception as erro:
+            raise Exception(f"Falha ao reconectar no {self!r}; {erro}") from None
 
     def tabelas (self, schema: str | None = None) -> list[tuple[str, str | None]]:
         """Nomes das tabelas e schemas disponíveis
