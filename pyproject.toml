@@ -17,6 +17,7 @@ dependencies = [
 
   # database
   "pyodbc",
+  "oracledb",
   "fastexcel",
   "xlsxwriter",
   "polars[xlsx2csv]",
