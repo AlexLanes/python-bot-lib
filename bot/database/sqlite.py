@@ -37,12 +37,12 @@ class Sqlite:
         sql = "SELECT name FROM sqlite_schema WHERE type = 'table' AND name NOT LIKE 'sqlite_%'"
         return [str(tabela) for tabela, *_ in self.execute(sql)]
 
-    def colunas (self, tabela: str) -> list[tuple[str, str]]:
-        """Nomes das colunas e tipos da tabela
-        - `for coluna, tipo in database.colunas(tabela)`"""
+    def colunas (self, tabela: str) -> list[tuple[str, str, bool]]:
+        """Informações das colunas da `tabela`
+        - Retornado `[(coluna, tipo, nullable)]`"""
         return [
-            (str(coluna), str(tipo))
-            for _, coluna, tipo, *_, in self.execute(f"PRAGMA table_info({tabela})")
+            (str(coluna), str(tipo), not bool(notnull))
+            for _, coluna, tipo, notnull, *_ in self.execute(f"PRAGMA table_info({tabela})")
         ]
 
     def commit (self) -> typing.Self:

@@ -86,7 +86,7 @@ class DatabaseOracle:
         return itens
 
     def colunas (self, tabela: str, schema: str | None = None) -> list[tuple[str, str, str]]:
-        """Nomes das colunas e tipos da tabela
+        """Informações das colunas da `tabela`
         - Retornado `[(coluna, tipo, nullable)]`"""
         cursor = self.conexao.cursor()
         if schema: cursor.execute(

@@ -99,13 +99,13 @@ class DatabaseODBC:
         itens.sort(key=lambda item: item[0]) # ordernar pelo nome das tabelas
         return itens
 
-    def colunas (self, tabela: str, schema: str | None = None) -> list[tuple[str, str]]:
-        """Nomes das colunas e tipos da tabela
-        - `for coluna, tipo in database.colunas(tabela, schema)`"""
+    def colunas (self, tabela: str, schema: str | None = None) -> list[tuple[str, str, bool]]:
+        """Informações das colunas da `tabela`
+        - Retornado `[(coluna, tipo, nullable)]`"""
         cursor = self.conexao.cursor()
         return [
-            (item[3], item[5])
-            for item in cursor.columns(tabela, schema=schema)
+            (item[3], item[5], bool(item[10]))
+            for item in cursor.columns(table=tabela, schema=schema)
         ]
 
     def commit (self) -> None:
