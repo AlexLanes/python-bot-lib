@@ -85,13 +85,13 @@ class DatabaseOracle:
         itens.sort(key=lambda item: item[0]) # ordernar pelo nome das tabelas
         return itens
 
-    def colunas (self, tabela: str, schema: str | None = None) -> list[tuple[str, str]]:
+    def colunas (self, tabela: str, schema: str | None = None) -> list[tuple[str, str, str]]:
         """Nomes das colunas e tipos da tabela
-        - `for coluna, tipo in database.colunas(tabela, schema)`"""
+        - Retornado `[(coluna, tipo, nullable)]`"""
         cursor = self.conexao.cursor()
         if schema: cursor.execute(
             """
-            SELECT column_name, data_type
+            SELECT column_name, data_type, nullable
             FROM all_tab_columns
             WHERE table_name = :tabela AND owner = :schema
             ORDER BY column_id
@@ -100,14 +100,14 @@ class DatabaseOracle:
         )
         else: cursor.execute(
             """
-            SELECT column_name, data_type
+            SELECT column_name, data_type, nullable
             FROM user_tab_columns
             WHERE table_name = :tabela
             ORDER BY column_id
             """,
             tabela = tabela.upper()
         )
-        return [(coluna, tipo) for coluna, tipo in cursor]
+        return [tuple(item) for item in cursor]
 
     def commit (self) -> None:
         """Commitar alterações feitas na conexão"""
