@@ -1078,10 +1078,10 @@ class JanelaW32:
         while primeiro or cronometro() < aguardar:
             primeiro = False
 
-            for filho in self.elemento.filhos(lambda e: e.class_name == class_name and e.ativo):
-                return Dialogo(filho)
             for janela in self.janelas_processo(lambda j: j.class_name == class_name and j.elemento.ativo):
                 return Dialogo(janela.elemento)
+            for filho in self.elemento.filhos(lambda e: e.class_name == class_name and e.ativo):
+                return Dialogo(filho)
 
     def popup (self, class_name: str = "#32768",
                      aguardar: int | float = 0) -> Popup | None:
@@ -1094,10 +1094,10 @@ class JanelaW32:
         while primeiro or cronometro() < aguardar:
             primeiro = False
 
-            for filho in self.elemento.filhos(lambda e: e.class_name == class_name and e.ativo):
-                return Popup(filho)
             for janela in self.janelas_processo(lambda j: j.class_name == class_name and j.elemento.ativo):
                 return Popup(janela.elemento)
+            for filho in self.elemento.filhos(lambda e: e.class_name == class_name and e.ativo):
+                return Popup(filho)
 
     def tooltips (self, *class_name: str, aguardar: int = 5) -> str:
         """Obter os textos concatenados por `;` das `tooltips` (Caixa de texto com informação sobre o elemento)
