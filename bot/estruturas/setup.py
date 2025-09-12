@@ -1,6 +1,6 @@
 # std
 from __future__ import annotations
-import typing, functools, dataclasses, decimal, operator
+import typing, functools, decimal, operator
 # interno
 from bot.sistema import Caminho
 # externo
@@ -8,7 +8,6 @@ import win32api, win32con
 
 P = typing.ParamSpec("P")
 
-@dataclasses.dataclass
 class Coordenada:
     """Coordenada de uma região retangular na tela baseado nos pixels
     - `x` Posição horizontal do canto superior esquerdo
@@ -20,6 +19,9 @@ class Coordenada:
     y: int
     largura: int
     altura: int
+
+    def __init__ (self, x: int, y: int, largura: int, altura: int) -> None:
+        self.x, self.y, self.largura, self.altura = map(int, (x, y, largura, altura))
 
     @classmethod
     def tela (cls) -> Coordenada:
@@ -35,9 +37,21 @@ class Coordenada:
     def from_box (cls, box: tuple[int, int, int, int]) -> Coordenada:
         """Criar coordenada a partir de uma `box`
         - `(x-esquerda, y-cima, x-direita, y-baixo)`"""
-        x, y = int(box[0]), int(box[1])
-        largura, altura = int(box[2] - x), int(box[3] - y)
+        x, y = box[0], box[1]
+        largura, altura = box[2] - x, box[3] - y
         return Coordenada(x, y, largura, altura)
+
+    def __repr__ (self) -> str:
+        return f"<Coordenada(x={self.x}, y={self.y}, largura={self.largura}, altura={self.altura})>"
+
+    def __eq__ (self, value: object) -> bool:
+        return self.__dict__ == value.__dict__  if isinstance(value, Coordenada) else False
+
+    def __len__ (self) -> int:
+        return 4
+
+    def __bool__ (self) -> bool:
+        return 0 not in (self.altura, self.largura)
 
     def __iter__ (self) -> typing.Generator[int, None, None]:
         """Utilizado com o `tuple(coordenada)` e `x, y, largura, altura = coordenada`"""
@@ -45,12 +59,6 @@ class Coordenada:
         yield self.y
         yield self.largura
         yield self.altura
-
-    def __len__ (self) -> int:
-        return 4
-
-    def __bool__ (self) -> bool:
-        return 0 not in (self.altura, self.largura)
 
     def __contains__ (self, other: Coordenada | tuple[int, int]) -> bool:
         """Testar se o ponto central da coordenada está dentro da outra
