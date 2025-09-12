@@ -995,7 +995,7 @@ class JanelaW32:
             bot.mouse.mover(self.coordenada.topo()).clicar()
             trazer_para_o_foco()
 
-        return self.aguardar().sleep(0.1)
+        return self.sleep(0.01).aguardar()
 
     @property
     def fechada (self) -> bool:
