@@ -77,6 +77,15 @@ class Coordenada:
     def __hash__ (self) -> int:
         return hash(tuple(self))
 
+    def __iadd__ (self, value: object) -> Coordenada:
+        """Adicionar o `X, Y` da coordenada de `value`
+        - Útil para transformar regiões de imagens para a tela"""
+        if not isinstance(value, Coordenada):
+            return NotImplemented
+        self.x += value.x
+        self.y += value.y
+        return self
+
     def transformar (self, xOffset=0.5, yOffset=0.5) -> tuple[int, int]:
         """Transformar as cordenadas para a posição (X, Y) de acordo com a porcentagem `xOffset` e `yOffset`
         - (X, Y) central caso os offsets não tenham sido informados

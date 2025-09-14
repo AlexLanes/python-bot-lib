@@ -112,8 +112,7 @@ class LeitorOCR:
         # corrigir offset com a regiao informada
         for _, coordenada, _ in extracoes:
             if not regiao: break
-            coordenada.x += regiao.x
-            coordenada.y += regiao.y
+            coordenada += regiao
 
         return extracoes
 
@@ -246,8 +245,7 @@ class LeitorOCR:
         # corrigir offset com a regiao informada
         for coordenada in coordenadas:
             if not regiao: break
-            coordenada.x += regiao.x
-            coordenada.y += regiao.y
+            coordenada += regiao
     
         return coordenadas
 
