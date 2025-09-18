@@ -401,7 +401,7 @@ class ElementoW32:
             win32gui.PostMessage(self.hwnd, up, 0, lparam)
         else: bot.mouse.mover(coordenada).clicar(botao=botao)
 
-        return self.aguardar().sleep(0.1)
+        return self.sleep(0.01).aguardar()
 
     def apertar (self, *teclas: bot.tipagem.char | bot.tipagem.BOTOES_TECLADO,
                        focar: bool = True) -> typing.Self:
@@ -411,7 +411,7 @@ class ElementoW32:
         for tecla in teclas:
             bot.teclado.apertar(tecla)
             self.aguardar()
-        return self.sleep(0.1)
+        return self.sleep(0.01).aguardar()
 
     def digitar (self, texto: str,
                        virtual: bool = True,
@@ -424,7 +424,7 @@ class ElementoW32:
         if focar: self.focar()
         if virtual: win32gui.SendMessage(self.hwnd, win32con.WM_SETTEXT, 0, texto) # type: ignore
         else: bot.teclado.digitar(texto)
-        return self.aguardar().sleep(0.1)
+        return self.sleep(0.01).aguardar()
 
     def atalho (self, *teclas: bot.tipagem.char | bot.tipagem.BOTOES_TECLADO,
                       focar: bool = True) -> typing.Self:
@@ -432,7 +432,7 @@ class ElementoW32:
         - `focar` indicador se dever ser feito o foco no elemento"""
         if focar: self.focar()
         bot.teclado.atalho(*teclas)
-        return self.aguardar().sleep(0.1)
+        return self.sleep(0.01).aguardar()
 
     def scroll (self, quantidade: int = 1,
                       direcao: bot.tipagem.DIRECOES_SCROLL = "baixo",
@@ -447,7 +447,7 @@ class ElementoW32:
             bot.mouse.scroll_vertical(direcao=direcao)
             self.aguardar()
 
-        return self.sleep(0.1)
+        return self.sleep(0.01).aguardar()
 
     def encontrar_cor (
             self,
@@ -691,10 +691,16 @@ class ElementoUIA (ElementoW32):
         if focar: self.focar()
         invocavel = self.invocavel
 
-        if virtual and invocavel and botao == "left": invocavel.Invoke()
+        if virtual and invocavel and botao == "left":
+            try:
+                invocavel.Invoke()
+                self.sleep(0.01).aguardar()
+            except Exception:
+                super().clicar(botao, virtual, focar)
+
         else: super().clicar(botao, virtual, focar)
 
-        return self.aguardar()
+        return self
 
     def digitar (self, texto: str,
                        virtual: bool = True,
@@ -702,10 +708,16 @@ class ElementoUIA (ElementoW32):
         if focar: self.focar()
         value = self.query_interface(uiaclient.UIA_ValuePatternId, uiaclient.IUIAutomationValuePattern)
 
-        if virtual and value: value.SetValue(texto)
+        if virtual and value:
+            try:
+                value.SetValue(texto)
+                self.sleep(0.01).aguardar()
+            except Exception:
+                super().digitar(texto, virtual, focar)
+
         else: super().digitar(texto, virtual, focar)
 
-        return self.aguardar()
+        return self
 
     def selecionar (self, texto: str) -> None:
         """Selecionar a opção que possua o `texto`
