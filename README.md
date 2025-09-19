@@ -22,6 +22,7 @@ Utilizar o caminho para o arquivo **whl** baixado `bot @ file://.../bot-4.0-py3-
 - Implementado hash e eq especial no `ElementoUIA` em `bot.sistema.janela`
 
 </details>
+<details>
 <summary>v4.0</summary>
 
 - Alterado pacotes `logger`, `configfile`, `mouse` e `teclado` para utilizarem uma classe
