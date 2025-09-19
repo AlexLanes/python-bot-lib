@@ -52,7 +52,8 @@ class Dialogo:
 
     def fechar (self, timeout: float = 10.0) -> bool:
         """Enviar a mensagem de fechar para o diálogo e retornar indicador se fechou corretamente"""
-        win32gui.PostMessage(self.elemento.hwnd, win32con.WM_CLOSE, 0, 0)
+        try: win32gui.PostMessage(self.elemento.hwnd, win32con.WM_CLOSE, 0, 0)
+        except Exception: pass
         return self.aguardar_fechar(timeout)
 
     def clicar (self, botao: str = "Não") -> bool:
@@ -96,41 +97,33 @@ class Popup:
         self.elemento = elemento.to_uia()
 
     def __repr__ (self) -> str:
-        return f"<{type(self).__name__} {self.elemento}>"
+        return f"<{type(self).__name__} texto='{self.elemento.texto}' class_name='{self.elemento.class_name}'>"
 
     def __eq__ (self, value: object) -> bool:
         return isinstance(value, type(self)) and self.elemento == value.elemento
 
     def fechar (self, timeout: float | int = 10.0) -> bool:
-        """Enviar a mensagem de fechar para o popup e retornar indicador se fechou corretamente"""
+        """Enviar a mensagem de fechar para o popup e retornar um indicador se fechou corretamente"""
         hwnd = self.elemento.hwnd
-        win32gui.PostMessage(hwnd, win32con.WM_CLOSE, 0, 0)
+        try: win32gui.PostMessage(hwnd, win32con.WM_CLOSE, 0, 0)
+        except Exception: pass
         return bot.util.aguardar_condicao(lambda: not win32gui.IsWindow(hwnd), timeout)
 
-    def menu (self, *opcoes: str) -> typing.Self:
-        """Selecionar as `opções` no popup
-        - Utilizado o ElementoUIA para buscar por `barra_menu`"""
-        # Mover para fora do diálogo para não interferir
-        bot.mouse.mover((0, 0))
+    def itens_menu (self) -> list[ElementoUIA]:
+        """Elementos do popup que são `item_barra_menu`"""
+        return self.elemento.aguardar().descendentes(lambda e: e.item_barra_menu)
 
-        utilizados = set[JanelaUIA]()
-        for opcao in map(bot.util.normalizar, opcoes):
-            try:
-                janela_popup = JanelaUIA(
-                    lambda j: j not in utilizados and j.elemento.barra_menu,
-                    aguardar = 1
-                )
-                utilizados.add(janela_popup)
-                elemento = janela_popup.elemento.encontrar(
-                    lambda e: bot.util.normalizar(e.texto) == opcao and e.item_barra_menu,
-                    aguardar = 1
-                )
-            except Exception:
-                raise Exception(f"Nenhum elemento em popup encontrado para a opção de menu '{opcao}'")
+    def clicar (self, opcao: str, virtual: bool = True) -> typing.Self:
+        """Clicar no item de menu com o texto `opção`"""
+        opcao = bot.util.normalizar(opcao)
+        elemento, *_ = [
+            item
+            for item in self.itens_menu()
+            if opcao in bot.util.normalizar(item.texto)
+        ] or [None]
 
-            if expansivel := elemento.expansivel: expansivel.Expand()
-            elif invocavel := elemento.invocavel: invocavel.Invoke()
-            else: elemento.clicar(focar=False)
+        assert elemento is not None, f"Nenhum item no popup encontrado com a opção '{opcao}'"
+        elemento.clicar(virtual=virtual, focar=False)
 
         return self
 
@@ -504,6 +497,17 @@ class ElementoUIA (ElementoW32):
         self.profundidade = profundidade
         self.uiaelement = uiaelement or ElementoUIA.UIA.ElementFromHandle(hwnd)
 
+    def __eq__ (self, value: object) -> bool:
+        return (
+            isinstance(value, type(self))
+            and super().__eq__(value)
+            and self.uiaelement == value.uiaelement
+        )
+
+    def __hash__ (self) -> int:
+        try: return hash(self.uiaelement.GetRuntimeId())
+        except Exception: return super().__hash__()
+
     @property
     def parente (self) -> ElementoUIA:
         assert self.profundidade > 0, "Tentado obter o parente de um elemento de profundidade 0"
@@ -657,7 +661,7 @@ class ElementoUIA (ElementoW32):
 
         filhos = []
         filtro = filtro or (lambda e: e.visivel)
-        finder: uiaclient.IUIAutomationElementArray = self.uiaelement.FindAll(
+        finder = self.uiaelement.FindAll(
             uiaclient.TreeScope_Children,
             ElementoUIA.UIA.CreateTrueCondition()
         )
@@ -734,8 +738,8 @@ class ElementoUIA (ElementoW32):
             .item_selecionavel\
             .Select() # type: ignore
 
-        expansivel.Collapse()  
-        self.aguardar() 
+        expansivel.Collapse()
+        self.aguardar()
 
     def query_interface[T] (self, pattern_id: int, interface: type[T]) -> T | None:
         """Obter o `pattern_id` do `uiaelement` e realizar a query da `interface`
@@ -848,7 +852,7 @@ class JanelaW32:
                                          aguardar: int | float = 0) -> None:
         assert aguardar >= 0, "Tempo para aguardar por janela deve ser >= 0"
 
-        encontrados: list[T] = []
+        encontrados = list[T]()
         def callback (hwnd: int, _) -> bool:
             j = self.from_hwnd(hwnd)
             try:
@@ -1332,21 +1336,31 @@ class JanelaUIA (JanelaW32):
         - Procurado por elementos `barra_menu` com `item_barra_menu`"""
         self.focar()
         barras_menu_usadas = set[ElementoUIA]()
-        barras_menu_nao_usadas = lambda: self.elemento.descendentes(
-            lambda e: e.barra_menu and e not in barras_menu_usadas,
-            aguardar = 2
-        )
+
+        def barras_menu_nao_usadas () -> list[ElementoUIA]:
+            """Procurar barras de menu nos descendentes e janelas do processo"""
+            elementos = self.elemento.descendentes(
+                lambda e: e.barra_menu and e not in barras_menu_usadas,
+                aguardar = 1
+            )
+            elementos.extend(
+                janela.elemento
+                for janela in self.janelas_processo(
+                    lambda j: j.elemento.barra_menu and j.elemento not in barras_menu_usadas
+                )
+            )
+            return elementos
 
         # mover o mouse para o topo para não interferir
         bot.mouse.mover(self.coordenada.topo())
 
         for opcao in map(str.lower, opcoes):
             opcao_encontrada = False
-            self.aguardar().sleep(0.2)
+            self.sleep(0.1).aguardar()
 
             for barra_menu in barras_menu_nao_usadas():
                 barras_menu_usadas.add(barra_menu)
-                finder: uiaclient.IUIAutomationElementArray = barra_menu.uiaelement.FindAll(
+                finder = barra_menu.uiaelement.FindAll(
                     # SubTree pega todos os itens da barra que o Children não consegue
                     uiaclient.TreeScope_Subtree,
                     ElementoUIA.UIA.CreateTrueCondition()
@@ -1366,11 +1380,13 @@ class JanelaUIA (JanelaW32):
 
                     opcao_encontrada = True
                     break
-                if opcao_encontrada: break
+
+                if opcao_encontrada:
+                    break
 
             assert opcao_encontrada, f"Opção '{opcao}' não encontrada nas barras de menu"
 
-        return self.aguardar().sleep(0.1)
+        return self.sleep(0.1).aguardar()
 
 __all__ = [
     "JanelaUIA",

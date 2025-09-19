@@ -1,6 +1,6 @@
 [project]
 name = "bot"
-version = "4.0"
+version = "4.1"
 description = "Biblioteca com funcionalidades gerais para criação de automações para o Windows"
 authors = [
   { name = "Alex Lanes Angelo", email = "alex_lanes@hotmail.com" }
