@@ -81,7 +81,8 @@ class ResultadoSQL:
     - resultado.to_dict()
     - resultado.to_dataframe()
     - resultado.unmarshal(classe)
-    - resultado.transformar(nome_coluna=lambda valor: str(valor), ...)
+    - resultado.filtrar(lambda linha: bool)
+    - resultado.transformar(nome_coluna = lambda valor: str(valor), ...)
     ```
 
     ### Fácil acesso a primeira linha
@@ -152,6 +153,32 @@ class ResultadoSQL:
             case _:
                 raise ValueError(f"Esperado(str | int) ao se obter valor na primeira linha do ResultadoSQL; Recebido({type(value)})")
 
+    def transformar (self, **colunas: typing.Callable[[bot.tipagem.tipoSQL], typing.Any]) -> typing.Self:
+        """Aplicar uma transformação no valor das colunas informadas
+        - `resultado.transformar(nome_coluna = lambda valor: str(valor), ...)`"""
+        linhas = self.linhas
+        transformacoes = bot.estruturas.LowerDict(colunas)
+        self.linhas = (
+            tuple(
+                transformacoes[coluna](valor) if coluna in transformacoes else valor
+                for coluna, valor in zip(map(str.lower, self.colunas), linha)
+            )
+            for linha in linhas
+        )
+        return self
+
+    def filtrar (self, filtro: typing.Callable[[tuple[bot.tipagem.tipoSQL, ...]], bot.tipagem.SupportsBool]) -> typing.Self:
+        """Aplicar um filtro nas linhas retornadas.  
+        Caso não retorne um valor verdadeiro ou o `filtro` resulte em erro, a linha será filtrada
+        - `resultado.filtrar(lambda linha: bool)`"""
+        linhas = self.linhas
+        self.linhas = (
+            linha
+            for linha in linhas
+            if bool(bot.estruturas.Resultado(filtro, linha).valor_ou(False))
+        )
+        return self
+
     def to_dict (self) -> list[dict[str, bot.tipagem.tipoSQL]]:
         """Representação das linhas e colunas no formato `dict`
         - Consome o gerador das `linhas`"""
@@ -178,26 +205,13 @@ class ResultadoSQL:
         )
 
     def unmarshal[T] (self, cls: type[T]) -> list[T]:
-        """Realizar o unmarshal das linhas conforme a classe `cls`"""
+        """Realizar o unmarshal das linhas conforme a classe `cls`
+        - Consome o gerador das `linhas`"""
         u = bot.formatos.Unmarshaller(cls)
         return [
             u.parse(linha)
             for linha in self.to_dict()
         ]
-
-    def transformar (self, **colunas: typing.Callable[[bot.tipagem.tipoSQL], typing.Any]) -> typing.Self:
-        """Aplicar uma transformação no valor das colunas informadas
-        - `resultado.transformar(nome_coluna = lambda valor: str(valor), ...)`"""
-        linhas = self.linhas
-        transformacoes = bot.estruturas.LowerDict(colunas)
-        self.linhas = (
-            tuple(
-                transformacoes[coluna](valor) if coluna in transformacoes else valor
-                for coluna, valor in zip(map(str.lower, self.colunas), linha)
-            )
-            for linha in linhas
-        )
-        return self
 
 __all__ = [
     "polars",
