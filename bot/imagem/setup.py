@@ -99,7 +99,7 @@ class Imagem:
 
         match caminho.sufixo:
             case ".gif":
-                vc = cv2.VideoCapture(caminho.string)
+                vc = cv2.VideoCapture(caminho.string, cv2.CAP_IMAGES)
                 ok, dados = vc.read()
                 vc.release()
                 assert ok, f"Erro ao ler imagem .gif '{caminho.string}'"
