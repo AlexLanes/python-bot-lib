@@ -155,9 +155,15 @@ class Logger:
     def limpar_log_raiz (self) -> typing.Self:
         """Limpar o `CAMINHO_LOG_RAIZ`
         - Não afeta o `CAMINHO_DIRETORIO_PERSISTENCIA`"""
-        if self.INICIALIZADO:
-            self.logger.handlers[0].close()
-            self.logger.handlers[0] = logging.FileHandler(self.CAMINHO_LOG_RAIZ.path, "w", "utf-8")
+        if not self.INICIALIZADO: return self
+
+        self.logger.handlers[0].close()
+        self.logger.handlers[0] = logging.FileHandler(self.CAMINHO_LOG_RAIZ.path, "w", "utf-8")
+        self.logger.handlers[0].formatter = logging.Formatter(
+            self.FORMATO_MENSAGEM_LOG,
+            self.FORMATO_DATA_LOG
+        )
+
         return self
 
 logger = Logger()

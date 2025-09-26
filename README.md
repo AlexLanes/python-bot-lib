@@ -20,6 +20,7 @@ Utilizar o caminho para o arquivo **whl** baixado `bot @ file://.../bot-4.0-py3-
 
 - Alterado `Popup` em `bot.sistema.janela`
 - Implementado hash e eq especial no `ElementoUIA` em `bot.sistema.janela`
+- Correção no formato do `bot.logger` ao chamar `limpar_log_raiz()`
 
 </details>
 <details>
