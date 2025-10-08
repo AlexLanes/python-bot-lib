@@ -64,8 +64,8 @@ class Dialogo:
         botao = bot.util.normalizar(botao)
         self.elemento\
             .encontrar(lambda e: botao in bot.util.normalizar(e.texto))\
+            .sleep(0.25)\
             .clicar()
-        time.sleep(0.5)
         return self.aguardar_fechar()
 
     def negar (self) -> None:
@@ -74,8 +74,8 @@ class Dialogo:
         botoes = ("nao", "ok", "no")
         self.elemento\
             .encontrar(lambda e: bot.util.normalizar(e.texto) in botoes)\
+            .sleep(0.25)\
             .clicar()
-        time.sleep(0.5)
         assert self.aguardar_fechar(3), "Diálogo não fechou conforme esperado"
 
     def confirmar (self) -> None:
@@ -84,8 +84,8 @@ class Dialogo:
         botoes = ("sim", "ok", "yes")
         self.elemento\
             .encontrar(lambda e: bot.util.normalizar(e.texto) in botoes)\
+            .sleep(0.25)\
             .clicar()
-        time.sleep(0.5)
         assert self.aguardar_fechar(3), "Diálogo não fechou conforme esperado"
 
 class Popup:
