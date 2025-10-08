@@ -63,8 +63,8 @@ class Dialogo:
         - Retornado indicador se o diálogo fechou corretamente"""
         botao = bot.util.normalizar(botao)
         self.elemento\
-            .encontrar(lambda e: botao in bot.util.normalizar(e.texto))\
             .sleep(0.25)\
+            .encontrar(lambda e: botao in bot.util.normalizar(e.texto))\
             .clicar()
         return self.aguardar_fechar()
 
@@ -73,8 +73,8 @@ class Dialogo:
         - Checado se fechou corretamente"""
         botoes = ("nao", "ok", "no")
         self.elemento\
-            .encontrar(lambda e: bot.util.normalizar(e.texto) in botoes)\
             .sleep(0.25)\
+            .encontrar(lambda e: bot.util.normalizar(e.texto) in botoes)\
             .clicar()
         assert self.aguardar_fechar(3), "Diálogo não fechou conforme esperado"
 
@@ -83,8 +83,8 @@ class Dialogo:
         - Checado se fechou corretamente"""
         botoes = ("sim", "ok", "yes")
         self.elemento\
-            .encontrar(lambda e: bot.util.normalizar(e.texto) in botoes)\
             .sleep(0.25)\
+            .encontrar(lambda e: bot.util.normalizar(e.texto) in botoes)\
             .clicar()
         assert self.aguardar_fechar(3), "Diálogo não fechou conforme esperado"
 
