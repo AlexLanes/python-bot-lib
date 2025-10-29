@@ -362,7 +362,7 @@ class ElementoW32:
     def aguardar (self, timeout: float | int = 120.0) -> typing.Self:
         """Aguarda `timeout` segundos até que a thread da GUI fique ociosa"""
         if self is not self.janela.elemento:
-            self.janela.aguardar()
+            self.janela.aguardar(timeout)
         if self.janela.fechada or self.hwnd == 0:
             return self
 
