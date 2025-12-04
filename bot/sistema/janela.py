@@ -46,7 +46,8 @@ class Dialogo:
     def aguardar_fechar (self, timeout: float = 5) -> bool:
         """Aguardar o diálogo fechar por `timeout` segundos e retornar o indicador"""
         return bot.util.aguardar_condicao(
-            lambda: not win32gui.IsWindow(self.elemento.hwnd),
+            lambda: not win32gui.IsWindow(self.elemento.hwnd)
+                    or not self.elemento.visivel,
             timeout = timeout
         )
 
