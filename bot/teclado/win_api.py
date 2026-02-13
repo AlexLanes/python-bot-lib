@@ -53,19 +53,7 @@ CODIGOS_VK_TECLAS = LowerDict({
     "f9": win32con.VK_F9,
     "f10": win32con.VK_F10,
     "f11": win32con.VK_F11,
-    "f12": win32con.VK_F12,
-    "f13": win32con.VK_F13,
-    "f14": win32con.VK_F14,
-    "f15": win32con.VK_F15,
-    "f16": win32con.VK_F16,
-    "f17": win32con.VK_F17,
-    "f18": win32con.VK_F18,
-    "f19": win32con.VK_F19,
-    "f20": win32con.VK_F20,
-    "f21": win32con.VK_F21,
-    "f22": win32con.VK_F22,
-    "f23": win32con.VK_F23,
-    "f24": win32con.VK_F24,
+    "f12": win32con.VK_F12
 })
 
 class KeyBoardInput (ctypes.Structure):
