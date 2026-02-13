@@ -51,9 +51,10 @@ class Mouse:
         coordenada = transformar_posicao(coordenada)
         win32api.SetCursorPos(coordenada)
         sleep(self.DELAY_MOVER)
-        bot.util.aguardar_condicao(
+        bot.tempo.aguardar(
             lambda: self.posicao_atual() == coordenada,
-            timeout = 0.5
+            timeout = 0.5,
+            delay = self.DELAY_MOVER
         )
         return self
 
@@ -69,14 +70,14 @@ class Mouse:
         """Mover o mouse, pixel por pixel, até a `coordenada`
         - `Coordenada()` posição central
         - `(int, int)` posição exata"""
+        cronometro = bot.tempo.Cronometro()
         posicao = transformar_posicao(coordenada)
-        cronometro, tempo_limite = bot.util.Cronometro(), 5.0
         direcao_movimento = lambda n: 1 if n > 0 else -1 if n < 0 else 0
         movimento_relativo = lambda: tuple(desejado - atual for desejado, atual in zip(posicao, self.posicao_atual()))
 
         # mover enquanto diferente da coordenada desejada e dentro do tempo estipulado
         # se houver gargalo na máquina, a movimentação do mouse pode falhar
-        while self.posicao_atual() != posicao and cronometro() < tempo_limite:
+        while self.posicao_atual() != posicao and cronometro < 5.0:
             x_relativo, y_relativo = movimento_relativo()
             while x_relativo or y_relativo:
                 x_relativo -= (x := direcao_movimento(x_relativo))

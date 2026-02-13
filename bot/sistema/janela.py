@@ -45,7 +45,7 @@ class Dialogo:
 
     def aguardar_fechar (self, timeout: float = 5) -> bool:
         """Aguardar o diálogo fechar por `timeout` segundos e retornar o indicador"""
-        return bot.util.aguardar_condicao(
+        return bot.tempo.aguardar(
             lambda: not win32gui.IsWindow(self.elemento.hwnd)
                     or not self.elemento.visivel,
             timeout = timeout
@@ -108,7 +108,7 @@ class Popup:
         hwnd = self.elemento.hwnd
         try: win32gui.PostMessage(hwnd, win32con.WM_CLOSE, 0, 0)
         except Exception: pass
-        return bot.util.aguardar_condicao(lambda: not win32gui.IsWindow(hwnd), timeout)
+        return bot.tempo.aguardar(lambda: not win32gui.IsWindow(hwnd), timeout)
 
     def itens_menu (self) -> list[ElementoUIA]:
         """Elementos do popup que são `item_barra_menu`"""
@@ -294,8 +294,8 @@ class ElementoW32:
                 except Exception: pass
             return True
 
-        primeiro, cronometro = True, bot.util.Cronometro()
-        while primeiro or (not filhos and cronometro() < aguardar):
+        primeiro, cronometro = True, bot.tempo.Cronometro()
+        while primeiro or (not filhos and cronometro < aguardar):
             primeiro = False
             try: win32gui.EnumChildWindows(self.hwnd, callback, None)
             except Exception: pass
@@ -312,8 +312,8 @@ class ElementoW32:
         descendentes = list[T]()
         filtro = filtro or (lambda e: e.visivel)
 
-        primeiro, cronometro = True, bot.util.Cronometro()
-        while primeiro or (not descendentes and cronometro() < aguardar):
+        primeiro, cronometro = True, bot.tempo.Cronometro()
+        while primeiro or (not descendentes and cronometro < aguardar):
             primeiro = False
 
             for filho in self.filhos(lambda e: True):
@@ -332,9 +332,9 @@ class ElementoW32:
         assert aguardar >= 0, "Tempo para aguardar por elemento deve ser >= 0"
 
         filtro_todos = lambda e: True
-        primeiro, cronometro = True, bot.util.Cronometro()
+        primeiro, cronometro = True, bot.tempo.Cronometro()
 
-        while primeiro or cronometro() < aguardar:
+        while primeiro or cronometro < aguardar:
             primeiro = False
 
             elementos = bot.estruturas.Deque(self.filhos(filtro_todos))
@@ -667,8 +667,8 @@ class ElementoUIA (ElementoW32):
             ElementoUIA.UIA.CreateTrueCondition()
         )
 
-        primeiro, cronometro = True, bot.util.Cronometro()
-        while primeiro or (not filhos and cronometro() < aguardar):
+        primeiro, cronometro = True, bot.tempo.Cronometro()
+        while primeiro or (not filhos and cronometro < aguardar):
             primeiro = False
 
             for i in range(finder.Length):
@@ -861,8 +861,8 @@ class JanelaW32:
             except Exception: pass
             return True
 
-        primeiro, cronometro = True, bot.util.Cronometro()
-        while primeiro or (not encontrados and cronometro() < aguardar):
+        primeiro, cronometro = True, bot.tempo.Cronometro()
+        while primeiro or (not encontrados and cronometro < aguardar):
             primeiro = False
             try: win32gui.EnumWindows(callback, None)
             except Exception: pass
@@ -994,7 +994,7 @@ class JanelaW32:
         """Trazer a janela para primeiro plano"""
         if self.minimizada:
             win32gui.ShowWindow(self.hwnd, win32con.SW_RESTORE)
-            bot.util.aguardar_condicao(lambda: self.visivel, timeout=5, delay=0.5)
+            bot.tempo.aguardar(lambda: self.visivel, timeout=5, delay=0.5)
 
         flags = win32con.SWP_NOMOVE | win32con.SWP_NOSIZE | win32con.SWP_SHOWWINDOW
         def trazer_para_o_foco () -> bool:
@@ -1004,7 +1004,7 @@ class JanelaW32:
                 win32gui.SetForegroundWindow(self.hwnd)
                 return self.focada
             except Exception: return False
-        focado = bot.util.aguardar_condicao(trazer_para_o_foco, timeout=5)
+        focado = bot.tempo.aguardar(trazer_para_o_foco, timeout=5)
 
         # O Windows pode não permitir
         # Clicando em cima da janela resolve
@@ -1021,14 +1021,14 @@ class JanelaW32:
         """Enviar a mensagem de fechar para janela e retornar indicador se fechou corretamente"""
         if not self.fechada:
             win32gui.PostMessage(self.hwnd, win32con.WM_CLOSE, 0, 0)
-        return bot.util.aguardar_condicao(lambda: self.fechada, timeout)
+        return bot.tempo.aguardar(lambda: self.fechada, timeout)
     def destruir (self, timeout: float | int = 10.0) -> bool:
         """Enviar a mensagem de destruir para janela e retornar indicador se fechou corretamente"""
         if not self.fechada:
             win32gui.PostMessage(self.hwnd, win32con.WM_DESTROY, 0, 0)
         if not self.fechada:
             win32gui.PostMessage(self.hwnd, win32con.WM_QUIT, 0, 0)
-        return bot.util.aguardar_condicao(lambda: self.fechada, timeout)
+        return bot.tempo.aguardar(lambda: self.fechada, timeout)
     def encerrar (self, timeout: float | int = 10.0) -> None:
         """Enviar a mensagem de fechar para janela
         - Caso continue aberto após `timeout` segundos, será feito o encerramento pelo processo"""
@@ -1076,8 +1076,8 @@ class JanelaW32:
         assert aguardar >= 0, "Tempo para aguardar por janela deve ser >= 0"
 
         encontrados = list[T]()
-        primeiro, cronometro = True, bot.util.Cronometro()
-        while primeiro or (not encontrados and cronometro() < aguardar):
+        primeiro, cronometro = True, bot.tempo.Cronometro()
+        while primeiro or (not encontrados and cronometro < aguardar):
             primeiro = False
             encontrados = self.janelas_processo(filtro)
 
@@ -1091,8 +1091,8 @@ class JanelaW32:
         - `aguardar` tempo em segundos para aguardar pelo diálogo"""
         assert aguardar >= 0, "Tempo para aguardar pelo diálogo deve ser >= 0"
 
-        primeiro, cronometro = True, bot.util.Cronometro()
-        while primeiro or cronometro() < aguardar:
+        primeiro, cronometro = True, bot.tempo.Cronometro()
+        while primeiro or cronometro < aguardar:
             primeiro = False
 
             for janela in self.janelas_processo(lambda j: j.class_name == class_name and j.elemento.ativo):
@@ -1107,8 +1107,8 @@ class JanelaW32:
         - `aguardar` tempo em segundos para aguardar pelo popup"""
         assert aguardar >= 0, "Tempo para aguardar pelo popup deve ser >= 0"
 
-        primeiro, cronometro = True, bot.util.Cronometro()
-        while primeiro or cronometro() < aguardar:
+        primeiro, cronometro = True, bot.tempo.Cronometro()
+        while primeiro or cronometro < aguardar:
             primeiro = False
 
             for janela in self.janelas_processo(lambda j: j.class_name == class_name and j.elemento.ativo):
@@ -1131,8 +1131,8 @@ class JanelaW32:
                 or any(class_name in elemento.class_name.lower() for class_name in class_names)
             )
 
-        primeiro, cronometro = True, bot.util.Cronometro()
-        while primeiro or (not elementos and cronometro() < aguardar):
+        primeiro, cronometro = True, bot.tempo.Cronometro()
+        while primeiro or (not elementos and cronometro < aguardar):
             primeiro = False
 
             for janela in self.to_uia().janelas_processo(lambda _: True):

@@ -1,23 +1,7 @@
 # std
-import re, time, typing, difflib, unicodedata
+import re, typing, difflib, unicodedata
 # interno
 import bot
-
-def aguardar_condicao (condicao: typing.Callable[[], bot.tipagem.SupportsBool],
-                       timeout: int | float,
-                       delay = 0.1) -> bool:
-    """Repetir a função `condição` por `timeout` segundos até que resulte em `True`
-    - Retorna um `bool` indicando se a `condição` foi atendida
-    - Exceções são ignoradas"""
-    tempo = Cronometro()
-
-    while tempo() < timeout:
-        try:
-            if condicao(): return True
-        except Exception: pass
-        time.sleep(delay)
-
-    return False
 
 def remover_acentuacao (string: str) -> str:
     """Remover acentuações da `string`"""
@@ -80,20 +64,6 @@ def encontrar_texto[T] (texto: str,
     maior = max(similaridades) if similaridades else 0
     return opcoes[similaridades.index(maior)] if maior >= similaridade_minima else None
 
-def expandir_tempo (segundos: int | float) -> str:
-    """Expandir a medida `segundos` para as duas primeiras unidades de grandeza
-    - Hora, Minuto, Segundo ou Milissegundo"""
-    if not segundos: return "0 segundos"
-    tempos, segundos = [], round(segundos, 3)
-
-    for nome, medida in [("hora", 60 ** 2), ("minuto", 60), ("segundo", 1), ("milissegundo", 0.001)]:
-        if segundos < medida: continue
-        tempos.append(f"{int(segundos / medida)} {nome}{"s" if segundos >= medida * 2 else ""}")
-        segundos %= medida
-        if len(tempos) == 2: break
-
-    return " e ".join(tempos)
-
 def transformar_tipo[T: bot.tipagem.primitivo] (valor: str, tipo: type[T]) -> T:
     """Fazer a transformação do `valor` para `type(tipo)`
     - Função genérica"""
@@ -103,25 +73,9 @@ def transformar_tipo[T: bot.tipagem.primitivo] (valor: str, tipo: type[T]) -> T:
         case int():     return int(valor) # type: ignore
         case _:         return valor # type: ignore
 
-def Cronometro (resetar: bool = False) -> typing.Callable[[], float]:
-    """Inicializa um cronômetro que retorna o tempo decorrido a cada chamada na função
-    - `resetar` indicador para resetar o tempo após cada chamada
-    - Arredondado para 5 casas decimais"""
-    inicio = time.perf_counter()
-    def func () -> float:
-        nonlocal inicio
-        agora = time.perf_counter()
-        delta = round(agora - inicio, 5)        
-        if resetar: inicio = agora
-        return delta
-    return func
-
 __all__ = [
     "normalizar",
-    "Cronometro",
-    "expandir_tempo",
     "encontrar_texto",
     "transformar_tipo",
-    "aguardar_condicao",
     "remover_acentuacao"
 ]

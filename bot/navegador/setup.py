@@ -178,7 +178,7 @@ class ElementoWEB:
         assert (driver := self.__driver()), "Navegador encerrado"
 
         self.aguardar_clicavel()
-        clicado = bot.util.aguardar_condicao(lambda: self.elemento.click() == None, 10, 0.5)
+        clicado = bot.tempo.aguardar(lambda: self.elemento.click() == None, 10, 0.5)
         if not clicado: wd.ActionChains(driver).scroll_to_element(self.elemento)\
                                                .move_to_element(self.elemento)\
                                                .click(self.elemento)\
@@ -189,13 +189,13 @@ class ElementoWEB:
     def limpar (self) -> typing.Self:
         """Limpar o texto do elemento, caso suportado
         - Aguardado estar ativo e atualizar valor"""
-        bot.util.aguardar_condicao(lambda: self.ativo, 10, 0.5)
+        bot.tempo.aguardar(lambda: self.ativo, 10, 0.5)
 
         obter_valor = lambda: self.atributos.get("value", None) or self.texto
         valor = obter_valor().strip()
         self.elemento.clear()
 
-        if valor: bot.util.aguardar_condicao(lambda: valor != obter_valor().strip(), 1, 0.2)
+        if valor: bot.tempo.aguardar(lambda: valor != obter_valor().strip(), 1, 0.2)
         return self.sleep()
 
     @retry_staleness
@@ -206,7 +206,7 @@ class ElementoWEB:
         try: self.hover()
         except Exception: pass
 
-        bot.util.aguardar_condicao(lambda: self.ativo, 10, 0.5)
+        bot.tempo.aguardar(lambda: self.ativo, 10, 0.5)
         try:
             with self.aguardar_update(5):
                 self.elemento.send_keys(*texto)
@@ -318,7 +318,7 @@ class ElementoWEB:
             except (StaleElementReferenceException, ElementoNaoEncontrado): return True
             return outer != elemento.get_attribute("outerHTML") or atributos != self.atributos
 
-        if not bot.util.aguardar_condicao(condicao, timeout, 0.5):
+        if not bot.tempo.aguardar(condicao, timeout, 0.5):
             raise TimeoutError(f"A espera pelo update do elemento não aconteceu após {timeout} segundos")
 
 class Navegador:
@@ -485,7 +485,7 @@ class Navegador:
                     return True
             return False
 
-        if not bot.util.aguardar_condicao(aba_contendo_titulo, timeout, 1):
+        if not bot.tempo.aguardar(aba_contendo_titulo, timeout, 1):
             raise TimeoutError(f"Aba contendo o título '{titulo}' não foi encontrada após {timeout} segundos")
 
         return self.focar_aba(aba_com_titulo)
@@ -513,7 +513,7 @@ class Navegador:
             ] or [None]
             return arquivo != None
 
-        if not bot.util.aguardar_condicao(download_finalizar, timeout):
+        if not bot.tempo.aguardar(download_finalizar, timeout):
             erro = TimeoutError(f"Espera por download não encontrou nenhum arquivo novo após {timeout} segundos")
             erro.add_note(f"Termos esperados: {termos}")
             raise erro

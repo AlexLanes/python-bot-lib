@@ -145,7 +145,7 @@ class GravadorTela:
         bot.sistema.encerrar_processos_usuario("ffmpeg")
         self.processo = bot.sistema.abrir_processo(*self.argumentos)
 
-        if self.processo.poll() is not None or not bot.util.aguardar_condicao(lambda: self.caminho.existe(), timeout=5):
+        if self.processo.poll() is not None or not bot.tempo.aguardar(lambda: self.caminho.existe(), timeout=5, delay=0.25):
             try:
                 stdout, stderr = self.processo.communicate(timeout=10)
                 mensagem = f"Falha ao iniciar a gravação com ffmpeg:\n{stdout}\n{stderr}"

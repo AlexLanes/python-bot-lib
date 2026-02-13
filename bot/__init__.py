@@ -20,5 +20,6 @@ from bot import (
     http,
     imagem,
     navegador,
+    tempo,
     video
 )
