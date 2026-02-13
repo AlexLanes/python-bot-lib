@@ -154,7 +154,7 @@ class Json:
         valor = self.obter(dict)
         return Unmarshaller(cls).parse(valor)
 
-    def stringify (self, indentar: bool = True) -> str:
+    def stringify (self, indentar: bool = False) -> str:
         """Transformar o item para o formato string"""
         def tratamentos (obj: Any) -> Any:
             if type(obj) in (int, float, str, bool, type(None)): return obj
