@@ -117,16 +117,6 @@ def prefixar_erro_classe[R] (prefixo: str) -> typing.Callable[[R], R]:
 
     return prefixar_erro_classe
 
-def tempo_execucao[R] (func: typing.Callable[P, R]) -> typing.Callable[P, R]: # type: ignore
-    """Loggar o tempo de execução da função"""
-    @functools.wraps(func)
-    def wrapper (*args: P.args, **kwargs: P.kwargs) -> R: # type: ignore
-        cronometro, resultado = bot.util.Cronometro(), func(*args, **kwargs)
-        tempo = bot.util.expandir_tempo(cronometro())
-        bot.logger.informar(f"Função({func.__name__}) executada em {tempo}")
-        return resultado
-    return wrapper # type: ignore
-
 def perfil_execucao (func: typing.Callable):
     """Loggar o perfil de execução da função
     - Tempos acumulados menores de 0.01 segundos são excluídos"""
@@ -179,7 +169,6 @@ __all__ = [
     "timeout",
     "async_run",
     "prefixar_erro",
-    "tempo_execucao",
     "perfil_execucao",
     "prefixar_erro_classe",
 ]
