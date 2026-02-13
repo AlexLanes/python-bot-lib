@@ -1,5 +1,5 @@
 # std
-import sys, atexit, logging, typing, inspect, functools
+import sys, uuid, atexit, typing, logging, functools
 from datetime import (
     datetime  as Datetime,
     timezone  as Timezone,
@@ -9,110 +9,258 @@ from datetime import (
 import bot
 from bot.sistema import Caminho
 
-class StackInfoFilter (logging.Filter):
-    """Adicionar informação do arquivo, função e linha na mensagem do Log"""
+P = typing.ParamSpec("P")
 
+class TSupportsStr (typing.Protocol):
+    def __str__ (self) -> str: ...
+
+class JsonFormatter (logging.Formatter):
+
+    isetupificador: str
     diretorio_execucao: str
 
-    def __init__ (self, diretorio_execucao: Caminho, name: str = "") -> None:
-        super().__init__(name)
-        self.diretorio_execucao = diretorio_execucao.string
+    def __init__ (self, identificador: str, diretorio_execucao: str) -> None:
+        super().__init__()
+        self.identificador = identificador
+        self.diretorio_execucao = diretorio_execucao
 
-    def filter (self, record: logging.LogRecord) -> bool:
-        try: frame = inspect.stack()[6]
-        except Exception: return True
+    def format (self, record: logging.LogRecord) -> str:
+        payload: dict[str, str | TSupportsStr] = {
+            "id": self.identificador,
+            "timestamp": Datetime.fromtimestamp(record.created, MainLogger.TIMEZONE_BR)\
+                                 .strftime(MainLogger.FORMATO_DATA_LOG),
+            "name": record.name,
+            "level": record.levelname,
+            "message": record.getMessage(),
+        }
 
-        caminho_relativo = frame.filename.removeprefix(self.diretorio_execucao).strip("\\")
-        record.msg = f"arquivo({caminho_relativo}) | função({frame.function}) | linha({frame.lineno}) | {record.msg}"
-        return True
+        if trace := getattr(record, "trace", None):
+            payload["trace"] = trace
+        if extra := getattr(record, "extra", None):
+            payload["extra"] = extra
 
-class Logger:
-    """Classe configurada para criar, consultar e tratar os arquivos de log.  
-    Possível alterar configurações mudando as constantes antes do logger ser inicializado
+        # Informações sobre Exception
+        try:
+            if record.exc_info and isinstance(record.exc_info[1], Exception):
+                payload["exception"] = {
+                    "type": type(record.exc_info[1]).__name__,
+                    "message": str(record.exc_info[1]),
+                    "traceback": self.formatException(record.exc_info),
+                }
+        except Exception: pass
 
-    #### Inicializado automaticamente (Possível ser desativado)
+        # Informações sobre Arquivo
+        payload["file"] = {
+            "path": (record.pathname.removeprefix(self.diretorio_execucao)
+                                    .lstrip("\\")
+                                    .replace("\\", "/")),
+            "function": record.funcName,
+            "line": record.lineno,
+        }
 
-    - Stream para o `stdout`
-    - Cria um LOG no diretório de execução para fácil acesso `CAMINHO_LOG_RAIZ`
-    - Salva um LOG no diretório de persistência `CAMINHO_LOG_PERSISTENCIA`
-    - Variáveis .ini `[logger] -> [dias_persistencia: 14, flag_debug: False, flag_desativar: False]`"""
+        return bot.formatos.Json(payload)\
+                           .stringify(indentar=False)
 
-    DESATIVAR: bool = False
-    """Flag para não inicializar o logger"""
-    INICIALIZADO: bool = False
-    """Flag para checar se o logger já foi inicializado"""
+class TracerLogger:
+    """Classe logger, obtida pelo `MainLogger`, para realizar o rastreamento de itens relacionados
+    - Utilizar o `tracer.encerrar()` para sinalizar a finalização do rastreamento"""
+
+    def __init__ (self, logger: logging.Logger,
+                        extra: dict[str, object]) -> None:
+        self.extra = extra
+        self.logger = logger
+        self.encerrado = False
+        self.id = uuid.uuid4().hex[:8]
+        self.cronometro = bot.tempo.Cronometro()
+
+    def __repr__ (self) -> str:
+        return f"<bot.TracerLogger id='{self.id}' nome='{self.logger.name}'>"
+
+    def __del__ (self) -> None:
+        """Garantir encerramento ao sair do escopo"""
+        if self.encerrado: return
+        self.logger.warning(
+            "Tracer não encerrado corretamente",
+            exc_info = sys.exc_info(),
+            extra = self.extra | {
+                "trace": {
+                    "id": self.id,
+                    "status": "WARNING",
+                    "seconds": self.cronometro()
+                }
+            }
+        )
+
+    def debug (self, mensagem: str | TSupportsStr,
+                     **extra: object) -> typing.Self:
+        """Log nível 'DEBUG'"""
+        self.logger.debug(
+            str(mensagem),
+            stacklevel = 2,
+            extra = {
+                "extra": extra | self.extra,
+                "trace": {
+                    "id": self.id,
+                    "status": "PROCESSING",
+                    "seconds": self.cronometro()
+                }
+            }
+        )
+        return self
+
+    def informar (self, mensagem: str | TSupportsStr,
+                        **extra: object) -> typing.Self:
+        """Log nível 'INFO'"""
+        self.logger.info(
+            str(mensagem),
+            stacklevel = 2,
+            extra = {
+                "extra": extra | self.extra,
+                "trace": {
+                    "id": self.id,
+                    "status": "PROCESSING",
+                    "seconds": self.cronometro()
+                }
+            }
+        )
+        return self
+
+    def alertar (self, mensagem: str | TSupportsStr,
+                       **extra: object) -> typing.Self:
+        """Log nível 'WARNING'"""
+        self.logger.warning(
+            str(mensagem),
+            stacklevel = 2,
+            extra = {
+                "extra": extra | self.extra,
+                "trace": {
+                    "id": self.id,
+                    "status": "PROCESSING",
+                    "seconds": self.cronometro()
+                }
+            }
+        )
+        return self
+
+    def erro (self, mensagem: str | TSupportsStr,
+                    excecao: Exception | None = None,
+                    **extra: object) -> typing.Self:
+        """Log nível 'ERROR'
+        - `excecao=None` Capturado automaticamente, caso esteja dentro do `except`"""
+        self.logger.error(
+            str(mensagem),
+            stacklevel = 2,
+            exc_info = excecao or sys.exc_info(),
+            extra = {
+                "extra": extra | self.extra,
+                "trace": {
+                    "id": self.id,
+                    "status": "PROCESSING",
+                    "seconds": self.cronometro()
+                }
+            }
+        )
+        return self
+
+    def encerrar (self, status: typing.Literal["SUCCESS", "WARNING", "ERROR"],
+                        mensagem: str | TSupportsStr,
+                        **extra: object) -> None:
+        """Sinalizar o encerramento do tracer"""
+        if self.encerrado: return
+        self.encerrado = True
+
+        log_func = {
+            "SUCCESS": self.logger.info,
+            "WARNING": self.logger.warning,
+            "ERROR": self.logger.error,
+        }.get(status)
+        assert log_func is not None, f"Status '{status}' inválido ao encerrar {self}"
+
+        log_func(
+            str(mensagem),
+            stacklevel = 2,
+            exc_info = sys.exc_info() if status == "ERROR" else None,
+            extra = {
+                "extra": extra | self.extra,
+                "trace": {
+                    "id": self.id,
+                    "status": status,
+                    "seconds": self.cronometro()
+                }
+            }
+        )
+
+class MainLogger:
+    """Classe pré-configurada para criar, consultar e tratar os arquivos de log
+    - `name` o mesmo da propriedade que aparecerá nos logs
+
+    #### Inicializar manualmente `logger.inicializar_logger()`
+        - Stream para o `stdout`
+        - Cria um LOG no diretório de execução para fácil acesso `CAMINHO_LOG_RAIZ`
+        - Salva um LOG no diretório de persistência `CAMINHO_LOG_PERSISTENCIA`
+        - Variáveis .ini `[logger] -> [dias_persistencia: 14, flag_debug: False]`"""
 
     TIMEZONE_BR = Timezone(Timedelta(hours=-3))
     INICIALIZACAO_PACOTE = Datetime.now(TIMEZONE_BR)
 
-    NOME_LOG = "BOT"
     FORMATO_DATA_LOG: str = r"%Y-%m-%dT%H:%M:%S"
-    FORMATO_NOME_LOG_PERSISTENCIA: str = r"%Y-%m-%dT%H-%M-%S.log"
-    FORMATO_MENSAGEM_LOG: str = "%(asctime)s | nome(%(name)s) | level(%(levelname)s) | %(message)s"
+    FORMATO_NOME_LOG_PERSISTENCIA: str = r"%Y-%m-%dT%H-%M-%S.jsonl"
 
-    CAMINHO_LOG_RAIZ = Caminho.diretorio_execucao() / ".log"
+    CAMINHO_LOG_RAIZ = Caminho.diretorio_execucao() / "log.jsonl"
     CAMINHO_DIRETORIO_PERSISTENCIA = Caminho.diretorio_execucao() / "logs"
     CAMINHO_LOG_PERSISTENCIA = Caminho(
         CAMINHO_DIRETORIO_PERSISTENCIA.string,
         INICIALIZACAO_PACOTE.strftime(FORMATO_NOME_LOG_PERSISTENCIA)
     )
 
+    def __init__ (self, nome: str) -> None:
+        self.__nome = nome
+
     def __repr__ (self) -> str:
-        return f"<bot.Logger nome='{self.logger.name}'>"
+        return f"<bot.MainLogger nome='{self.__nome}'>"
 
     @functools.cached_property
     def logger (self) -> logging.Logger:
-        """Obter o `Logger` apropriado
-        - `BOT` quando a flag `DESATIVAR=False` (Inicializa o logger)
-        - `ROOT` quando a flag `DESATIVAR=True`"""
-        self.DESATIVAR = self.DESATIVAR or bot.configfile.obter_opcao_ou("logger", "flag_desativar", False)
-        if self.DESATIVAR:
-            return logging.getLogger()
+        """Instância nomeada do `Logger`"""
+        return logging.getLogger(self.__nome)
 
-        logger = logging.getLogger(self.NOME_LOG)
-        logger.propagate = False # Não deixar o root duplicar a mensagem
-        try: return logger
-        finally: self.inicializar_logger()
+    @functools.cached_property
+    def formatter (self) -> logging.Formatter:
+        return JsonFormatter(
+            identificador = uuid.uuid4().hex[:8],
+            diretorio_execucao = self.CAMINHO_LOG_RAIZ.parente.string
+        )
 
     def inicializar_logger (self) -> typing.Self:
-        """Inicializar o logger
-        - Configura o formato
-        - Inicializa os handlers no stdout e arquivos
+        """Inicializar o logger pelo `ROOT` para capturar todas as mensagens
+        - Formatação JSONL
+        - Handlers no `stdout` e `arquivos`
         - Registra a limpeza do diretório de persistência"""
-        if self.INICIALIZADO: return self
-        self.INICIALIZADO = True
-
-        # Aplicar o filtro apenas para quem usar o BOT_LOGGER
-        # Não possível usar em todos os handlers devido a diferença no stack de outros loggers
-        if self.logger.name == self.NOME_LOG:
-            diretorio_execucao = self.CAMINHO_LOG_RAIZ.parente
-            self.logger.addFilter(StackInfoFilter(diretorio_execucao))
-
-        # Adicionar os handlers
+        atexit.register(self.__limpeza_diretorio_persistencia)
         self.CAMINHO_LOG_PERSISTENCIA.parente.criar_diretorios()
+
+        # Handlers
+        root = self.logger.root
+        for handler in root.handlers: root.removeHandler(handler.close() or handler)
         for handler in (logging.FileHandler(self.CAMINHO_LOG_RAIZ.path, "w", "utf-8"),
                         logging.StreamHandler(sys.stdout),
                         logging.FileHandler(self.CAMINHO_LOG_PERSISTENCIA.path, "w", "utf-8")):
-            self.logger.addHandler(handler)
+            root.addHandler(handler)
+            handler.setFormatter(self.formatter)
 
-        logging.basicConfig(
-            force    = True,
-            encoding = "utf-8",
-            datefmt  = self.FORMATO_DATA_LOG,
-            format   = self.FORMATO_MENSAGEM_LOG,
-            level    = logging.DEBUG if bot.configfile.obter_opcao_ou("logger", "flag_debug", False) else logging.INFO,
-            handlers = self.logger.handlers
+        # Level
+        root.setLevel(
+            logging.DEBUG
+            if bot.configfile.obter_opcao_ou("logger", "flag_debug", False)
+            else logging.INFO
         )
 
-        atexit.register(self.__limpeza_diretorio_persistencia)
         return self
 
     def __limpeza_diretorio_persistencia (self) -> None:
         """Limpar os logs no `CAMINHO_DIRETORIO_PERSISTENCIA` que ultrapassaram a data limite
         - Registrado para executar ao fim do Python automaticamente
         - `Default:` 14 dias"""
-        if not self.INICIALIZADO: return
-
         dias = bot.configfile.obter_opcao_ou("logger", "dias_persistencia", 14)
         limite = Timedelta(days=dias)
 
@@ -123,58 +271,87 @@ class Logger:
             if self.INICIALIZACAO_PACOTE - data < limite: break
             caminho.apagar_arquivo()
 
-    def debug (self, mensagem: str) -> typing.Self:
+    def debug (self, mensagem: str | TSupportsStr,
+                     **extra: object) -> typing.Self:
         """Log nível 'DEBUG'"""
-        self.logger.debug(mensagem)
+        self.logger.debug(
+            str(mensagem),
+            stacklevel = 2,
+            extra = { "extra": extra }
+        )
         return self
 
-    def informar (self, mensagem: str) -> typing.Self:
+    def informar (self, mensagem: str | TSupportsStr,
+                        **extra: object) -> typing.Self:
         """Log nível 'INFO'"""
-        self.logger.info(mensagem)
+        self.logger.info(
+            str(mensagem),
+            stacklevel = 2,
+            extra = { "extra": extra }
+        )
         return self
 
-    def alertar (self, mensagem: str) -> typing.Self:
+    def alertar (self, mensagem: str | TSupportsStr,
+                       **extra: object) -> typing.Self:
         """Log nível 'WARNING'"""
-        self.logger.warning(mensagem)
+        self.logger.warning(
+            str(mensagem),
+            stacklevel = 2,
+            extra = { "extra": extra }
+        )
         return self
 
-    def erro (self, mensagem: str, excecao: Exception | None = None) -> typing.Self:
+    def erro (self, mensagem: str | TSupportsStr,
+                    excecao: Exception | None = None,
+                    **extra: object) -> typing.Self:
         """Log nível 'ERROR'
         - `excecao=None` Capturado automaticamente, caso esteja dentro do `except`"""
-        self.logger.error(mensagem, exc_info=excecao or sys.exc_info())
-        return self
-
-    def linha_horizontal (self) -> typing.Self:
-        """Adicionar uma linha horizontal para separar seções visualmente"""
-        for handler in self.logger.handlers:
-            if not isinstance(handler, (logging.FileHandler, logging.StreamHandler)): continue
-            handler.stream.write("\n------------------- |\n\n")
-            handler.flush()
+        self.logger.error(
+            str(mensagem),
+            stacklevel = 2,
+            extra = { "extra": extra },
+            exc_info = excecao or sys.exc_info()
+        )
         return self
 
     def limpar_log_raiz (self) -> typing.Self:
         """Limpar o `CAMINHO_LOG_RAIZ`
         - Não afeta o `CAMINHO_DIRETORIO_PERSISTENCIA`"""
-        if not self.INICIALIZADO: return self
+        root = self.logger.root
+        if not root.handlers or not isinstance(root.handlers[0].formatter, JsonFormatter):
+            return self
 
-        self.logger.handlers[0].close()
-        self.logger.handlers[0] = logging.FileHandler(self.CAMINHO_LOG_RAIZ.path, "w", "utf-8")
-        self.logger.handlers[0].formatter = logging.Formatter(
-            self.FORMATO_MENSAGEM_LOG,
-            self.FORMATO_DATA_LOG
-        )
+        root.handlers[0].close()
+        root.handlers[0] = logging.FileHandler(self.CAMINHO_LOG_RAIZ.path, "w", "utf-8")
+        root.handlers[0].formatter = self.formatter
 
         return self
 
-logger = Logger()
-"""Classe configurada para criar, consultar e tratar os arquivos de log.  
-Possível alterar configurações mudando as constantes antes do logger ser inicializado
+    def obter_tracer (self, **extra: object) -> TracerLogger:
+        """Obter o `TracerLogger` utilizado para realizar o rastreamento de um processo
+        - `extra` as propriedades serão replicadas em todos os níveis do `Tracer`"""
+        return TracerLogger(self.logger, extra)
 
-#### Inicializado automaticamente (Possível ser desativado)
+    def tempo_execucao[R] (self, func: typing.Callable[P, R]) -> typing.Callable[P, R]: # type: ignore
+        """Loggar o tempo de execução de uma função]
+        - Usar como decorador na função `@`"""
+        @functools.wraps(func)
+        def wrapper (*args: P.args, **kwargs: P.kwargs) -> R: # type: ignore
+            cronometro, resultado = bot.tempo.Cronometro(), func(*args, **kwargs)
+            tempo = bot.tempo.formatar_tempo_decorrido(cronometro())
+            bot.logger.informar(f"Função({func.__name__}) executada em {tempo}")
+            return resultado
+        return wrapper # type: ignore
 
-- Stream para o `stdout`
-- Cria um LOG no diretório de execução para fácil acesso `CAMINHO_LOG_RAIZ`
-- Salva um LOG no diretório de persistência `CAMINHO_LOG_PERSISTENCIA`
-- Variáveis .ini `[logger] -> [dias_persistencia: 14, flag_debug: False, flag_desativar: False]`"""
+logger = MainLogger("BOT")
+"""Classe pré-configurada para criar, consultar e tratar os arquivos de log.  
+Constante do logger com o `name=BOT`.  
+Importar o `MainLogger` e criar uma instância caso queira outro nome
 
-__all__ = ["logger"]
+#### Inicializar manualmente `logger.inicializar_logger()`
+    - Stream para o `stdout`
+    - Cria um LOG no diretório de execução para fácil acesso `CAMINHO_LOG_RAIZ`
+    - Salva um LOG no diretório de persistência `CAMINHO_LOG_PERSISTENCIA`
+    - Variáveis .ini `[logger] -> [dias_persistencia: 14, flag_debug: False]`"""
+
+__all__ = ["logger", "MainLogger", "TracerLogger"]
