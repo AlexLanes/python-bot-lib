@@ -333,13 +333,17 @@ class MainLogger:
         return TracerLogger(self.logger, extra)
 
     def tempo_execucao[R] (self, func: typing.Callable[P, R]) -> typing.Callable[P, R]: # type: ignore
-        """Loggar o tempo de execução de uma função]
-        - Usar como decorador na função `@`"""
+        """Loggar o tempo de execução de uma função
+        - Usar como decorador em uma função `@`"""
         @functools.wraps(func)
         def wrapper (*args: P.args, **kwargs: P.kwargs) -> R: # type: ignore
             cronometro, resultado = bot.tempo.Cronometro(), func(*args, **kwargs)
-            tempo = bot.tempo.formatar_tempo_decorrido(cronometro())
-            bot.logger.informar(f"Função({func.__name__}) executada em {tempo}")
+            tempo = bot.tempo.formatar_tempo_decorrido(decorrido := cronometro())
+            self.informar(
+                f"Função({func.__name__}) executada em {tempo}",
+                nome_funcao = func.__name__,
+                segundos = decorrido
+            )
             return resultado
         return wrapper # type: ignore
 
