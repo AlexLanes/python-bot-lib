@@ -21,30 +21,27 @@ def aguardar (condicao: typing.Callable[[], bot.tipagem.SupportsBool],
 
 class ResultadoEsperar[T]:
 
-    sucesso: bool
+    ok: bool
 
     def __init__ (self) -> None:
-        self.sucesso = False
+        self.ok = False
 
     def __repr__ (self) -> str:
-        return f"<ResultadoEsperar {"sucesso" if self.ok() else "erro"}>"
+        return f"<ResultadoEsperar {"sucesso" if self.ok else "erro"}>"
 
     def __bool__ (self) -> bool:
-        return self.sucesso
-
-    def ok (self) -> bool:
-        return self.sucesso
+        return self.ok
 
     def valor (self) -> T:
         """Obter o `valor` do resultado
         - Necessário validar se o resultado é de sucesso"""
-        if not self.ok():
+        if not self.ok:
             raise Exception(f"Tentado obter o valor de um resultado sem sucesso")
         return self._valor # type: ignore
 
     def valor_ou[D] (self, default: D) -> T | D:
         """Obter o valor do resultado ou `default` caso sem sucesso"""
-        return self._valor if self.ok() else default # type: ignore
+        return self._valor if self.ok else default # type: ignore
 
 def esperar[T] (func: typing.Callable[[], T],
                 timeout: int | float,
@@ -64,7 +61,7 @@ def esperar[T] (func: typing.Callable[[], T],
             valor = func()
             if not comparador(valor): continue
 
-            resultado.sucesso = True
+            resultado.ok = True
             setattr(resultado, "_valor", valor)
             break
 
