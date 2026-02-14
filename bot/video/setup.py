@@ -9,7 +9,6 @@ from bot.sistema import Caminho
 def checar_existencia_ffmpeg () -> bool:
     return shutil.which("ffmpeg") is not None
 
-@bot.util.decoradores.timeout(60)
 def instalar_ffmpeg () -> None:
     if shutil.which("winget") is not None:
         bot.logger.informar("Realizando a instalação do ffmpeg via winget")
@@ -18,6 +17,7 @@ def instalar_ffmpeg () -> None:
             "--accept-source-agreements",
             "--accept-package-agreements",
             powershell = True,
+            timeout = 300
         )
         if sucesso: return
         else: bot.logger.alertar(f"Falha ao instalar o ffmpeg via winget: {mensagem}")
