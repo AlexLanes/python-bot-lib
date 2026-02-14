@@ -101,24 +101,6 @@ class Teclado:
         sleep(segundos)
         return self
 
-# def observar_tecla (tecla: tipagem.BOTOES_TECLADO | tipagem.char, callback: Callable[[], Any]) -> None:
-#     """Observar quando a `tecla` é apertada e chamar o `callback`
-#     - `tecla` pode ser do `BOTOES_TECLADO` ou um `char`"""
-#     CALLBACKS[tecla] = callback
-
-#     # observador já iniciado
-#     if len(CALLBACKS) > 1: return
-
-#     # iniciar observador
-#     def on_press (t: Key | str | Any) -> None:
-#         tecla = t.name if isinstance(t, Key) else str(t).strip("'")
-#         callback = CALLBACKS.get(tecla, lambda: None)
-#         callback()
-
-#     observador = Listener(on_press)
-#     observador.start()
-#     register(observador.stop)
-
 teclado = Teclado()
 """Classe de controle do teclado
 - Alterar constantes `DELAY_...` para modificar tempo de espera após ação"""
