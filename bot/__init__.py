@@ -15,6 +15,7 @@ from bot import (
     argumentos,
     database,
     email,
+    erro,
     formatos,
     ftp,
     http,
