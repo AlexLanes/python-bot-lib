@@ -1,9 +1,12 @@
 # std
 from __future__ import annotations
-import typing, pathlib, shutil
+import typing, pathlib, shutil, mimetypes
 from datetime import datetime as Datetime
 # interno
 from bot.tipagem import SupportsBool
+
+mimetypes.add_type("text/log", ".log")
+mimetypes.add_type("application/x-jsonlines", ".jsonl")
 
 class Caminho:
     """Classe para representação de caminhos do sistema operacional e manipulação de arquivos/diretórios
@@ -162,6 +165,12 @@ class Caminho:
             for path in glob("*")
             if filtro(caminho := Caminho.from_path(path))
         ]
+
+    def advinhar_mimetype[T] (self, fallback: str = "application/octet-stream") -> str:
+        """Advinhar o mimetype do `Caminho` puramente pela extensão
+        - `fallback` caso nenhum resultado"""
+        tipo, _ = mimetypes.guess_type(self.string, strict=False)
+        return tipo or fallback
 
     # ------------------ #
     # Leitura de Arquivo #
