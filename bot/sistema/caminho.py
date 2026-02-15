@@ -96,19 +96,19 @@ class Caminho:
     @property
     def nome (self) -> str:
         """Nome final do caminho
-        - Para arquivos retornado o nome + extensao"""
+        - Para arquivos, retornado o nome + extensao"""
         return self.path.name
 
     @property
     def prefixo (self) -> str:
         """Nome final do caminho sem o sufixo
-        - Para arquivos retornado o nome sem a extensao"""
+        - Para arquivos, retornado o nome sem a extensao"""
         return self.path.stem
 
     @property
     def sufixo (self) -> str:
         """Nome final do caminho sem o prefixo
-        - Para arquivos retornado apenas a extensao"""
+        - Para arquivos, retornado apenas a extensao"""
         return self.path.suffix
 
     @property
@@ -162,6 +162,17 @@ class Caminho:
             for path in glob("*")
             if filtro(caminho := Caminho.from_path(path))
         ]
+
+    # ------------------ #
+    # Leitura de Arquivo #
+    # ------------------ #
+    def ler_texto (self) -> str:
+        """Abrir o arquivo no modo texto, ler como `utf-8` e fechar o arquivo"""
+        return self.path.read_text("utf-8", "ignore")
+
+    def ler_bytes (self) -> bytes:
+        """Abrir o arquivo no modo binário, ler e fechar o arquivo"""
+        return self.path.read_bytes()
 
     # ---------------------------- #
     # Alteração no Nome do Caminho #
