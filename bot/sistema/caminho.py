@@ -1,12 +1,36 @@
 # std
 from __future__ import annotations
-import typing, pathlib, shutil, mimetypes
+import typing, pathlib, shutil, mimetypes, functools
 from datetime import datetime as Datetime
 # interno
 from bot.tipagem import SupportsBool
 
 mimetypes.add_type("text/log", ".log")
 mimetypes.add_type("application/x-jsonlines", ".jsonl")
+
+class Mimetype:
+    """Classe de representação de um `mimetype`"""
+
+    texto: str
+
+    def __init__ (self, texto: str) -> None:
+        self.texto = texto
+
+    def __repr__ (self) -> str:
+        return f"<Mimetype '{self.texto}'>"
+
+    def __str__ (self) -> str:
+        return self.texto
+
+    @functools.cached_property
+    def tipo (self) -> str:
+        """Tipo principal do `Mimetype`"""
+        return self.texto.split("/", 1)[0]
+
+    @functools.cached_property
+    def subtipo (self) -> str:
+        """Tipo secundário do `Mimetype`"""
+        return self.texto.split("/", 1)[1]
 
 class Caminho:
     """Classe para representação de caminhos do sistema operacional e manipulação de arquivos/diretórios
@@ -166,15 +190,16 @@ class Caminho:
             if filtro(caminho := Caminho.from_path(path))
         ]
 
-    def advinhar_mimetype[T] (self, fallback: str = "application/octet-stream") -> str:
+    def mimetype (self, fallback: str = "application/octet-stream") -> Mimetype:
         """Advinhar o mimetype do `Caminho` puramente pela extensão
         - `fallback` caso nenhum resultado"""
         tipo, _ = mimetypes.guess_type(self.string, strict=False)
-        return tipo or fallback
+        return Mimetype(tipo or fallback)
 
     # ------------------ #
     # Leitura de Arquivo #
     # ------------------ #
+
     def ler_texto (self) -> str:
         """Abrir o arquivo no modo texto, ler como `utf-8` e fechar o arquivo"""
         return self.path.read_text("utf-8", "ignore")
