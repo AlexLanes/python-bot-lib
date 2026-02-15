@@ -93,7 +93,7 @@ class TracerLogger:
 
     def debug (self, mensagem: str | TSupportsStr,
                      **extra: object) -> typing.Self:
-        """Log nível 'DEBUG'"""
+        """Log nível `DEBUG`"""
         self.logger.debug(
             str(mensagem),
             stacklevel = 2,
@@ -110,7 +110,7 @@ class TracerLogger:
 
     def informar (self, mensagem: str | TSupportsStr,
                         **extra: object) -> typing.Self:
-        """Log nível 'INFO'"""
+        """Log nível `INFO`"""
         self.logger.info(
             str(mensagem),
             stacklevel = 2,
@@ -127,10 +127,12 @@ class TracerLogger:
 
     def alertar (self, mensagem: str | TSupportsStr,
                        **extra: object) -> typing.Self:
-        """Log nível 'WARNING'"""
+        """Log nível `WARNING`
+        - `Exception` capturada automaticamente, caso dentro do `except`"""
         self.logger.warning(
             str(mensagem),
             stacklevel = 2,
+            exc_info = erro if any(erro := sys.exc_info()) else None,
             extra = {
                 "extra": extra | self.extra,
                 "trace": {
@@ -145,8 +147,8 @@ class TracerLogger:
     def erro (self, mensagem: str | TSupportsStr,
                     excecao: Exception | None = None,
                     **extra: object) -> typing.Self:
-        """Log nível 'ERROR'
-        - `excecao=None` Capturado automaticamente, caso esteja dentro do `except`"""
+        """Log nível `ERROR`
+        - `excecao=None` capturada automaticamente, caso esteja dentro do `except`"""
         self.logger.error(
             str(mensagem),
             stacklevel = 2,
@@ -273,7 +275,7 @@ class MainLogger:
 
     def debug (self, mensagem: str | TSupportsStr,
                      **extra: object) -> typing.Self:
-        """Log nível 'DEBUG'"""
+        """Log nível `DEBUG`"""
         self.logger.debug(
             str(mensagem),
             stacklevel = 2,
@@ -283,7 +285,7 @@ class MainLogger:
 
     def informar (self, mensagem: str | TSupportsStr,
                         **extra: object) -> typing.Self:
-        """Log nível 'INFO'"""
+        """Log nível `INFO`"""
         self.logger.info(
             str(mensagem),
             stacklevel = 2,
@@ -293,19 +295,21 @@ class MainLogger:
 
     def alertar (self, mensagem: str | TSupportsStr,
                        **extra: object) -> typing.Self:
-        """Log nível 'WARNING'"""
+        """Log nível `WARNING`
+        - `Exception` capturada automaticamente, caso dentro do `except`"""
         self.logger.warning(
             str(mensagem),
             stacklevel = 2,
-            extra = { "extra": extra }
+            extra = { "extra": extra },
+            exc_info = erro if any(erro := sys.exc_info()) else None
         )
         return self
 
     def erro (self, mensagem: str | TSupportsStr,
                     excecao: Exception | None = None,
                     **extra: object) -> typing.Self:
-        """Log nível 'ERROR'
-        - `excecao=None` Capturado automaticamente, caso esteja dentro do `except`"""
+        """Log nível `ERROR`
+        - `excecao=None` capturada automaticamente, caso esteja dentro do `except`"""
         self.logger.error(
             str(mensagem),
             stacklevel = 2,
