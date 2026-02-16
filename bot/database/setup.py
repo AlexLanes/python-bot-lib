@@ -157,7 +157,7 @@ class ResultadoSQL:
         """Aplicar uma transformação no valor das colunas informadas
         - `resultado.transformar(nome_coluna = lambda valor: str(valor), ...)`"""
         linhas = self.linhas
-        transformacoes = bot.estruturas.LowerDict(colunas)
+        transformacoes = bot.estruturas.DictNormalizado(colunas)
         self.linhas = (
             tuple(
                 transformacoes[coluna](valor) if coluna in transformacoes else valor

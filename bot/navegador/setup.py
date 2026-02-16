@@ -6,8 +6,9 @@ from datetime import (
     timedelta as Timedelta
 )
 # interno
-from .mensagem import Mensagem
 import bot
+from bot.estruturas import String
+from bot.navegador.mensagem import Mensagem
 # externo
 import selenium.webdriver as wd
 import undetected_chromedriver as uc
@@ -137,10 +138,10 @@ class ElementoWEB:
 
     @property
     @retry_staleness
-    def atributos (self) -> bot.estruturas.LowerDict[str]:
+    def atributos (self) -> bot.estruturas.DictNormalizado[str]:
         """Obter os atributos html do elemento"""
         assert (driver := self.__driver()), "Navegador encerrado"
-        return bot.estruturas.LowerDict(
+        return bot.estruturas.DictNormalizado(
             driver.execute_script("""
                 let atributos = {}, elemento = arguments[0]
                 for (let attr of elemento.attributes) {
@@ -475,12 +476,12 @@ class Navegador:
         """Aguardar alguma aba conter o `título` e alterar o foco para ela
         - Exceção `TimeoutError` caso não finalize no tempo estipulado"""
         aba_com_titulo: str | None = None
-        titulo_normalizado = bot.util.normalizar(titulo)
+        titulo_normalizado = String(titulo).normalizar()
 
         def aba_contendo_titulo () -> bool:
             nonlocal aba_com_titulo
             for aba in self:
-                if titulo_normalizado in bot.util.normalizar(self.titulo):
+                if titulo_normalizado in String(self.titulo).normalizar():
                     aba_com_titulo = aba
                     return True
             return False

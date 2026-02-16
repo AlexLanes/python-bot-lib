@@ -4,7 +4,7 @@
 import ctypes
 from ctypes import wintypes
 # interno
-from bot.estruturas import LowerDict
+from bot.estruturas import DictNormalizado
 # externo
 import win32con
 
@@ -18,7 +18,7 @@ virtual_key_scan_w.argtypes = (wintypes.WCHAR,)
 CODIGOS_VK_TECLAS_EXTENDIDAS = (win32con.VK_HOME, win32con.VK_END, win32con.VK_INSERT, win32con.VK_DELETE,
                                 win32con.VK_UP, win32con.VK_DOWN, win32con.VK_LEFT, win32con.VK_RIGHT,
                                 win32con.VK_PRIOR, win32con.VK_NEXT)
-CODIGOS_VK_TECLAS = LowerDict({
+CODIGOS_VK_TECLAS = DictNormalizado({
     "alt": win32con.VK_MENU,
     "ctrl": win32con.VK_CONTROL,
     "shift": win32con.VK_SHIFT,

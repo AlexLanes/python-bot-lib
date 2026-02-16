@@ -3,7 +3,7 @@ import configparser, typing
 # interno
 import bot
 from bot.sistema import Caminho
-from bot.estruturas import LowerDict
+from bot.estruturas import DictNormalizado
 
 class ConfigFile:
     """Classe para inicialização de variáveis a partir de arquivo de configuração `.ini`  
@@ -18,7 +18,7 @@ class ConfigFile:
 
     INICIALIZADO: bool = False
     DIRETORIO_EXECUCAO = Caminho.diretorio_execucao()
-    DADOS = LowerDict[LowerDict[str]]()
+    DADOS = DictNormalizado[DictNormalizado[str]]()
     """`{ secao: { opcao: valor } }`"""
 
     def __repr__ (self) -> str:
@@ -43,7 +43,7 @@ class ConfigFile:
         # lower seções e opções
         for secao in parser:
             if secao.lower() == "default": continue
-            self.DADOS[secao] = LowerDict({
+            self.DADOS[secao] = DictNormalizado({
                 opcao: parser[secao][opcao]
                 for opcao in parser[secao]
             })
