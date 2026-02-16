@@ -13,6 +13,7 @@ from xml.etree.ElementTree import (
 )
 # interno
 import bot
+from bot.estruturas.string import String
 
 class Json:
     """Classe para validação e leitura de itens JSON acessando propriedades via `.` ou `[]`
@@ -476,22 +477,23 @@ class Unmarshaller[T]:
         return f"<Unmarshaller[{self.cls.__name__}]>"
 
     def parse (self, item: dict[str, Any], **kwargs: str) -> T:
-        """Realizar o parse do `item` conforme a classe informada"""
+        """Realizar o parse do `item` conforme a classe informada
+        - Irá lançar `Exception` caso o `item` não esteja conforme a `cls` informada"""
         obj = object.__new__(self.cls)
         caminho = kwargs.get("caminho", "$")
         chaves_normalizadas = {
-            bot.util.normalizar(chave): chave
+            str(String(chave).normalizar()): chave
             for chave in item.keys()
         }
 
         for nome, tipo in self.coletar_anotacoes_classe().items():
             caminho_atual = f"{caminho}.{nome}" if caminho else nome
-            valor_item = item.get(
-                # nome exato ou procurado pela versão normalizada
-                nome if nome in item else chaves_normalizadas.get(nome, nome),
-                # checar por default da propriedade e obter uma cópia do valor
-                copy.deepcopy(getattr(obj, nome, None))
-            )
+            # obter do item o valor de acordo com o nome exato ou pela versão normalizada
+            # caso não possua, obter default da propriedade e obter uma cópia do valor
+            chave_item = nome if nome in item else chaves_normalizadas.get(nome, nome)
+            valor_default = copy.deepcopy(getattr(obj, nome, None))
+            valor_item = item.get(chave_item, valor_default)
+            # validar o valor com o esperado e setar como atributo da classe
             setattr(obj, nome, self.validar(tipo, valor_item, caminho_atual))
 
         return obj
@@ -594,7 +596,7 @@ class Toml:
 
     def __init__ (self, caminho: str | bot.sistema.Caminho) -> None:
         caminho = bot.sistema.Caminho(str(caminho))
-        self.dados = tomllib.loads(caminho.path.read_text(encoding="utf-8"))
+        self.dados = tomllib.loads(caminho.ler_texto())
 
     def __repr__ (self) -> str:
         return f"<bot.formatos.Toml>"

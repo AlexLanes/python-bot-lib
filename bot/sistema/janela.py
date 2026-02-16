@@ -3,6 +3,7 @@ from __future__ import annotations
 import time, typing, functools, contextlib
 # interno
 import bot
+from bot.estruturas import String
 # externo
 import psutil
 import win32gui, win32con, win32api, win32process # pywin32
@@ -62,10 +63,10 @@ class Dialogo:
         - Texto normalizado, então acentuação ou & não faz diferença
         - `AssertionError` caso não seja encontrado
         - Retornado indicador se o diálogo fechou corretamente"""
-        botao = bot.util.normalizar(botao)
+        botao = String(botao).normalizar()
         self.elemento\
             .sleep(0.25)\
-            .encontrar(lambda e: botao in bot.util.normalizar(e.texto))\
+            .encontrar(lambda e: botao in String(e.texto).normalizar())\
             .clicar()
         return self.aguardar_fechar()
 
@@ -75,7 +76,7 @@ class Dialogo:
         botoes = ("nao", "ok", "no")
         self.elemento\
             .sleep(0.25)\
-            .encontrar(lambda e: bot.util.normalizar(e.texto) in botoes)\
+            .encontrar(lambda e: String(e.texto).normalizar() in botoes)\
             .clicar()
         assert self.aguardar_fechar(3), "Diálogo não fechou conforme esperado"
 
@@ -85,7 +86,7 @@ class Dialogo:
         botoes = ("sim", "ok", "yes")
         self.elemento\
             .sleep(0.25)\
-            .encontrar(lambda e: bot.util.normalizar(e.texto) in botoes)\
+            .encontrar(lambda e: String(e.texto).normalizar() in botoes)\
             .clicar()
         assert self.aguardar_fechar(3), "Diálogo não fechou conforme esperado"
 
@@ -116,11 +117,11 @@ class Popup:
 
     def clicar (self, opcao: str, virtual: bool = True) -> typing.Self:
         """Clicar no item de menu com o texto `opção`"""
-        opcao = bot.util.normalizar(opcao)
+        opcao = String(opcao).normalizar()
         elemento, *_ = [
             item
             for item in self.itens_menu()
-            if opcao in bot.util.normalizar(item.texto)
+            if opcao in String(item.texto).normalizar()
         ] or [None]
 
         assert elemento is not None, f"Nenhum item no popup encontrado com a opção '{opcao}'"
@@ -188,7 +189,7 @@ class ElementoW32:
         - `str`         -> `texto/class_name`
         - `(str, int)`  -> `texto/class_name` no `index`
         - `(int, ...)`  -> 2 ou mais `index`"""
-        normalizar = bot.util.normalizar
+        normalizar = lambda t: String(t).normalizar()
         filhos = self.janela.ordernar_elementos_coordenada(
             self.aguardar().filhos(aguardar=5)
         )

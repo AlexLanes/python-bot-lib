@@ -1,8 +1,8 @@
 # std
 import typing, functools, warnings
 # interno
-from . import Coordenada, Imagem, capturar_tela
-import bot
+from bot.estruturas import String
+from bot.imagem import Coordenada, Imagem, capturar_tela
 # externo
 import numpy as np
 
@@ -58,7 +58,6 @@ class LeitorOCR:
     ### Útil
     ```
     # Pode ser necessário pois o OCR não gera resultados precisos
-    bot.util.encontrar_texto(...)   # Encontrar a melhor opção em `opções` onde igual ou parecido ao `texto`
     leitor.encontrar_textos(...)    # Encontrar as coordenadas dos `textos` na `extraçao` retornada pela a leitura da tela ou imagem
     ```
     """
@@ -138,11 +137,13 @@ class LeitorOCR:
 
     def ler_tabela (self, imagem: Imagem,
                           nomes_colunas: typing.Iterable[str] | None = None,
-                          margem_y_linhas: int = 5) -> list[dict[str, tuple[str, Coordenada]]]:
+                          margem_y_linhas: int = 5,
+                          similaridade_minima: float = 0.75) -> list[dict[str, tuple[str, Coordenada]]]:
         """Extrair as colunas e linhas da `imagem` de uma tabela
         ### Limitação: Funciona apenas para tabelas com os nomes das colunas `left-align`
         - `nomes_colunas` limitar, renomear e buscar pelas colunas desejadas
         - `margem_y_linhas` para agrupar linhas com a margem de erro `Y`
+        - `similaridade_minima` utilizado ao buscar por textos não exatos
         - Diminiur `leitor.width_ths` caso os nomes das colunas estiverem sendo mesclados
         - Retornado as linhas sendo `{ nome_coluna: (texto_coluna, Coordenada do texto na `imagem`) }`"""
         tabela = list[dict[str, tuple[str, Coordenada]]]()
@@ -159,7 +160,7 @@ class LeitorOCR:
             acrescimo_largura = coordenada_headers[i + 1].x if i < len(coordenada_headers) - 1 else largura_imagem
             coordenada.largura += acrescimo_largura - coordenada.x - coordenada.largura - 2
 
-        # Extrair o nome dos headers
+        # Extrair os nomes no header
         headers = {
             nome: coordenada
             for coordenada in coordenada_headers
@@ -167,14 +168,15 @@ class LeitorOCR:
         }
 
         # Corrigir nome dos headers
-        if nomes_colunas := list(nomes_colunas or []):
-            headers_corrigido = {}
-            nomes_headers = list(headers)
-            for coluna in nomes_colunas:
-                nome = bot.util.encontrar_texto(coluna, nomes_headers)
-                assert nome, f"Coluna '{coluna}' não foi encontrada nos headers '{nomes_headers}'"
+        if nomes_colunas := [String(coluna) for coluna in nomes_colunas or []]:
+
+            headers_corrigido, nomes_headers = {}, list(headers)
+            for nome_coluna in nomes_colunas:
+                nome = nome_coluna.encontrar_texto(nomes_headers, similaridade_minima=similaridade_minima)
+                assert nome, f"Coluna '{nome_coluna}' não foi encontrada nos headers '{nomes_headers}'"
                 nomes_headers.remove(nome)
-                headers_corrigido[coluna] = headers[nome]
+                headers_corrigido[str(nome_coluna)] = headers[nome]
+
             headers = headers_corrigido
 
         # Extrair de cada linha os dados de acordo com os `headers`
@@ -272,8 +274,10 @@ class LeitorOCR:
 
     @staticmethod
     def encontrar_textos (textos: typing.Iterable[str],
-                          extracao: list[tuple[str, Coordenada, float]]) -> list[Coordenada | None]:
+                          extracao: list[tuple[str, Coordenada, float]],
+                          similaridade_minima: float = 0.75) -> list[Coordenada | None]:
         """Encontrar as coordenadas dos `textos` na `extraçao` retornada pela a leitura da tela ou imagem
+        - `similaridade_minima` utilizado ao buscar por textos não exatos
         - Resultado de retorno é na mesma ordem que `textos`
         - `None` caso não tenha sido encontrado o `texto`
         - Ordem dos métodos de procura
@@ -282,16 +286,19 @@ class LeitorOCR:
             3. similaridade entre textos
             4. normalizado com replace de caracteres parecidos
             5. similaridade entre textos usando `difflib.SequenceMatcher`
-            6. similaridade entre textos levando em conta que o texto pode estar na `extraçao` concatenado com espaço com outro texto"""
+            6. similaridade entre textos levando em conta que o texto pode estar na `extraçao` concatenado com espaço em outro texto"""
         # copiar
-        textos = list(textos)
+        textos = list[String](String(t) for t in textos)
 
         # 1 2 3 4 5
         coordenadas = [
-            (bot.util.encontrar_texto(texto, extracao, lambda item: item[0]) or (None, None))[1]
+            (
+                texto.encontrar_texto(extracao, lambda item: item[0], similaridade_minima)
+                or (None, None)
+            )[1]
             for texto in textos
         ]
-        if all(coordenadas) or all(c in coordenadas for _, c, _ in extracao):
+        if all(coordenada is not None for coordenada in coordenadas):
             return coordenadas
 
         # --------------------------------------------------- #
@@ -336,7 +343,7 @@ class LeitorOCR:
                 if len(texto_extracao.split(" ")) <= 1: continue # desnecessário
                 # checar Match
                 combinacoes = gerar_combinacoes(texto_extracao, coordenada, qtd_palavras)
-                _, coordenada = bot.util.encontrar_texto(texto, combinacoes, lambda item: item[0]) or (None, None)
+                _, coordenada = texto.encontrar_texto(combinacoes, lambda item: item[0], similaridade_minima) or (None, None)
                 if not coordenada or any(coordenada in c for c in coordenadas if c): continue # não encontrada ou sendo utilizada
                 # inserir coordenada e finalizar procura do `texto` atual
                 coordenadas[index] = coordenada

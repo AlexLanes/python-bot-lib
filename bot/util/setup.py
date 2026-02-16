@@ -1,68 +1,11 @@
 # std
-import re, typing, difflib, unicodedata
+import typing, functools
+import cProfile, pstats
+import asyncio, inspect
 # interno
 import bot
 
-def remover_acentuacao (string: str) -> str:
-    """Remover acentuações da `string`"""
-    nfkd = unicodedata.normalize("NFKD", str(string))
-    ascii = nfkd.encode("ASCII", "ignore")
-    return ascii.decode("utf-8", "ignore")
-
-def normalizar (string: str) -> str:
-    """Strip, lower, replace espaços por underline, remoção de acentuação e remoção de caracteres != `a-zA-Z0-9_`"""
-    string = re.sub(r"\s+", "_", string.strip().lower())
-    string = remover_acentuacao(string)
-    return re.sub(r"\W", "", string).replace("__", "_")
-
-def encontrar_texto[T] (texto: str,
-                        opcoes: typing.Iterable[T],
-                        key: typing.Callable[[T], str] | None = None,
-                        similaridade_minima: float = 0.75) -> T | None:
-    """Encontrar a melhor opção em `opções` onde igual ou parecido ao `texto`
-    - `None` caso nenhuma opção gerou um resultado satisfatório
-    - `key` pode ser informado uma função para apontar para a `str` caso `opções` não seja uma `list[str]`
-    - Ordem dos métodos de procura
-        1. exato
-        2. normalizado exato
-        3. normalizado com replace de caracteres parecidos
-        4. similaridade entre textos usando `difflib.SequenceMatcher` com o valor `similaridade_minima`
-            - `similaridade_minima` entre 0.0 e 1.0
-            - `similaridade_minima=0` para desativar"""
-    opcoes = list(opcoes)
-    key_to_text = key or (lambda opcao: opcao)
-    textos = [key_to_text(opcao) for opcao in opcoes]
-
-    # opção exata
-    if texto in textos:
-        return opcoes[textos.index(texto)]
-
-    # opção normalizada
-    texto_normalizado = normalizar(texto)
-    textos_normalizados = [normalizar(opcao) for opcao in textos]
-    if texto_normalizado in textos_normalizados:
-        return opcoes[textos_normalizados.index(texto_normalizado)]
-
-    # opção normalizada com replace de caracteres parecidos
-    texto_replace = texto_normalizado
-    textos_replace = textos_normalizados.copy()
-    for chars, replace in [("[l1!]", "i"), ("[0dq]", "o"), ("rn", "m")]:
-        texto_replace = re.sub(chars, replace, texto_replace)
-        for index, texto in enumerate(textos_replace):
-            textos_replace[index] = re.sub(chars, replace, texto)
-    if texto_replace in textos_replace:
-        return opcoes[textos_replace.index(texto_replace)]
-
-    # comparando similaridade dos caracteres
-    # algorítimo `gestalt pattern matching`
-    # punir uma quantidade se tiver diferença no tamanho
-    def calcular_similaridade (a: str, b: str) -> float:
-        punicao_tamanho = abs((len(a) - len(b)) * 0.1)
-        return difflib.SequenceMatcher(None, a, b).ratio() - punicao_tamanho
-
-    similaridades = [calcular_similaridade(texto_normalizado, t) for t in textos_normalizados]
-    maior = max(similaridades) if similaridades else 0
-    return opcoes[similaridades.index(maior)] if maior >= similaridade_minima else None
+P = typing.ParamSpec("P")
 
 def transformar_tipo[T: bot.tipagem.primitivo] (valor: str, tipo: type[T]) -> T:
     """Fazer a transformação do `valor` para `type(tipo)`
@@ -73,9 +16,60 @@ def transformar_tipo[T: bot.tipagem.primitivo] (valor: str, tipo: type[T]) -> T:
         case int():     return int(valor) # type: ignore
         case _:         return valor # type: ignore
 
+def perfil_execucao[R] (func: typing.Callable[P, R]) -> typing.Callable[P, R]: # type: ignore
+    """Realizar um `print()` do perfil de execução da função
+    - Tempos acumulados menores de 0.01 segundos são excluídos
+    - Usar como decorador em uma função `@`"""
+    @functools.wraps(func)
+    def perfil_execucao (*args, **kwargs) -> R:
+        # Diretorio de execução atual para limpar o nome no dataframe
+        cwd = bot.sistema.Caminho.diretorio_execucao().string
+        cwd = f"{cwd[0].lower()}{cwd[1:]}"
+
+        # Executar função com o profile ativo e gerar o report
+        with cProfile.Profile() as profile:
+            resultado = func(*args, **kwargs)
+        stats = pstats.Stats(profile).sort_stats(2).get_stats_profile()
+        tempo = stats.total_tt
+        stats = stats.func_profiles
+
+        # Loggar o Dataframe com algumas opções de formatação
+        df = bot.database.formatar_dataframe(
+            bot.database.polars.DataFrame({
+                "nome": (
+                    funcao if stats[funcao].file_name == "~" 
+                    else stats[funcao].file_name.removeprefix(cwd).lstrip("\\") + f":{stats[funcao].line_number}({funcao})"
+                    for funcao in stats
+                ),
+                "tempo_acumulado": (stats[funcao].cumtime for funcao in stats),
+                "tempo_execucao": (stats[funcao].tottime for funcao in stats),
+                "chamadas": (stats[funcao].ncalls for funcao in stats)
+            })
+            .filter(bot.database.polars.col("tempo_acumulado") >= 0.001)
+        )
+
+        print("\n" * 2 + 
+            f"1 - Nome da função: {func.__name__}\n" +
+            f"2 - Tempo de execução: {tempo:.3f} segundos\n" +
+            df + 
+            "\n"
+        )
+
+        return resultado
+    return perfil_execucao
+
+def async_run[R] (func: typing.Callable[P, R | typing.Coroutine[None, None, R]]) -> typing.Callable[P, R]: # type: ignore
+    """Executar funções `async` automaticamente com o `asyncio.run()`
+    - Usar como decorador em uma função `@`"""
+    @functools.wraps(func)
+    def async_run (*args: P.args, **kwargs: P.kwargs) -> R: # type: ignore
+        resultado = func(*args, **kwargs)
+        funcao_async = inspect.iscoroutinefunction(func)
+        return asyncio.run(resultado) if funcao_async else resultado # type: ignore
+    return async_run # type: ignore
+
 __all__ = [
-    "normalizar",
-    "encontrar_texto",
+    "async_run",
+    "perfil_execucao",
     "transformar_tipo",
-    "remover_acentuacao"
 ]
