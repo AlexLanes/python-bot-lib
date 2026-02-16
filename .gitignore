@@ -2,7 +2,7 @@
 **/__pycache__
 
 # log / configfile / sqlite
-**.log
+log.jsonl
 /**logs
 **.ini
 **.sqlite
@@ -11,10 +11,6 @@
 /build
 /dist
 **.egg-info
-
-# uv
-uv.lock
-.python-version
 
 # venv
 *venv
