@@ -11,6 +11,9 @@ class String (str):
     sempre instâncias de `String` nos métodos adicionados, permitindo
     encadeamento nas chamadas."""
 
+    def __new__ (cls, value: str | String = "") -> String:
+        return value if isinstance(value, String) else super().__new__(cls, value)
+
     def __repr__ (self) -> str:
         return f"<String '{str(self)}'>"
 
