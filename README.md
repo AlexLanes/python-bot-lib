@@ -3,18 +3,29 @@
 ⚠️ <span style="color: red;"><strong>Python</strong> <code>&gt;=3.12</code></span> ⚠️
 
 > **Instalação via url do release no github:**  
-Via pip `pip install https://github.com/AlexLanes/python-bot-lib/releases/download/v4.0/bot-4.0-py3-none-any.whl`  
-Via uv `uv add https://github.com/AlexLanes/python-bot-lib/releases/download/v4.0/bot-4.0-py3-none-any.whl`
+Via pip `pip install https://github.com/AlexLanes/python-bot-lib/releases/download/v5.0/bot-5.0-py3-none-any.whl`  
+Via uv `uv add https://github.com/AlexLanes/python-bot-lib/releases/download/v5.0/bot-5.0-py3-none-any.whl`
 
 > **Para referenciar como dependência:**  
-Utilizar o link para o arquivo **whl** do release `bot @ https://github.com/AlexLanes/python-bot-lib/releases/download/v4.0/bot-4.0-py3-none-any.whl`  
-Utilizar o caminho para o arquivo **whl** baixado `bot @ file://.../bot-4.0-py3-none-any.whl`
+Utilizar o link para o arquivo **whl** do release `bot @ https://github.com/AlexLanes/python-bot-lib/releases/download/v5.0/bot-5.0-py3-none-any.whl`  
+Utilizar o caminho para o arquivo **whl** baixado `bot @ file://.../bot-5.0-py3-none-any.whl`
 
 > Os pacotes podem ser encontrados diretamentes no namespace **bot** após import da biblioteca **import bot** ou importado diretamente o pacote desejado **from bot import pacote**
 
 
 ## Changelog 🔧
 
+<details>
+<summary>v5.0</summary>
+
+- Criado novo pacote `erro`
+- Criado novo pacote `tempo`
+- Alteração do pacote `logger` para usar formato Json e suporte a um tracer
+- Criado classe `String` no pacote `estruturas`
+- Alterado classe `LowerDict` para `DictNormalizado` no pacote `estruturas`
+- Movido itens do pacote `util` para pacotes específicos
+
+</details>
 <details>
 <summary>v4.1</summary>
 
@@ -106,6 +117,13 @@ DatabaseODBC(
     port = "porta",
     database = "nome do database",
 )
+
+# Classe para manipulação do Oracle Database
+DatabaseOracle(user="", password="", host="", port="",
+               service_name="", instance_name="")
+# Pode ser necessário instalar o **Oracle instant client** e informar o `caminho` antes de abrir conexão
+# Utilizar o `OracleDatabase.configurar_cliente(caminho)` para problemas de **thick mode**
+OracleDatabase.configurar_cliente(caminho)
 ```
 
 ### `email`
@@ -117,7 +135,8 @@ enviar_email (
     destinatarios: Iterable[email],
     assunto = "",
     conteudo = "",
-    anexos: list[Caminho] = []
+    anexos: list[Caminho] = [],
+    no_reply: bool = True
 ) -> None
 
 # Obter e-mails de uma `Inbox`
@@ -129,9 +148,32 @@ obter_emails (
 ) -> Generator[Email]
 ```
 
+### `erro`
+Pacote agregador de itens para tratativas de `Exceptions`
+```python
+# Realizar `tentativas` de se chamar uma função e, em caso de erro, aguardar `segundos` e tentar novamente
+@retry (
+    *erro: type[Exception],
+    tentativas = 3,
+    segundos = 5,
+    ignorar: tuple[type[Exception], ...] = (NotImplementedError,),
+    on_error: lambda args, kwargs: ..., = None
+)
+
+# Adicionar uma mensagem de prefixo no erro, caso a função resulte em `Exception`
+@adicionar_prefixo (prefixo="Erro ao realizar XPTO")
+@adicionar_prefixo (lambda args, kwargs: f"Erro ao realizar XPTO com os argumentos: {args}")
+```
+
 ### `estruturas`
 Pacote agregador com estruturas de dados
 ```python
+# Extensão da classe nativa `str` com utilitários adicionais,
+# principalmente para operações com expressões regulares e
+# normalização de texto
+String("xpto").normalizar()
+String("xpto").re_search(r"\w+")
+
 # Classe para representar uma parte de uma região na tela
 Coordenada(
     x: int,
@@ -147,16 +189,16 @@ Resultado[T](
     **kwargs
 )
 
-# Classe usada para obter/criar/adicionar chaves de um `dict` como `lower-case`
-LowerDict[T](d: dict[str, T] | None = None)
+# Dicionário que armazena e acessa chaves sempre na forma `String(chave).normalizar()`
+DictNormalizado[T](d: Mappingq[str, T] | None = None)
 ```
 
 ### `formatos`
 Pacote agregador para diferentes tipos de formatos de dados
 ```python
 # Classe para validação e leitura de objetos JSON
-Json[T] (item: T)
-Json.parse (json: str) -> tuple[Json, str | None]
+Json (item: Any)
+Json.parse (json: str) -> Json
 
 # Classe de manipulação do XML
 ElementoXML.parse(xml: str | Caminho) -> ElementoXML
@@ -237,11 +279,24 @@ LeitorOCR()
 ### `logger`
 Pacote para realizar e tratar Logs
 ```python
-# Log para diferentes níveis
-debug (mensagem: str) -> Logger
-informar (mensagem: str) -> Logger
-alertar (mensagem: str) -> Logger
-erro (mensagem: str, excecao: Exception | None = None) -> Logger
+# Log para diferentes níveis com o nome BOT
+logger.debug (mensagem: str) -> MainLogger
+logger.informar (mensagem: str) -> MainLogger
+logger.alertar (mensagem: str) -> MainLogger
+logger.erro (mensagem: str, excecao: Exception | None = None) -> MainLogger
+# Realizar log com um nome diferente
+logger = MainLogger("MEU_LOG")
+# Necessário inicializar manualmente para configurar os handlers e formato em algum logger
+logger.inicializar_logger()
+
+# Obter o `TracerLogger` utilizado para realizar o rastreamento de um processo
+# Possível de se realizar os logs com a mesma interface que o `MainLogger`
+tracer = logger.obter_tracer()
+# Sinalizar o encerramento do tracer
+tracer.encerrar("SUCCESS")
+
+# Loggar o tempo de execução de uma função
+@logger.tempo_execucao
 ```
 
 ### `mouse`
@@ -303,7 +358,10 @@ procurar (localizador: str | enum.Enum) -> list[ElementoWEB]:
 Pacote para realizar ações no sistema operacional
 ```python
 # Classe para representação de caminhos, em sua versão absoluta, do sistema operacional e manipulação de arquivos/diretórios
-Caminho()
+Caminho("C:/caminho/completo")
+Caminho(".", "pasta", "arquivo.txt")
+Caminho() / "diretorio" / "arquivo.txt"
+Caminho.diretorio_execucao() / "arquivo.txt"
 
 # Executar um comando com os `argumentos` no `prompt` e aguardar finalizar
 executar(
@@ -336,37 +394,30 @@ digitar (texto: str) -> Teclado
 atalho (*teclas: tipagem.BOTOES_TECLADO | tipagem.char) -> Teclado
 ```
 
+### `tempo`
+Pacote destinado para ações que envolvam tempo e condições de espera
+```python
+# Sleep tradicional com padrão de 1 segundo
+sleep(segundos=1)
+
+# Repetir a função `condição`, aguardando por `timeout` segundos, até que resulte em `True`
+# Retorna um `bool` indicando se a `condição` foi atendida
+sucesso = aguardar(
+    condicao: lambda: bool(),
+    timeout:  int,
+    delay =   0.01
+)
+
+# Classe para cronometrar o tempo decorrido
+cronometro = Cronometro(precisao=3)
+while cronometro < 10: ...
+```
+
 ### `tipagem`
 Pacote para armazenar tipos utilizados pelos demais pacotes
 
 ### `util`
 Pacote agregador de funções utilitárias
-```python
-# Strip, lower, replace espaços por underline, remoção de acentuação e remoção de caracteres != `a-zA-Z0-9_`
-normalizar (string: str) -> str:
-
-# Repetir a função `condição` por `timeout` segundos até que resulte em `True`
-aguardar_condicao (
-    condicao: lambda: bool,
-    timeout: int | float,
-    delay = 0.1
-) -> bool
-```
-
-Pacote interno `decoradores` para decorar funções
-```python
-# Executar a função por `segundos` até retornar ou `TimeoutError` caso ultrapasse o tempo
-@timeout (segundos: float)
-
-# Realizar `tentativas` de se chamar uma função e, em caso de erro, aguardar `segundos` e tentar novamente
-@retry (
-    *erro: type[Exception],
-    tentativas = 3,
-    segundos = 5,
-    ignorar: tuple[type[Exception], ...] = (NotImplementedError,),
-    on_error: lambda args, kwargs: ..., = None
-)
-```
 
 ### `video`
 Pacote agregador para ações envolvendo vídeos
