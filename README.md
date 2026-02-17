@@ -190,7 +190,7 @@ Resultado[T](
 )
 
 # Dicionário que armazena e acessa chaves sempre na forma `String(chave).normalizar()`
-DictNormalizado[T](d: Mappingq[str, T] | None = None)
+DictNormalizado[T](d: Mapping[str, T] | None = None)
 ```
 
 ### `formatos`
