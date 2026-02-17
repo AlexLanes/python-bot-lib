@@ -181,7 +181,7 @@ class TracerLogger:
         log_func(
             str(mensagem),
             stacklevel = 2,
-            exc_info = sys.exc_info() if status == "ERROR" else None,
+            exc_info = erro if status == "ERROR" and any(erro := sys.exc_info()) else None,
             extra = {
                 "extra": extra | self.extra,
                 "trace": {
