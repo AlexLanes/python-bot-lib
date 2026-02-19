@@ -293,7 +293,8 @@ logger.inicializar_logger()
 # Possível de se realizar os logs com a mesma interface que o `MainLogger`
 tracer = logger.obter_tracer()
 # Sinalizar o encerramento do tracer
-tracer.encerrar("SUCCESS")
+tracer.encerrar("SUCCESS", "Sucesso ao se realizar determinada Ação")
+tracer.encerrar("ERROR", "Falha ao realizar determinada Ação")
 
 # Loggar o tempo de execução de uma função
 @logger.tempo_execucao
@@ -411,6 +412,7 @@ sucesso = aguardar(
 # Classe para cronometrar o tempo decorrido
 cronometro = Cronometro(precisao=3)
 while cronometro < 10: ...
+cronometro.timeout(segundos=10)
 ```
 
 ### `tipagem`

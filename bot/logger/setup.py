@@ -166,8 +166,10 @@ class TracerLogger:
 
     def encerrar (self, status: typing.Literal["SUCCESS", "WARNING", "ERROR"],
                         mensagem: str | TSupportsStr,
+                        excecao: Exception | None = None,
                         **extra: object) -> None:
-        """Sinalizar o encerramento do tracer"""
+        """Sinalizar o encerramento do tracer
+        - `excecao=None` capturada automaticamente, caso esteja dentro do `except`"""
         if self.encerrado: return
         self.encerrado = True
 
@@ -181,7 +183,7 @@ class TracerLogger:
         log_func(
             str(mensagem),
             stacklevel = 2,
-            exc_info = erro if status == "ERROR" and any(erro := sys.exc_info()) else None,
+            exc_info = excecao or (erro if any(erro := sys.exc_info()) else None),
             extra = {
                 "extra": extra | self.extra,
                 "trace": {
