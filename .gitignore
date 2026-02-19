@@ -2,8 +2,8 @@
 **/__pycache__
 
 # log / configfile / sqlite
+/logs
 log.jsonl
-/**logs
 **.ini
 **.sqlite
 
