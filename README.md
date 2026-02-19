@@ -24,6 +24,7 @@ Utilizar o caminho para o arquivo **whl** baixado `bot @ file://.../bot-5.0-py3-
 - Criado classe `String` no pacote `estruturas`
 - Alterado classe `LowerDict` para `DictNormalizado` no pacote `estruturas`
 - Movido itens do pacote `util` para pacotes específicos
+- Corrigido problema de interpolação no `configfile` com o char `$`
 
 </details>
 <details>

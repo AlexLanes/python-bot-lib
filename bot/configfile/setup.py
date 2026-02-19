@@ -1,9 +1,54 @@
 # std
-import configparser, typing
+import re, configparser, typing
 # interno
 import bot
 from bot.sistema import Caminho
 from bot.estruturas import DictNormalizado
+
+class Interpolacao (configparser.ExtendedInterpolation):
+    # Aceita interpolação ${...}
+    # Não necessário escapar char `$`
+
+    RE_INTERPOLACAO = re.compile(r"\$\{([^}]+)\}")
+
+    def before_get (self, parser: configparser.ConfigParser, # type: ignore
+                          section: str,
+                          option: str,
+                          value: str,
+                          defaults: dict[str, str]) -> str:
+        return self.interpolar(parser, section, value, set(), 0)
+
+    def interpolar (self, parser: configparser.ConfigParser,
+                          section: str,
+                          value: str,
+                          seen: set[tuple[str, str]],
+                          depth: int) -> str:
+        if depth > 10:
+            raise configparser.InterpolationDepthError(
+                option  = "",
+                section = section,
+                rawval  = value,
+            )
+
+        def replace (match: re.Match[str]) -> str:
+            key: str = match.group(1)
+
+            # suporte a ${section:option}
+            if ":" in key: secao, opcao = key.split(":", 1)
+            else: secao, opcao = section, key
+
+            ref: tuple[str, str] = (secao, opcao)
+            if ref in seen: raise ValueError(f"Loop detectado em {ref}")
+            seen.add(ref)
+
+            # checar existência da interpolação
+            assert parser.has_option(secao, opcao),\
+                f"Falha na interpolação no configfile. Seção '{secao}' ou Opção '{opcao}' inexistente"
+
+            raw = parser.get(secao, opcao, raw=True)
+            return self.interpolar(parser, secao, raw, seen, depth + 1)
+
+        return self.RE_INTERPOLACAO.sub(replace, value)
 
 class ConfigFile:
     """Classe para inicialização de variáveis a partir de arquivo de configuração `.ini`  
@@ -11,7 +56,6 @@ class ConfigFile:
     #### Inicializado automaticamente na primeira consulta
 
     - Para concatenação de valores, utilizar a sintaxe `${opção}` `${seção:opção}`
-    - `$` é reservado, utilizar `$$` para contornar
     - `#` ou `;` comenta a linha se tiver no começo
     - Arquivos terminados em `.ini` devem estar presente em `DIRETORIO_EXECUCAO`
     ```"""
@@ -27,7 +71,7 @@ class ConfigFile:
     @property
     def parser (self) -> configparser.ConfigParser:
         return configparser.ConfigParser(
-            interpolation = configparser.ExtendedInterpolation()
+            interpolation = Interpolacao()
         )
 
     def inicializar_configfile (self) -> typing.Self:
@@ -98,7 +142,6 @@ configfile = ConfigFile()
 #### Inicializado automaticamente na primeira consulta
 
 - Para concatenação de valores, utilizar a sintaxe `${opção}` `${seção:opção}`
-- `$` é reservado, utilizar `$$` para contornar
 - `#` ou `;` comenta a linha se tiver no começo
 - Arquivos terminados em `.ini` devem estar presente em `DIRETORIO_EXECUCAO`
 ```"""
