@@ -413,7 +413,10 @@ sucesso = aguardar(
 # Classe para cronometrar o tempo decorrido
 cronometro = Cronometro(precisao=3)
 while cronometro < 10: ...
-cronometro.timeout(segundos=10)
+
+# Classe para se observar o tempo de execução e lançar `TimeoutError`
+timeout = Timeout("Ação XPTO demorou de mais").horas(1).minutos(30)
+while timeout.pendente(): ...
 ```
 
 ### `tipagem`
