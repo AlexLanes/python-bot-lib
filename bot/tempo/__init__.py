@@ -2,3 +2,4 @@
 
 from bot.tempo.condicoes import *
 from bot.tempo.setup import *
+from bot.tempo.timeout import Timeout

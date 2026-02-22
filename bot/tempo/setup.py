@@ -9,14 +9,14 @@ def sleep (segundos: int | float = 1) -> None:
 
 def formatar_tempo_decorrido (segundos: int | float | Cronometro) -> str:
     """Formatar a medida `segundos` para as duas maiores unidades de grandeza
-    - Hora
-    - Minuto
-    - Segundo
-    - Milissegundo"""
+    - Horas
+    - Minutos
+    - Segundos
+    - Milissegundos"""
     assert segundos >= 0, "Segundos não deve ser negativo"
 
     if isinstance(segundos, Cronometro):
-        segundos = segundos.tempo_decorrido
+        segundos = segundos.decorrido
     if not segundos: return "0 segundos"
 
     tempos, segundos = [], round(segundos, 3)
