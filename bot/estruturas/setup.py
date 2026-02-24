@@ -233,6 +233,10 @@ class DictNormalizado[T] (collections.UserDict[str, T]):
     def __repr__ (self) -> str:
         return f"<DictNormalizado[T] com {len(self)} chave(s)>"
 
+    @property
+    def __dict__ (self) -> dict[str, T]: # type: ignore
+        return self.data
+
     def __getitem__ (self, chave: str) -> T:
         return super().__getitem__(str(String(chave).normalizar()))
 
