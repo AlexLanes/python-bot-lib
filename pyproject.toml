@@ -15,12 +15,12 @@ dependencies = [
   # mouse / teclado / imagem / sistema / estruturas
   "pywin32",
 
-  # database
+  # database / dataset
   "pyodbc",
   "oracledb",
   "fastexcel",
   "xlsxwriter",
-  "polars[xlsx2csv]",
+  "polars",
 
   # http
   "httpx",
