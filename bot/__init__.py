@@ -14,6 +14,7 @@ from bot import (
 
     argumentos,
     database,
+    dataset,
     email,
     erro,
     formatos,
