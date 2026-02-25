@@ -412,7 +412,7 @@ class Unmarshaller[T]:
     - `__repr__` da classe alterada caso não tenha sido implementada
     - Propriedades são validadas como obrigatórios caso não possuam `Union` com `None` ou sem um default
     - Classes deve ter as propriedades e tipos devidamente anotados
-    - Propriedades podem estar na versão normalizada `bot.util.normalizar`
+    - Propriedades podem estar na versão normalizada `String().normalizar()`
     - Classes podem herdam propriedades de outras classes
     - Tipos Esperados:
         - Primitivos `(str, int, float, bool, None)`

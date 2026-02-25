@@ -2,7 +2,7 @@
 import sqlite3, typing
 # interno
 import bot
-from bot.database.setup import criar_excel, ResultadoSQL
+from bot.database.setup import ResultadoSQL
 
 class Sqlite:
     """Classe de abstração do módulo `sqlite3`
@@ -90,12 +90,9 @@ class Sqlite:
     def to_excel (self, caminho: bot.sistema.Caminho) -> bot.sistema.Caminho:
         """Salvar as linhas de todas as tabelas da conexão no `caminho` formato excel
         - `caminho` deve terminar com `.xlsx`"""
-        return criar_excel(
-            caminho,
-            {
-                tabela: self.execute(f"SELECT * FROM {tabela}").to_dataframe()
-                for tabela in self.tabelas()
-            }
-        )
+        return bot.dataset.Excel(caminho).escrever_dataframe({
+            tabela: self.execute(f"SELECT * FROM {tabela}").to_dataframe()
+            for tabela in self.tabelas()
+        })
 
 __all__ = ["Sqlite"]
