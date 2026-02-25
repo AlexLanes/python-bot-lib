@@ -20,6 +20,7 @@ Utilizar o caminho para o arquivo **whl** baixado `bot @ file://.../bot-5.0-py3-
 
 - Criado novo pacote `erro`
 - Criado novo pacote `tempo`
+- Criado novo pacote `dataset`
 - Alteração do pacote `logger` para usar formato Json e suporte a um tracer
 - Criado classe `String` no pacote `estruturas`
 - Alterado classe `LowerDict` para `DictNormalizado` no pacote `estruturas`
@@ -125,6 +126,30 @@ DatabaseOracle(user="", password="", host="", port="",
 # Pode ser necessário instalar o **Oracle instant client** e informar o `caminho` antes de abrir conexão
 # Utilizar o `OracleDatabase.configurar_cliente(caminho)` para problemas de **thick mode**
 OracleDatabase.configurar_cliente(caminho)
+```
+
+### `dataset`
+Pacote para ler e escrever dados estruturados como `xlsx` e `csv`
+```python
+# Excel
+excel = bot.dataset.Excel("./exemplo.xlsx")
+# Ler a `planilha` do excel 
+dados = excel.ler_planilha("nome planilha")
+# Criar um arquivo excel no `caminho` com os dados informados de `planilhas`
+caminho = excel.escrever(
+    planilha1 = [{"nome": "a", "valor": 1}, {"nome": "b", "valor": 2}],
+    planilha2 = [{"codigo": "a", "descricao": ""}, {"codigo": "b", "descricao": ""}],
+)
+
+# Csv
+csv = bot.dataset.Csv("./exemplo.csv")
+# Ler o csv
+dados = csv.ler()
+# Criar um arquivo csv no `caminho` com os `dados` informados
+caminho = csv.escrever([
+    {"nome": "a", "valor": 1},
+    {"nome": "b", "valor": 2}
+])
 ```
 
 ### `email`
