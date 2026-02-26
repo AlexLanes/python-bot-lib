@@ -6,21 +6,6 @@ import bot
 # externo
 import polars
 
-def formatar_dataframe (df: polars.DataFrame,
-                        linhas_maximas = 1000,
-                        esconder_shape = True,
-                        tamanho_maximo_str = 1000,
-                        esconder_tipo_coluna = True) -> str:
-    """Formatar o `df` para sua versão em string"""
-    kwargs = { 
-        "tbl_rows": linhas_maximas, 
-        "tbl_hide_dataframe_shape": esconder_shape, 
-        "fmt_str_lengths": tamanho_maximo_str, 
-        "tbl_hide_column_data_types": esconder_tipo_coluna 
-    }
-    with bot.database.polars.Config(**kwargs):
-        return str(df)
-
 @dataclasses.dataclass
 class ResultadoSQL:
     """Classe utilizada no retorno ao executar comando em banco de dados
@@ -187,7 +172,4 @@ class ResultadoSQL:
             for linha in self.to_dict()
         ]
 
-__all__ = [
-    "polars",
-    "formatar_dataframe"
-]
+__all__ = ["ResultadoSQL"]

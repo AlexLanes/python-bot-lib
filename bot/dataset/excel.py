@@ -106,7 +106,4 @@ class Excel:
                 .obter(list[dict[str, typing.Any]])
         ]
 
-__all__ = [
-    "Excel",
-    "polars"
-]
+__all__ = ["Excel"]

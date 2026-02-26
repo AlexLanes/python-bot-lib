@@ -2,7 +2,7 @@
 import typing
 # interno
 import bot
-from bot.database.setup import ResultadoSQL
+from bot.database.resultado import ResultadoSQL
 # externo
 import oracledb
 
@@ -126,7 +126,7 @@ class DatabaseOracle:
 
         cursor = self.conexao.cursor()
         cursor.execute(sql, posicional if posicional else nomeado if nomeado else None)
-        colunas = tuple(desc[0] for desc in cursor.description) if cursor.description else tuple()
+        colunas = tuple(str(desc[0]) for desc in cursor.description) if cursor.description else tuple()
         return ResultadoSQL(
             linhas_afetadas = cursor.rowcount if not colunas and cursor.rowcount >= 0 else None,
             colunas = colunas,
@@ -140,7 +140,7 @@ class DatabaseOracle:
         - Retornado classe própria `ResultadoSQL`, veja a documentação na definição da classe"""
         cursor = self.conexao.cursor()
         cursor.executemany(sql, parametros)
-        colunas = tuple(desc[0] for desc in cursor.description) if cursor.description else tuple()
+        colunas = tuple(str(desc[0]) for desc in cursor.description) if cursor.description else tuple()
         return ResultadoSQL(
             linhas_afetadas = cursor.rowcount if not colunas and cursor.rowcount >= 0 else None,
             colunas = colunas,

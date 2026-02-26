@@ -2,7 +2,7 @@
 import typing
 # interno
 import bot
-from bot.database.setup import ResultadoSQL
+from bot.database.resultado import ResultadoSQL
 # externo
 import pyodbc
 

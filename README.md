@@ -96,7 +96,7 @@ obter_opcao_ou[T] (secao: str, opcao: str, default: T = "") -> T
 ```
 
 ### `database`
-Pacote com abstrações e normalização de operações em databases. Exportado o pacote `polars` para utilização de DataFrames
+Pacote com abstrações e normalização de operações em databases
 ```python
 # Criar um arquivo excel em `caminho` com os dados informados em `planilhas`
 criar_excel (
@@ -129,7 +129,7 @@ OracleDatabase.configurar_cliente(caminho)
 ```
 
 ### `dataset`
-Pacote para ler e escrever dados estruturados como `xlsx` e `csv`
+Pacote para ler e escrever dados estruturados como `xlsx` e `csv`. Exportado o pacote `polars` para utilização de `DataFrames`
 ```python
 # Excel
 excel = bot.dataset.Excel("./exemplo.xlsx")

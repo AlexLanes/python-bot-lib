@@ -2,7 +2,7 @@
 import sqlite3, typing
 # interno
 import bot
-from bot.database.setup import ResultadoSQL
+from bot.database.resultado import ResultadoSQL
 
 class Sqlite:
     """Classe de abstração do módulo `sqlite3`
@@ -67,7 +67,7 @@ class Sqlite:
         - Retornado classe própria `ResultadoSQL`, veja a documentação na definição da classe"""
         assert bool(posicional) + bool(nomeado) < 2, "Não é possível misturar argumentos posicionais com nomeados"
         cursor = self.conexao.execute(sql, posicional or nomeado)
-        colunas = tuple(coluna for coluna, *_ in cursor.description) if cursor.description else tuple()
+        colunas = tuple(str(coluna) for coluna, *_ in cursor.description) if cursor.description else tuple()
         return ResultadoSQL(
             linhas_afetadas = cursor.rowcount if not colunas and cursor.rowcount >= 0 else None,
             colunas = colunas,
@@ -80,7 +80,7 @@ class Sqlite:
         - `parametros` quantidade de argumentos, posicionais `?` **ou** nomeados `:nome`, que serão executados
         - Retornado classe própria `ResultadoSQL`, veja a documentação na definição da classe"""
         cursor = self.conexao.executemany(sql, parametros) # type: ignore
-        colunas = tuple(coluna for coluna, *_ in cursor.description) if cursor.description else tuple()
+        colunas = tuple(str(coluna) for coluna, *_ in cursor.description) if cursor.description else tuple()
         return ResultadoSQL(
             linhas_afetadas = cursor.rowcount if not colunas and cursor.rowcount >= 0 else None,
             colunas = colunas,

@@ -4,6 +4,8 @@ import cProfile, pstats
 import asyncio, inspect
 # interno
 import bot
+# externo
+import polars
 
 P = typing.ParamSpec("P")
 
@@ -34,8 +36,8 @@ def perfil_execucao[R] (func: typing.Callable[P, R]) -> typing.Callable[P, R]: #
         stats = stats.func_profiles
 
         # Loggar o Dataframe com algumas opções de formatação
-        df = bot.database.formatar_dataframe(
-            bot.database.polars.DataFrame({
+        df = bot.dataset.formatar_dataframe(
+            bot.dataset.DataFrame({
                 "nome": (
                     funcao if stats[funcao].file_name == "~" 
                     else stats[funcao].file_name.removeprefix(cwd).lstrip("\\") + f":{stats[funcao].line_number}({funcao})"
@@ -45,7 +47,7 @@ def perfil_execucao[R] (func: typing.Callable[P, R]) -> typing.Callable[P, R]: #
                 "tempo_execucao": (stats[funcao].tottime for funcao in stats),
                 "chamadas": (stats[funcao].ncalls for funcao in stats)
             })
-            .filter(bot.database.polars.col("tempo_acumulado") >= 0.001)
+            .filter(polars.col("tempo_acumulado") >= 0.001)
         )
 
         print("\n" * 2 + 
