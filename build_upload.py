@@ -4,15 +4,17 @@ import bot
 HOST, USUARIO, REPOSITORIO, TOKEN = bot.configfile.obter_opcoes_obrigatorias("github", "host", "usuario", "repositorio", "token")
 
 def apagar_release (id_release: int) -> None:
-    response = bot.http.request(
-        "DELETE",
-        f"{HOST}/repos/{USUARIO}/{REPOSITORIO}/releases/{id_release}",
-        headers = {
-            "Accept": "application/json",
-            "Authorization": f"Bearer {TOKEN}"
-        }
+    (
+        bot.http.request(
+            "DELETE",
+            f"{HOST}/repos/{USUARIO}/{REPOSITORIO}/releases/{id_release}",
+            headers = {
+                "Accept": "application/json",
+                "Authorization": f"Bearer {TOKEN}"
+            }
+        )
+        .esperar_status_code(204)
     )
-    assert response.status_code == 204
 
 def obter_descricao_release () -> str:
     toml = bot.formatos.Toml("pyproject.toml")
@@ -30,58 +32,75 @@ def obter_descricao_release () -> str:
     ))
 
 def criar_release (release: str) -> int:
-    response = bot.http.request(
-        "POST",
-        f"{HOST}/repos/{USUARIO}/{REPOSITORIO}/releases",
-        headers = {
-            "Accept": "application/json",
-            "Authorization": f"Bearer {TOKEN}"
-        },
-        json = {
-            "tag_name": release,
-            "name": release,
-            "body": obter_descricao_release(),
-        }
+    class Retorno:
+        id: int
+
+    return (
+        bot.http.request(
+            "POST",
+            f"{HOST}/repos/{USUARIO}/{REPOSITORIO}/releases",
+            headers = {
+                "Accept": "application/json",
+                "Authorization": f"Bearer {TOKEN}"
+            },
+            json = {
+                "tag_name": release,
+                "name": release,
+                "body": obter_descricao_release(),
+            }
+        )
+        .esperar_status_code(201)
+        .unmarshal(Retorno)
+        .id
     )
-    assert response.status_code == 201
-    return response.json()["id"]
 
 def obter_releases () -> dict[str, int]:
     """`{ Versão release: id release }`"""
-    response = bot.http.request(
-        "GET",
-        f"{HOST}/repos/{USUARIO}/{REPOSITORIO}/releases",
-        headers = {
-            "Accept": "application/json",
-            "Authorization": f"Bearer {TOKEN}"
-        }
+    json = (
+        bot.http.request(
+            "GET",
+            f"{HOST}/repos/{USUARIO}/{REPOSITORIO}/releases",
+            headers = {
+                "Accept": "application/json",
+                "Authorization": f"Bearer {TOKEN}"
+            }
+        )
+        .esperar_status_code(200)
+        .json(list[dict])
     )
-    assert response.status_code == 200
 
-    releases = bot.formatos.Json\
-        .parse(response.text)\
-        .obter(list[dict])
+    class Release:
+        tag_name: str | None = None
+        id: int
+    releases = map(bot.formatos.Unmarshaller(Release).parse, json)
+
     return {
-        release["tag_name"]: release["id"]
+        release.tag_name: release.id
         for release in releases
-        if release["tag_name"]
+        if release.tag_name
     }
 
 def upload_asset (id_release: int, caminho_build: bot.sistema.Caminho) -> str:
     """retorna o url para a build"""
+    class Retorno:
+        browser_download_url: str
+
     host = HOST.replace("api", "uploads")
-    response = bot.http.request(
-        "POST",
-        f"{host}/repos/{USUARIO}/{REPOSITORIO}/releases/{id_release}/assets",
-        params = { "name": caminho_build.nome },
-        headers = {
-            "Authorization": f"Bearer {TOKEN}",
-            "Content-Type": "application/octet-stream"
-        },
-        content = open(caminho_build.string, "rb").read()
+    return (
+        bot.http.request(
+            "POST",
+            f"{host}/repos/{USUARIO}/{REPOSITORIO}/releases/{id_release}/assets",
+            query = { "name": caminho_build.nome },
+            headers = {
+                "Authorization": f"Bearer {TOKEN}",
+                "Content-Type": "application/octet-stream"
+            },
+            conteudo = open(caminho_build.string, "rb").read()
+        )
+        .esperar_status_code(201)
+        .unmarshal(Retorno)
+        .browser_download_url
     )
-    assert response.status_code == 201
-    return response.json()["browser_download_url"]
 
 def versao_build (caminho: bot.sistema.Caminho) -> str:
     versão = caminho.nome.split("-")[1]
