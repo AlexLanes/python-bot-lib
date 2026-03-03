@@ -1,7 +1,6 @@
 # std
 from __future__ import annotations
-import copy, datetime, types, tomllib, inspect
-import json as jsonlib
+import copy, datetime, types, tomllib, inspect, base64, json as jsonlib
 from typing import Any, Generator, Literal, Self, get_args, get_origin, Union
 from xml.etree.ElementTree import (
     Element,
@@ -30,6 +29,7 @@ class Json:
 
     # Criação
     json = Json.parse('{ "nome": "Alex" }')
+    json = Json.parse_b64("eyJhIjogMX0="))
     json = Json(item)
 
     # Caminhos válidos
@@ -89,6 +89,15 @@ class Json:
         except jsonlib.JSONDecodeError as erro:
             raise Exception(erro.msg)
 
+    @classmethod
+    def parse_b64 (cls, json: str) -> Json:
+        """Realiza o parse de uma string JSON, formato base64, na classe `Json`
+        - `Exception` caso ocorra erro"""
+        try: json = base64.b64decode(json).decode()
+        except Exception:
+            raise Exception("Falha ao realizar o parse de JSON no formato base64")
+        return Json.parse(json)
+
     def __repr__ (self) -> str:
         """Representação da classe"""
         return f"<Json '{self.tipo().__name__ if self else "inválido"}'>"
@@ -128,7 +137,7 @@ class Json:
         """Tipo do `json`"""
         return type(self.__item)
 
-    def obter[T] (self, esperar: type[T] | Any) -> T:
+    def obter[T] (self, esperar: type[T] | Any = Any) -> T:
         """Acessar o valor do `json` validando com o tipo `esperar`
         - Erro caso o caminho seja inválido ou o tipo `esperar` seja inválido
         - Tipos Esperados:
@@ -180,6 +189,7 @@ class ElementoXML:
     # Parse
     ElementoXML.parse(bot.sistema.Caminho("arquivo.xml"))
     ElementoXML.parse('<raiz versão="1"><filho1>abc</filho1><filho2>xyz</filho2></raiz>')
+    ElementoXML.parse_b64("PHJhaXogdmVyc8Ojbz0iMSI+PGZpbGhvMT5hYmM8L2ZpbGhvMT48ZmlsaG8yPnh5ejwvZmlsaG8yPjwvcmFpej4=")
 
     # Criação de elementos
     raiz = ElementoXML("raiz", atributos={ "versão": "1" })
@@ -233,6 +243,15 @@ class ElementoXML:
         xml = str(xml).lstrip() # remover espaços vazios no começo
         element = xml_from_string(xml) if xml.startswith("<") else xml_from_file(xml).getroot()
         return ElementoXML.__from_element(element)
+
+    @classmethod
+    def parse_b64 (cls, xml: str) -> ElementoXML:
+        """Parse do `xml`, formato base64, para um `ElementoXML`
+        - `Exception` caso ocorra erro"""
+        try: xml = base64.b64decode(xml).decode()
+        except Exception:
+            raise Exception("Falha ao realizar o parse de XML no formato base64")
+        return ElementoXML.parse(xml)
 
     @classmethod
     def __from_element (cls, element: Element) -> ElementoXML:

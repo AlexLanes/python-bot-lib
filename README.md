@@ -26,6 +26,7 @@ Utilizar o caminho para o arquivo **whl** baixado `bot @ file://.../bot-5.0-py3-
 - Alterado classe `LowerDict` para `DictNormalizado` no pacote `estruturas`
 - Movido itens do pacote `util` para pacotes específicos
 - Corrigido problema de interpolação no `configfile` com o char `$`
+- Alteração pacote `http` para extender classes do `httpx`
 
 </details>
 <details>
@@ -253,23 +254,29 @@ FTP()
 Pacote destinado ao protocolo http
 ```python
 # Enviar um request conforme parâmetros
+# Retorna um `ResponseHttp` com métodos adicionais ao `httpx.Response`
 request(
-    method: str,
-    url: URLTypes,
+    metodo: Literal['HEAD', 'OPTIONS', 'GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+    url: str,
+    query: QueryParamTypes | None = None,
+    headers: HeaderTypes | None = None,
     *,
-    params: QueryParamTypes | None = None,
-    content: RequestContent | None = None,
-    json: Any | None = None,
-    headers: HeaderTypes | None = None,
-    timeout: TimeoutTypes = DEFAULT_TIMEOUT_CONFIG,
-    ...
-)
+    json: object | None = None,
+    conteudo: RequestContent | None = None,
+    dados: RequestData | None = None,
+    arquivos: RequestFiles | None = None,
+    follow_redirects: bool = False,
+    timeout: TimeoutTypes = 60,
+    verify: str | bool = True
+) -> ResponseHttp
 
-# Criar um http client configurado para enviar requests
-Client(
+# Criar um cliente `HTTP` para realizar requests
+# Extensão do `httpx.Client`
+# Retorno dos métodos `request, get, post, put, ...` é um `ResponseHttp` com métodos adicionais ao `httpx.Response`
+ClienteHttp(
     base_url: URLTypes,
-    params: QueryParamTypes | None = None,
     headers: HeaderTypes | None = None,
+    verify: str | bool = True,
     timeout: TimeoutTypes = DEFAULT_TIMEOUT_CONFIG,
     ...
 )
