@@ -5,8 +5,9 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
 # interno
 import bot
-from bot.estruturas import Caminho, String
+from bot.estruturas import Caminho, String, Resultado
 
+@Resultado.decorador
 def enviar_email (destinatarios: typing.Iterable[bot.tipagem.email],
                   assunto = "",
                   conteudo = "",
@@ -17,9 +18,19 @@ def enviar_email (destinatarios: typing.Iterable[bot.tipagem.email],
     - `conteudo` pode ser uma string html se começar com "<"
     - `no_reply` adicionar o `no-reply` no remetente
     - `anexos` do tipo `text` são enviados com o charset `utf-8`
-    - Variáveis .ini `[email.enviar] -> user, password, host, [port: 587, ssl: False]`"""
+    - Variáveis .ini `[email.enviar] -> user, password, host, [port: 587, ssl: False]`
+
+    ### Retornado um `Resultado` para não propagar `Exception`
+    ```python
+    resultado = enviar_email(...)
+    # Sucesso ao enviar o e-mail
+    if resultado.ok(): ...
+    # Obter qual foi o erro
+    else: excecao = resultado.erro()
+    ```
+    """
     destinatarios = list[str](d for d in destinatarios)
-    bot.logger.informar(f"Enviando e-mail '{assunto}' para {str(destinatarios)}")
+    bot.logger.informar(f"Enviando e-mail", assunto=assunto, destinatarios=destinatarios)
 
     assert destinatarios, "Pelo menos um e-mail destinatário é necessário para ser enviado"
 
@@ -62,11 +73,12 @@ def enviar_email (destinatarios: typing.Iterable[bot.tipagem.email],
     try:
         TipoSMTP = smtplib.SMTP_SSL if ssl else smtplib.SMTP
         with TipoSMTP(host, port, timeout=10.0) as smtp:
-            bot.estruturas.Resultado(smtp.starttls)
+            Resultado(smtp.starttls)
             smtp.login(user, password)
             erro = smtp.sendmail(remetente, destinatarios, mensagem.as_string())
             assert not erro, bot.formatos.Json(erro).stringify()
     except Exception as erro:
         bot.logger.alertar(f"Erro ao enviar e-mail")
+        raise
 
 __all__ = ["enviar_email"]

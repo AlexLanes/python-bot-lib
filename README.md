@@ -158,13 +158,14 @@ Pacote agregrador de funções para envio e leitura de e-mail
 ```python
 # Enviar email para uma lista de `destinatarios` com `assunto`, `conteudo` e lista de `anexos`
 # Utiliza variáveis do `configfile` para conexão
+# Retornado um `Resultado` para não propagar `Exception`
 enviar_email (
     destinatarios: Iterable[email],
     assunto = "",
     conteudo = "",
     anexos: list[Caminho] = [],
     no_reply: bool = True
-) -> None
+) -> Resultado[None]
 
 # Obter e-mails de uma `Inbox`
 # Utiliza variáveis do `configfile` para conexão
