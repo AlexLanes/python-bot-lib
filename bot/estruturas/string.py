@@ -9,7 +9,7 @@ class String (str):
 
     A classe preserva todos os comportamentos de `str`, retornando
     sempre instâncias de `String` nos métodos adicionados, permitindo
-    encadeamento nas chamadas."""
+    encadeamento nas chamadas"""
 
     def __new__ (cls, value: str | String = "") -> String:
         return value if isinstance(value, String) else super().__new__(cls, value)
@@ -17,6 +17,9 @@ class String (str):
     def __repr__ (self) -> str:
         return f"<String '{str(self)}'>"
 
+    # ----- #
+    # Regex #
+    # ----- #
     RE_MULTILINE = re.MULTILINE
     RE_IGNORECASE = re.IGNORECASE
     PATTERN_NOTWORD = re.compile(r"\W")
@@ -55,6 +58,9 @@ class String (str):
             for match in re.finditer(pattern, self)
         ]
 
+    # ------------ #
+    # Normalização #
+    # ------------ #
     def remover_acentuacao (self) -> String:
         """Remover acentuações"""
         nfkd = unicodedata.normalize("NFKD", self)
@@ -71,6 +77,15 @@ class String (str):
             .re_replace(self.PATTERN_UNDERLINES, "_")
         )
 
+    def __contains__ (self, key: str) -> bool:
+        """Checar se `str in String()` em sua versão normalizada"""
+        if super().__contains__(key):
+            return True
+        return String(key).normalizar() in self.normalizar()
+
+    # -------------- #
+    # Busca de Texto #
+    # -------------- #
     def encontrar_texto[T] (self, opcoes: typing.Iterable[T],
                                   key: typing.Callable[[T], str] | None = None,
                                   similaridade_minima: float = 0.75) -> T | None:
