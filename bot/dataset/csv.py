@@ -11,8 +11,10 @@ class Csv:
     - `caminho` deve terminar em `.csv`"""
 
     caminho: Caminho
+    separador: str
 
-    def __init__(self, caminho: Caminho | str) -> None:
+    def __init__(self, caminho: Caminho | str, separador: str = ",") -> None:
+        self.separador = separador
         self.caminho = Caminho(str(caminho))
         assert self.caminho.nome.endswith(".csv"), "Caminho deve terminar em '.csv'"
 
@@ -27,12 +29,12 @@ class Csv:
         ```"""
         return self.escrever_dataframe(polars.DataFrame(dados))
 
-    def escrever_dataframe (self, dataframe: polars.DataFrame, separador: str = ",") -> bot.sistema.Caminho:
+    def escrever_dataframe (self, dataframe: polars.DataFrame) -> bot.sistema.Caminho:
         """Criar um arquivo csv no `self.caminho` com os dados informados do `dataframe`"""
         dataframe.write_csv(
             self.caminho.string,
             include_header = True,
-            separator = separador
+            separator = self.separador
         )
         return self.caminho
 
@@ -45,16 +47,16 @@ class Csv:
             .obter(list[dict[str, typing.Any]])
         )
 
-    def ler_dataframe (self, separador: str = ",") -> polars.DataFrame:
+    def ler_dataframe (self) -> polars.DataFrame:
         """Ler o csv como um `polars.DataFrame`"""
         return polars.read_csv(
             self.caminho.string,
-            separator = separador,
+            separator = self.separador,
             raise_if_empty = False
         )
 
     def ler_unmarshal[T] (self, cls: type[T]) -> list[T]:
-        """Ler o csv e realizar o unmarshal das linhas conforme a classe `cls`
+        """Ler o csv e realizar o unmarshal das linhas conforme a classe anotada `cls`
         ```python
         class Registro:
             codigo: str
@@ -63,13 +65,10 @@ class Csv:
         registros = excel.ler_unmarshal(Registro)
         print(*registros, sep="\\n")
         ```"""
-        df = self.ler_dataframe()
-        unmarshaller = bot.formatos.Unmarshaller(cls)
-        return [
-            unmarshaller.parse(item)
-            for item in bot.formatos.Json
-                .parse(df.write_json())
-                .obter(list[dict[str, typing.Any]])
-        ]
+        return (
+            bot.formatos.Json
+            .parse(self.ler_dataframe().write_json())
+            .unmarshal(list[cls])
+        )
 
 __all__ = ["Csv"]

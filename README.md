@@ -237,10 +237,12 @@ ElementoXML(
     atributos: dict[str, str] | None = None
 )
 
-# Classe para validação e parse de um `dict` para uma classe customizada
+# Classe para validação e parse de um `dict` para uma classe anotada
 Unmarshaller[T] (cls: type[T])
     # Realizar o parse do `item` conforme a classe informada
     .parse(item: dict[str, Any]) -> T
+    # Realizar o parse dos `itens` conforme a classe informada
+    .parse(item: list[dict[str, Any]]) -> list[T]
 ```
 
 ### `ftp`

@@ -87,7 +87,7 @@ class Excel:
         )
 
     def ler_unmarshal[T] (self, cls: type[T], planilha: str | None = None) -> list[T]:
-        """Ler a `planilha` do excel e realizar o unmarshal das linhas conforme a classe `cls`
+        """Ler a `planilha` do excel e realizar o unmarshal das linhas conforme a classe anotada `cls`
         - `planilha=None` primeira planilha
         ```python
         class Registro:
@@ -97,13 +97,10 @@ class Excel:
         registros = excel.ler_unmarshal(Registro)
         print(*registros, sep="\\n")
         ```"""
-        df = self.ler_dataframe(planilha)
-        unmarshaller = bot.formatos.Unmarshaller(cls)
-        return [
-            unmarshaller.parse(item)
-            for item in bot.formatos.Json
-                .parse(df.write_json())
-                .obter(list[dict[str, typing.Any]])
-        ]
+        return (
+            bot.formatos.Json
+            .parse(self.ler_dataframe(planilha).write_json())
+            .unmarshal(list[cls])
+        )
 
 __all__ = ["Excel"]

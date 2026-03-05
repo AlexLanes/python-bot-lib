@@ -164,12 +164,11 @@ class ResultadoSQL:
         )
 
     def unmarshal[T] (self, cls: type[T]) -> list[T]:
-        """Realizar o unmarshal das linhas conforme a classe `cls`
+        """Realizar o unmarshal das linhas conforme a classe anotada `cls`
         - Consome o gerador das `linhas`"""
-        u = bot.formatos.Unmarshaller(cls)
-        return [
-            u.parse(linha)
-            for linha in self.to_dict()
-        ]
+        return (
+            bot.formatos.Unmarshaller(cls)
+            .parse(self.to_dict())
+        )
 
 __all__ = ["ResultadoSQL"]

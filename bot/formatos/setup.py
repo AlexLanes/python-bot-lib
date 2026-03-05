@@ -1,7 +1,7 @@
 # std
 from __future__ import annotations
 import copy, datetime, types, tomllib, inspect, base64, json as jsonlib
-from typing import Any, Generator, Literal, Self, get_args, get_origin, Union
+from typing import Any, Generator, Literal, Self, get_args, get_origin, Union, overload
 from xml.etree.ElementTree import (
     Element,
     register_namespace,
@@ -154,15 +154,29 @@ class Json:
         except Exception:
             caminho = "".join(["$", *self.__caminho])
             raise Exception(
-                f"Erro {self!r} ao se obter o valor no Caminho({caminho}); "
+                f"Erro ao se obter o valor de um JSON no Caminho({caminho}); "
                 f"Esperado({esperar}) Encontrado({self.tipo()})"
             ) from None
 
-    def unmarshal[T] (self, cls: type[T]) -> T:
-        """Realizar o unmarshal do `item` conforme a classe `cls`
-        - `item` do json deve ser um `dict`"""
-        valor = self.obter(dict)
-        return Unmarshaller(cls).parse(valor)
+    @overload
+    def unmarshal[T] (self, cls: type[T]) -> T: ...
+    @overload
+    def unmarshal[T] (self, cls: list[type[T]]) -> list[T]: ...
+    def unmarshal[T] (self, cls: type[T] | list[type[T]]) -> T | list[T]:
+        """Realizar o unmarshal do `item` conforme classe anotada `cls` ou `list[cls]`
+        - `item` do json deve ser um `dict` ou `list[dict]`"""
+        match (cls, get_origin(cls), *get_args(cls)):
+            # T
+            case (type() as cls, None) if cls is not list:
+                item = self.obter(dict)
+                return Unmarshaller(cls).parse(item)
+            # list[T]
+            case (_, type() as origem, type() as tipo, *_) if origem is list:
+                item = self.obter(list[dict])
+                return Unmarshaller(tipo).parse(item)
+            # inválido
+            case _:
+                raise ValueError(f"Tentado Unmarshal do JSON para tipo inesperado '{cls}'")
 
     def stringify (self, indentar: bool = False) -> str:
         """Transformar o item para o formato string"""
@@ -427,7 +441,7 @@ class ElementoXML:
         return register_namespace(prefixo, namespace) or namespace
 
 class Unmarshaller[T]:
-    """Classe para validação e parse de um `dict` para uma classe customizada
+    """Classe para validação e parse de um `dict` para uma classe anotada
     - `__repr__` da classe alterada caso não tenha sido implementada
     - Propriedades são validadas como obrigatórios caso não possuam `Union` com `None` ou sem um default
     - Classes deve ter as propriedades e tipos devidamente anotados
@@ -442,8 +456,8 @@ class Unmarshaller[T]:
         - Alguma `class` seja do próprio Python ou uma classe com propriedades
 
     ```
-    from bot.formatos import Unmarshaller
     from typing import Literal
+    from bot.formatos import Unmarshaller
 
     # Classes de exemplo
     class Endereco:
@@ -495,11 +509,24 @@ class Unmarshaller[T]:
     def __repr__ (self) -> str:
         return f"<Unmarshaller[{self.cls.__name__}]>"
 
-    def parse (self, item: dict[str, Any], **kwargs: str) -> T:
+    @overload
+    def parse (self, item: dict[str, Any], **kwargs: str) -> T: ...
+    @overload
+    def parse (self, item: list[dict[str, Any]], **kwargs: str) -> list[T]: ...
+    def parse (self, item: dict[str, Any] | list[dict[str, Any]], **kwargs: str) -> T | list[T]:
         """Realizar o parse do `item` conforme a classe informada
+        - `item` pode ser um `dict` simples ou uma `list` de itens
         - Irá lançar `Exception` caso o `item` não esteja conforme a `cls` informada"""
-        obj = object.__new__(self.cls)
         caminho = kwargs.get("caminho", "$")
+        match item:
+            case dict(): pass
+            case list(): return [
+                self.parse(parte, caminho=f"{caminho}[{i}]")
+                for i, parte in enumerate(item)
+            ]
+            case _: raise self.criar_erro(caminho, dict, item)
+
+        obj = object.__new__(self.cls)
         chaves_normalizadas = {
             str(String(chave).normalizar()): chave
             for chave in item.keys()

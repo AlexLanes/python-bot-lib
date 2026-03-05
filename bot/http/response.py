@@ -3,7 +3,7 @@ import typing
 # externo
 import httpx
 from bot.estruturas import DictNormalizado
-from bot.formatos import Json, ElementoXML, Unmarshaller
+from bot.formatos import Json, ElementoXML
 
 class ResponseHttp (httpx.Response):
     """Response extensão do `httpx.Response` com métodos para facilitar validação de uma resposta http"""
@@ -97,8 +97,8 @@ class ResponseHttp (httpx.Response):
             raise ValueError(f"Erro ao realizar a validação do JSON da Resposta HTTP para o tipo esperado '{esperar}'") from erro
 
     def unmarshal[T] (self, cls: type[T]) -> T:
-        """Realizar o unmarshal do conteúdo `json` conforme a classe anotada `cls`
-        - Resposta deve ser um `dict` json
+        """Realizar o unmarshal do conteúdo `json` conforme a classe anotada `cls` ou `list[cls]`
+        - Resposta deve ser um json `dict` ou `list[dict]`
         - `ValueError` caso ocorra erro
         - Exemplo
             ```
@@ -112,7 +112,10 @@ class ResponseHttp (httpx.Response):
             print(root.slideshow.author)
             ```
         """
-        item = self.json(dict[str, typing.Any])
-        try: return Unmarshaller(cls).parse(item)
+        try: json = Json.parse(self.texto)
         except Exception as erro:
-            raise ValueError(f"Erro ao realizar o Unmarshal do JSON da Resposta HTTP para a classe '{cls.__name__}'") from erro
+            raise ValueError("Erro ao realizar o parse para JSON da Resposta HTTP") from erro
+
+        try: return json.unmarshal(cls)
+        except Exception as erro:
+            raise ValueError(f"Erro ao realizar o Unmarshal do JSON da Resposta HTTP para '{cls}'") from erro
