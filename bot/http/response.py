@@ -101,16 +101,16 @@ class ResponseHttp (httpx.Response):
         - Resposta deve ser um json `dict` ou `list[dict]`
         - `ValueError` caso ocorra erro
         - Exemplo
-            ```
-            class Slideshow:
-                date: str
-                author: str
-                slides: list[dict[str, Any]]
-            class Root:
-                slideshow: Slideshow
-            root = request("GET", "https://httpbin.org/json").unmarshal(Root)
-            print(root.slideshow.author)
-            ```
+        ```
+        class Slideshow:
+            date: str
+            author: str
+            slides: list[dict[str, Any]]
+        class Root:
+            slideshow: Slideshow
+        root = request("GET", "https://httpbin.org/json").unmarshal(Root)
+        print(root.slideshow.author)
+        ```
         """
         try: json = Json.parse(self.texto)
         except Exception as erro:

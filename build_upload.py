@@ -56,7 +56,11 @@ def criar_release (release: str) -> int:
 
 def obter_releases () -> dict[str, int]:
     """`{ Versão release: id release }`"""
-    json = (
+    class Release:
+        id: int
+        tag_name: str | None = None
+
+    releases = (
         bot.http.request(
             "GET",
             f"{HOST}/repos/{USUARIO}/{REPOSITORIO}/releases",
@@ -66,13 +70,8 @@ def obter_releases () -> dict[str, int]:
             }
         )
         .esperar_status_code(200)
-        .json(list[dict])
+        .unmarshal(list[Release])
     )
-
-    class Release:
-        tag_name: str | None = None
-        id: int
-    releases = map(bot.formatos.Unmarshaller(Release).parse, json)
 
     return {
         release.tag_name: release.id
