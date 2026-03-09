@@ -223,6 +223,11 @@ class MainLogger:
     def __repr__ (self) -> str:
         return f"<bot.MainLogger nome='{self.__nome}'>"
 
+    @classmethod
+    def obter_logger (cls, nome: str) -> "MainLogger":
+        """Obter uma nova instância do `MainLogger` de `name="nome"`"""
+        return cls(nome)
+
     @functools.cached_property
     def logger (self) -> logging.Logger:
         """Instância nomeada do `Logger`"""
@@ -356,7 +361,7 @@ class MainLogger:
 logger = MainLogger("BOT")
 """Classe pré-configurada para criar, consultar e tratar os arquivos de log.  
 Constante do logger com o `name=BOT`.  
-Importar o `MainLogger` e criar uma instância caso queira outro nome
+Utilizar `obter_logger(nome)` ou importar o `MainLogger(nome)` para criar uma instância com outro nome
 
 #### Inicializar manualmente `logger.inicializar_logger()`
     - Stream para o `stdout`

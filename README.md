@@ -322,6 +322,7 @@ logger.alertar (mensagem: str) -> MainLogger
 logger.erro (mensagem: str, excecao: Exception | None = None) -> MainLogger
 # Realizar log com um nome diferente
 logger = MainLogger("MEU_LOG")
+logger = bot.logger.obter_logger("MEU_LOG")
 # Necessário inicializar manualmente para configurar os handlers e formato em algum logger
 logger.inicializar_logger()
 
