@@ -16,7 +16,7 @@ class TSupportsStr (typing.Protocol):
 
 class JsonFormatter (logging.Formatter):
 
-    isetupificador: str
+    identificador: str
     diretorio_execucao: str
 
     def __init__ (self, identificador: str, diretorio_execucao: str) -> None:
