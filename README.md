@@ -315,20 +315,34 @@ LeitorOCR()
 ### `logger`
 Pacote para realizar e tratar Logs
 ```python
-# Log para diferentes níveis com o nome BOT
+# Log para diferentes níveis com o nome `BOT`
 logger.debug (mensagem: str) -> MainLogger
 logger.informar (mensagem: str) -> MainLogger
 logger.alertar (mensagem: str) -> MainLogger
 logger.erro (mensagem: str, excecao: Exception | None = None) -> MainLogger
-# Realizar log com um nome diferente
-logger = MainLogger("MEU_LOG")
-logger = bot.logger.obter_logger("MEU_LOG")
+# Possível de se passar itens extra com os argumentos nomeados
+# Aparecerão na propriedade `extra`
+logger.informar (
+    mensagem: str,
+    # Exemplo
+    quantidade = 10,
+    itens = [...],
+    dados = {...}
+) -> MainLogger
+
+# Criar um logger com nome próprio
+# Útil para identificar uma execução
+from bot.logger.interfaces import MainLogger
+logger = MainLogger("MEU_LOG")              # 1
+logger = bot.logger.obter_logger("MEU_LOG") # 2
+
 # Necessário inicializar manualmente para configurar os handlers e formato em algum logger
 logger.inicializar_logger()
 
 # Obter o `TracerLogger` utilizado para realizar o rastreamento de um processo
 # Possível de se realizar os logs com a mesma interface que o `MainLogger`
-tracer = logger.obter_tracer()
+from bot.logger.interfaces import TracerLogger
+tracer: TracerLogger = logger.obter_tracer()
 # Sinalizar o encerramento do tracer
 tracer.encerrar("SUCCESS", "Sucesso ao se realizar determinada Ação")
 tracer.encerrar("ERROR", "Falha ao realizar determinada Ação")
