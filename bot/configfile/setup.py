@@ -58,6 +58,16 @@ class ConfigFile:
     - Para concatenação de valores, utilizar a sintaxe `${opção}` `${seção:opção}`
     - `#` ou `;` comenta a linha se tiver no começo
     - Arquivos terminados em `.ini` devem estar presente em `DIRETORIO_EXECUCAO`
+
+    **Exemplo**
+    ```
+    [LOGIN]
+    usuario = rpa
+    senha = 123
+
+    [email]
+    usuario = ${LOGIN:usuario}
+    ativado = True
     ```"""
 
     INICIALIZADO: bool = False
@@ -80,7 +90,7 @@ class ConfigFile:
         self.INICIALIZADO = True
 
         parser = self.parser
-        for caminho in self.DIRETORIO_EXECUCAO.criar_diretorios():
+        for caminho in self.DIRETORIO_EXECUCAO:
             if not caminho.arquivo() or not caminho.nome.endswith(".ini"): continue
             parser.read(caminho.string, encoding="utf-8")
 
@@ -144,6 +154,16 @@ configfile = ConfigFile()
 - Para concatenação de valores, utilizar a sintaxe `${opção}` `${seção:opção}`
 - `#` ou `;` comenta a linha se tiver no começo
 - Arquivos terminados em `.ini` devem estar presente em `DIRETORIO_EXECUCAO`
+
+**Exemplo**
+```
+[LOGIN]
+usuario = rpa
+senha = 123
+
+[email]
+usuario = ${LOGIN:usuario}
+ativado = True
 ```"""
 
 __all__ = ["configfile"]
