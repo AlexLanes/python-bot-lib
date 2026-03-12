@@ -103,7 +103,7 @@ usuario = rpa
 senha = 123
 
 [email]
-usuario = ${LOGIN:usuario}
+usuario = ${LOGIN:usuario}@gmail.com
 ativado = True
 ```
 
