@@ -78,6 +78,10 @@ Veja a descrição dos pacotes para mais detalhes e inspecionar as funções e c
 
 ### `argumentos`
 Pacote para tratar argumentos de inicialização do Python
+- Argumentos posicionais devem vir antes dos nomeados
+- Argumentos nomeados: `--nome valor`
+- Cobrir argumentos com aspas, caso possua espaço
+> Exemplo `python main.py posicional_1 "posicional 2" --nome "Alex Lanes"`
 ```python
 # Checar se um argumento nomeado existe
 nomeado_existe (nome: str) -> bool
@@ -88,12 +92,30 @@ nomeado_ou[T] (nome: str, default: T = "") -> T
 
 ### `configfile`
 Pacote para inicialização de variáveis a partir de arquivo de configuração **.ini**
+- Para concatenação de valores, utilizar a sintaxe `${opção}` `${seção:opção}`
+- `#` ou `;` comenta a linha se tiver no começo
+- Arquivos terminados em `.ini` devem estar presente em `DIRETORIO_EXECUCAO`
+
+**Exemplo**
+```ini
+[LOGIN]
+usuario = rpa
+senha = 123
+
+[email]
+usuario = ${LOGIN:usuario}
+ativado = True
+```
+
 ```python
 # Obter múltiplas `opções` de uma `seção`. Erro caso alguma não exista
 obter_opcoes_obrigatorias (secao: str, *opcoes: str) -> tuple[str, ...]
+usuario, senha = obter_opcoes_obrigatorias("LOGIN", "usuario", "senha")
 
 # Obter `opcao` de uma `secao` do configfile ou `default` caso não exista
 obter_opcao_ou[T] (secao: str, opcao: str, default: T = "") -> T
+usuario: str = obter_opcao_ou("email", "usuario")
+ativado: bool = obter_opcao_ou("email", "ativado", default=False)
 ```
 
 ### `database`
