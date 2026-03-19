@@ -81,7 +81,7 @@ class String (str):
         """Checar se `str in String()` em sua versão normalizada"""
         if super().__contains__(key):
             return True
-        return String(key).normalizar() in self.normalizar()
+        return String(key).normalizar() in str(self.normalizar())
 
     # -------------- #
     # Busca de Texto #
