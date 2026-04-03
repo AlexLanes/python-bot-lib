@@ -135,12 +135,19 @@ class ConfigFile:
         return bot.util.transformar_tipo(self.DADOS[secao][opcao], type(default)) \
             if self.possui_secao(secao) and self.possui_opcao(secao, opcao) else default
 
+    def obter_opcao_obrigatoria (self, secao: str, opcao: str) -> str:
+        """Obter `opção` obrigatória da `seção`
+        - `AssertionError` caso a `seção` ou `opção` não exista"""
+        assert self.possui_secao(secao), f"Seção do configfile '{secao}' não foi configurada"
+        assert self.possui_opcao(secao, opcao), f"Opção do configfile '{opcao}' não foi configurado para a seção '{secao}'"
+        return self.DADOS[secao][opcao]
+
     def obter_opcoes_obrigatorias (self, secao: str, *opcoes: str) -> tuple[str, ...]:
         """Obter múltiplas `opções` de uma `seção`
         - `AssertionError` caso a `seção` ou alguma `opção` não exista
         - `tuple` de retorno terá os valores na mesma ordem que as `opções`"""
         assert self.possui_secao(secao), f"Seção do configfile '{secao}' não foi configurada"
-        assert self.possui_opcoes(secao, *opcoes), f"Variáveis do configfile {str(opcoes)} não foram configuradas para a seção '{secao}'"
+        assert self.possui_opcoes(secao, *opcoes), f"Opções do configfile {opcoes!r} não foram configuradas para a seção '{secao}'"
         return tuple(
             self.DADOS[secao][opcao]
             for opcao in opcoes
