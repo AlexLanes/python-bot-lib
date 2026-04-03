@@ -1,6 +1,6 @@
 # std
 from __future__ import annotations
-import typing, pathlib, shutil, mimetypes, functools
+import os, typing, pathlib, shutil, mimetypes, functools
 from datetime import datetime as Datetime
 # interno
 from bot.tipagem import SupportsBool
@@ -49,6 +49,7 @@ class Caminho:
     ### Informação
         - `c.existe()`, `c.arquivo()`, `c.diretorio()`
         - `c.tamanho`, `c.data_criacao`, `c.data_modificao`
+        - `c.permissao_leitura()`, `c.permissao_escrita()`
     ### Iteração sobre Diretório
         - `for caminho in Caminho(): ...`
         - `c.procurar()`
@@ -190,11 +191,28 @@ class Caminho:
             if filtro(caminho := Caminho.from_path(path))
         ]
 
+    @functools.cache
     def mimetype (self, fallback: str = "application/octet-stream") -> Mimetype:
         """Advinhar o mimetype do `Caminho` puramente pela extensão
         - `fallback` caso nenhum resultado"""
         tipo, _ = mimetypes.guess_type(self.string, strict=False)
         return Mimetype(tipo or fallback)
+
+    # ---------- #
+    # Permissões #
+    # ---------- #
+
+    def permissao_leitura (self) -> bool:
+        """Checar se possui permissão de leitura `R`
+        - Checar se existe antes
+        - Utilizar em diretórios"""
+        return os.access(self.path, os.R_OK)
+
+    def permissao_escrita (self) -> bool:
+        """Checar se possui permissão de escrita `W`
+        - Checar se existe antes
+        - Utilizar em diretórios"""
+        return os.access(self.path, os.W_OK)
 
     # ------------------ #
     # Leitura de Arquivo #
