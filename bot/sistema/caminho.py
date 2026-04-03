@@ -204,13 +204,15 @@ class Caminho:
 
     def permissao_leitura (self) -> bool:
         """Checar se possui permissão de leitura `R`
-        - Checar se existe antes
+        - Necessário para evitar `PermissionError` ao consultar informações do `Caminho`
+        - `False` caso não exista
         - Utilizar em diretórios"""
         return os.access(self.path, os.R_OK)
 
     def permissao_escrita (self) -> bool:
         """Checar se possui permissão de escrita `W`
-        - Checar se existe antes
+        - Necessário para evitar `PermissionError` ao modificar no `Caminho`
+        - `False` caso não exista
         - Utilizar em diretórios"""
         return os.access(self.path, os.W_OK)
 
