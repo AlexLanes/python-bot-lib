@@ -14,9 +14,6 @@ class String (str):
     def __new__ (cls, value: str | String = "") -> String:
         return value if isinstance(value, String) else super().__new__(cls, value)
 
-    def __repr__ (self) -> str:
-        return f"<String '{str(self)}'>"
-
     # ----- #
     # Regex #
     # ----- #
