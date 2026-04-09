@@ -793,6 +793,7 @@ class JanelaW32:
     janela.processo   # Processo do módulo `psutil` para controle via `PID`
     janela.focada     # Checar se a janela está em primeiro plano
     janela.minimizada
+    janela.normal
     janela.maximizada
     janela.fechada
     ```
@@ -817,6 +818,7 @@ class JanelaW32:
     ### Métodos
     ```
     janela.maximizar()
+    janela.restaurar()
     janela.minimizar()
     janela.focar()              # Trazer a janela para primeiro plano
     janela.aguardar()           # Aguarda `timeout` segundos até que a thread da GUI fique ociosa
@@ -973,17 +975,35 @@ class JanelaW32:
 
     @property
     def maximizada (self) -> bool:
+        """Checar se a janela está em sua versão maximizada"""
         placement = win32gui.GetWindowPlacement(self.hwnd)
         return placement[1] == win32con.SW_SHOWMAXIMIZED
     def maximizar (self) -> typing.Self:
+        """Maximizar a janela e trazer para o foco"""
         win32gui.ShowWindow(self.hwnd, win32con.SW_MAXIMIZE)
         return self.aguardar().sleep(0.1)
 
     @property
+    def normal (self) -> bool:
+        """Checar se a janela está em sua versão normal
+        - Nem maximizada e nem minimizada"""
+        placement = win32gui.GetWindowPlacement(self.hwnd)
+        return placement[1] == win32con.SW_SHOWNORMAL
+    def restaurar (self) -> typing.Self:
+        """Restaurar a janela e trazer para o foco
+        - Caso estiver `minimizada`, é restaurada para o foco na sua versão anterior `maximizada/normal`
+        - Caso estiver `maximizada`, é restaurada para o foco na sua versão `normal`
+        - Caso estiver `normal`, apenas é feito o foco"""
+        win32gui.ShowWindow(self.hwnd, win32con.SW_RESTORE)
+        return self.aguardar().sleep(0.1)
+
+    @property
     def minimizada (self) -> bool:
+        """Checar se a janela está em sua versão minimizada"""
         placement = win32gui.GetWindowPlacement(self.hwnd)
         return placement[1] == win32con.SW_SHOWMINIMIZED
     def minimizar (self) -> typing.Self:
+        """Minimizar a janela e remover o foco"""
         win32gui.ShowWindow(self.hwnd, win32con.SW_MINIMIZE)
         return self.aguardar().sleep(0.1)
 
@@ -1242,6 +1262,7 @@ class JanelaUIA (JanelaW32):
     janela.processo   # Processo do módulo `psutil` para controle via `PID`
     janela.focada     # Checar se a janela está em primeiro plano
     janela.minimizada
+    janela.normal
     janela.maximizada
     janela.fechada
     ```
@@ -1274,6 +1295,7 @@ class JanelaUIA (JanelaW32):
     ### Métodos
     ```
     janela.maximizar()
+    janela.restaurar()
     janela.minimizar()
     janela.focar()              # Trazer a janela para primeiro plano
     janela.aguardar()           # Aguarda `timeout` segundos até que a thread da GUI fique ociosa
@@ -1320,6 +1342,20 @@ class JanelaUIA (JanelaW32):
         pattern = self.elemento.query_interface(uiaclient.UIA_WindowPatternId, uiaclient.IUIAutomationWindowPattern)
         if pattern: pattern.SetWindowVisualState(uiaclient.WindowVisualState_Maximized)
         else: super().maximizar()
+        return self
+
+    @property
+    def normal (self) -> bool:
+        pattern = self.elemento.query_interface(uiaclient.UIA_WindowPatternId, uiaclient.IUIAutomationWindowPattern)
+        if not pattern: return not self.minimizada and not self.maximizada
+        return pattern.CurrentWindowVisualState == uiaclient.WindowVisualState_Normal
+    def restaurar (self) -> typing.Self:
+        """Restaurar a janela e trazer para o foco
+        - Caso estiver `minimizada/maximizada`, é restaurada para o foco na sua versão `normal`
+        - Caso estiver `normal`, apenas é feito o foco"""
+        pattern = self.elemento.query_interface(uiaclient.UIA_WindowPatternId, uiaclient.IUIAutomationWindowPattern)
+        if pattern: pattern.SetWindowVisualState(uiaclient.WindowVisualState_Normal)
+        else: super().restaurar()
         return self
 
     @property
