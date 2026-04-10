@@ -1,6 +1,8 @@
 # std
 from __future__ import annotations
-import os, typing, pathlib, shutil, mimetypes, functools
+import os, typing, functools
+import mimetypes, base64
+import pathlib, shutil
 from datetime import datetime as Datetime
 # interno
 from bot.tipagem import SupportsBool
@@ -46,6 +48,9 @@ class Caminho:
         - `c.string`, `str(c)`
         - `c.nome`, `c.prefixo`, `c.sufixo`
         - `c.parente`, `c.fragmentos`
+    ### Leitura
+        - `c.ler_texto()`, `c.ler_bytes()`
+        - `c.encode_base64()`
     ### Informação
         - `c.existe()`, `c.arquivo()`, `c.diretorio()`
         - `c.tamanho`, `c.data_criacao`, `c.data_modificao`
@@ -227,6 +232,10 @@ class Caminho:
     def ler_bytes (self) -> bytes:
         """Abrir o arquivo no modo binário, ler e fechar o arquivo"""
         return self.path.read_bytes()
+
+    def encode_base64 (self) -> str:
+        """Abrir o arquivo, ler os bytes e realizar o encode para `base64`"""
+        return base64.b64encode(self.ler_bytes()).decode("utf-8")
 
     # ---------------------------- #
     # Alteração no Nome do Caminho #
