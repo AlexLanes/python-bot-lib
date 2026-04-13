@@ -66,7 +66,7 @@ class Stack [T]:
         return self.__dq.pop()
 
 class Queue [T]:
-    """Fist In First Out"""
+    """First In First Out"""
 
     __dq: Deque[T]
     tamanho: int | None
