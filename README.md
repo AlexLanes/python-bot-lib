@@ -121,12 +121,6 @@ ativado: bool = obter_opcao_ou("email", "ativado", default=False)
 ### `database`
 Pacote com abstrações e normalização de operações em databases
 ```python
-# Criar um arquivo excel em `caminho` com os dados informados em `planilhas`
-criar_excel (
-    caminho: Caminho,
-    planilhas: dict[str, polars.DataFrame]
-) -> Caminho
-
 # Classe de abstração do módulo `sqlite3`
 Sqlite() # Memória
 Sqlite(caminho: str | Caminho) # Caminho .db ou .sqlite
