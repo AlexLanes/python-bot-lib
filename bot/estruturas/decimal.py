@@ -85,9 +85,16 @@ class Decimal:
 
     def __comparar (self, other: object, operator: typing.Callable) -> bool:
         match other:
-            case str() | int(): return operator(self.d, Decimal(str(other), self.precisao, self.separador_decimal).d)
-            case Decimal():     return operator(self.d, other.d)
-            case _:             return NotImplemented
+            case Decimal():
+                return operator(self.d, other.d)
+            case str() | int():
+                corrigido = Decimal(str(other), self.precisao, self.separador_decimal)
+                return operator(self.d, corrigido.d)
+            case float():
+                corrigido = Decimal(str(other).replace(".", self.separador_decimal), self.precisao, self.separador_decimal)
+                return operator(self.d, corrigido.d)
+            case _:
+                return NotImplemented
     def __eq__ (self, other: object) -> bool: return self.__comparar(other, operator.eq)
     def __ne__ (self, other: object) -> bool: return self.__comparar(other, operator.ne)
     def __lt__ (self, other: object) -> bool: return self.__comparar(other, operator.lt)
@@ -98,9 +105,16 @@ class Decimal:
     def __aplicar (self, other: object, operator: typing.Callable) -> Decimal:
         obj = object.__new__(Decimal)
         match other:
-            case str() | int(): obj.d = operator(self.d, Decimal(str(other), self.precisao, self.separador_decimal).d)
-            case Decimal():     obj.d = operator(self.d, other.d)
-            case _:             return NotImplemented
+            case Decimal():
+                obj.d = operator(self.d, other.d)
+            case str() | int():
+                corrigido = Decimal(str(other), self.precisao, self.separador_decimal)
+                obj.d = operator(self.d, corrigido.d)
+            case float():
+                corrigido = Decimal(str(other).replace(".", self.separador_decimal), self.precisao, self.separador_decimal)
+                obj.d = operator(self.d, corrigido.d)
+            case _:
+                return NotImplemented
 
         exponent = decimal.Decimal(".".ljust(self.precisao + 1, "0"))
         obj.d = obj.d.quantize(exponent, decimal.ROUND_FLOOR)
@@ -139,5 +153,7 @@ class Decimal:
     @staticmethod
     def sum (decimais: typing.Iterable[Decimal]) -> Decimal:
         """Realizar o `sum()` de todos os `decimais`"""
-        return functools.reduce(lambda total, atual: total + atual,
-                                decimais)
+        return functools.reduce(
+            lambda total, atual: total + atual,
+            decimais
+        )
