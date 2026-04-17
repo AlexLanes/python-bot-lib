@@ -29,6 +29,7 @@ class Excel:
     def __init__ (self, caminho: Caminho | str) -> None:
         self.caminho = Caminho(str(caminho))
         assert self.caminho.nome.endswith(".xlsx"), "Caminho deve terminar em '.xlsx'"
+        self.caminho.parente.criar_diretorios()
 
     def escrever (self, **planilhas: typing.Iterable[dict[str, typing.Any]]) -> Caminho:
         """Criar um arquivo excel no `self.caminho` com os dados informados de `planilhas`

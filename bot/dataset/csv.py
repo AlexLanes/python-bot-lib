@@ -17,6 +17,7 @@ class Csv:
         self.separador = separador
         self.caminho = Caminho(str(caminho))
         assert self.caminho.nome.endswith(".csv"), "Caminho deve terminar em '.csv'"
+        self.caminho.parente.criar_diretorios()
 
     def escrever (self, dados: typing.Iterable[dict[str, typing.Any]]) -> Caminho:
         """Criar um arquivo csv no `self.caminho` com os `dados` informados
