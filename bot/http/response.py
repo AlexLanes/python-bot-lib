@@ -19,10 +19,21 @@ class ResponseHttp (httpx.Response):
         return obj
 
     @property
+    def headers_dict (self) -> dict[str, str]:
+        """Headers com chaves normalizadas
+        - `Chaves` dos headers em `lower` e feito `strip()`
+        - `Valores` dos headers transformados em `str`
+        - Caso existam múltiplos headers de mesmo nome, os valores serão concatenados por `,`"""
+        return {
+            str(key).lower().strip(): str(value)
+            for key, value in dict(getattr(self, "_headers", {})).items()
+        }
+
+    @property
     def headers (self) -> DictNormalizado[str]:
         """Headers com chaves normalizadas
         - Caso existam múltiplos headers de mesmo nome, os valores serão concatenados por `,`"""
-        return DictNormalizado(getattr(self, "_headers", {}))
+        return DictNormalizado(self.headers_dict)
 
     def esperar_sucesso (self, mensagem: str | None = None) -> typing.Self:
         """Fazer o `assert` se o `response.status_code` de retorno é `2xx`
