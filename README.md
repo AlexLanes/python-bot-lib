@@ -468,6 +468,10 @@ Pacote destinado para ações que envolvam tempo e condições de espera
 # Sleep tradicional com padrão de 1 segundo
 sleep(segundos=1)
 
+# Obter `Datetime` conforme `Timezone` desejado
+datetime_brt()
+datetime_utc()
+
 # Repetir a função `condição`, aguardando por `timeout` segundos, até que resulte em `True`
 # Retorna um `bool` indicando se a `condição` foi atendida
 sucesso = aguardar(

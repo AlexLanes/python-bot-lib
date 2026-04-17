@@ -1,7 +1,14 @@
 # std
 import time
+from datetime import (
+    datetime  as Datetime,
+    timezone  as Timezone,
+    timedelta as Timedelta
+)
 # interno
 from bot.tempo.cronometro import Cronometro
+
+TIMEZONE_BRT = Timezone(Timedelta(hours=-3))
 
 def sleep (segundos: int | float = 1) -> None:
     """Sleep tradicional com padrão de `1 segundo`"""
@@ -28,8 +35,23 @@ def formatar_tempo_decorrido (segundos: int | float | Cronometro) -> str:
 
     return " e ".join(tempos)
 
+def datetime_brt (com_timezone: bool = False) -> Datetime:
+    """Obter o `Datetime` no Timezone `BRT`
+    - `com_timezone` para remover a informação do offset no `Datetime`"""
+    data = Datetime.now(TIMEZONE_BRT)
+    return data if com_timezone else data.replace(tzinfo=None)
+
+def datetime_utc (com_timezone: bool = False) -> Datetime:
+    """Obter o `Datetime` no Timezone `UTC`
+    - `com_timezone` para remover a informação do offset no `Datetime`"""
+    data = Datetime.now(Timezone.utc)
+    return data if com_timezone else data.replace(tzinfo=None)
+
 __all__ = [
     "sleep",
     "Cronometro",
+    "TIMEZONE_BRT",
+    "datetime_brt",
+    "datetime_utc",
     "formatar_tempo_decorrido",
 ]

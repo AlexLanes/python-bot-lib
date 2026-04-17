@@ -1,13 +1,10 @@
 # std
 import sys, uuid, atexit, typing, logging, functools
-from datetime import (
-    datetime  as Datetime,
-    timezone  as Timezone,
-    timedelta as Timedelta
-)
+from datetime import datetime as Datetime, timedelta as Timedelta
 # interno
 import bot
 from bot.sistema import Caminho
+from bot.tempo import TIMEZONE_BRT
 
 P = typing.ParamSpec("P")
 
@@ -27,7 +24,7 @@ class JsonFormatter (logging.Formatter):
     def format (self, record: logging.LogRecord) -> str:
         payload: dict[str, str | TSupportsStr] = {
             "id": self.identificador,
-            "timestamp": Datetime.fromtimestamp(record.created, MainLogger.TIMEZONE_BR)\
+            "timestamp": Datetime.fromtimestamp(record.created, TIMEZONE_BRT)\
                                  .strftime(MainLogger.FORMATO_DATA_LOG),
             "name": record.name,
             "level": record.levelname,
@@ -204,8 +201,7 @@ class MainLogger:
         - Salva um LOG no diretório de persistência `CAMINHO_LOG_PERSISTENCIA`
         - Variáveis .ini `[logger] -> [dias_persistencia: 14, flag_debug: False]`"""
 
-    TIMEZONE_BR = Timezone(Timedelta(hours=-3))
-    INICIALIZACAO_PACOTE = Datetime.now(TIMEZONE_BR)
+    INICIALIZACAO_PACOTE = Datetime.now(TIMEZONE_BRT)
 
     FORMATO_DATA_LOG: str = r"%Y-%m-%dT%H:%M:%S"
     FORMATO_NOME_LOG_PERSISTENCIA: str = r"%Y-%m-%dT%H-%M-%S.jsonl"
@@ -276,7 +272,7 @@ class MainLogger:
         for caminho in self.CAMINHO_DIRETORIO_PERSISTENCIA:
             if not caminho.arquivo(): continue
             data = Datetime.strptime(caminho.nome, self.FORMATO_NOME_LOG_PERSISTENCIA)\
-                           .astimezone(self.TIMEZONE_BR)
+                           .astimezone(TIMEZONE_BRT)
             if self.INICIALIZACAO_PACOTE - data < limite: break
             caminho.apagar_arquivo()
 

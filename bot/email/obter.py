@@ -1,14 +1,10 @@
 # std
 import typing, dataclasses, imaplib
+from datetime import datetime as Datetime
 from email.message import Message
 from email import message_from_bytes
 from email.header import decode_header
 from email.utils import parsedate_to_datetime
-from datetime import (
-    datetime as Datetime, 
-    timezone as TimeZone, 
-    timedelta as TimeDelta
-)
 # interno
 import bot
 from bot.estruturas import String
@@ -54,14 +50,13 @@ def extrair_assunto (assunto: str) -> str:
 def extrair_datetime (datetime: str | None) -> Datetime:
     """Extrair o datetime do e-mail e realizar o parse para o `Datetime` BRT
     - Retorna `Datetime.now()` BRT caso seja `None` ou ocorra algum erro"""
-    brt = TimeZone(TimeDelta(hours=-3))
     try:
         data = parsedate_to_datetime(datetime)
         assert isinstance(data, Datetime)
-        return data.astimezone(brt)
+        return data.astimezone(bot.tempo.TIMEZONE_BRT)
     except Exception:
         bot.logger.alertar(f"Extração do datetime '{datetime}' de e-mail resultou em falha")
-        return Datetime.now(brt)
+        return bot.tempo.datetime_brt()
 
 def obter_emails (limite: int | slice | None = None,
                   query = "ALL",
