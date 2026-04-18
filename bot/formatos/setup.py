@@ -1,7 +1,10 @@
 # std
 from __future__ import annotations
 import copy, datetime, types, tomllib, inspect, base64, json as jsonlib
-from typing import Any, Generator, Literal, Self, get_args, get_origin, Union, overload
+from typing import (
+    Any, Generator, Literal, Self, Union, TypeAliasType,
+    get_args, get_origin, overload
+)
 from xml.etree.ElementTree import (
     Element,
     register_namespace,
@@ -555,12 +558,14 @@ class Unmarshaller[T]:
         - Erro caso o `valor` não possuao tipo `esperar`"""
         if isinstance(esperar, str):
             esperar = Unmarshaller.cls_seen.get(esperar, esperar) # type: ignore
+        elif isinstance(esperar, TypeAliasType):
+            esperar = esperar.__value__
 
         # Any ou mesmo tipo
         if esperar is Any or esperar is type(valor):
             return valor
 
-        # primitivos
+        # Primitivos
         if any(esperar is t and isinstance(valor, t)
                for t in self.PRIMITIVOS):
             return valor
@@ -588,7 +593,7 @@ class Unmarshaller[T]:
                 try: return self.validar(t, valor, caminho)
                 except Exception: pass
 
-        # list
+        # List
         if esperar is list or origin is list:
             item_type, *_ = get_args(esperar) or [Any]
             if not isinstance(valor, list):
@@ -598,7 +603,7 @@ class Unmarshaller[T]:
                 for i, v in enumerate(valor)
             ] # type: ignore
 
-        # dict
+        # Dict
         if esperar is dict or origin is dict:
             key_type, val_type = get_args(esperar) or (str, Any)
             if key_type is not str:
