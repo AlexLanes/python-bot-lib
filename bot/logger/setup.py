@@ -5,11 +5,9 @@ from datetime import datetime as Datetime, timedelta as Timedelta
 import bot
 from bot.sistema import Caminho
 from bot.tempo import TIMEZONE_BRT
+from bot.tipagem import SupportsStr
 
 P = typing.ParamSpec("P")
-
-class TSupportsStr (typing.Protocol):
-    def __str__ (self) -> str: ...
 
 class JsonFormatter (logging.Formatter):
 
@@ -22,7 +20,7 @@ class JsonFormatter (logging.Formatter):
         self.diretorio_execucao = diretorio_execucao
 
     def format (self, record: logging.LogRecord) -> str:
-        payload: dict[str, str | TSupportsStr] = {
+        payload: dict[str, SupportsStr] = {
             "id": self.identificador,
             "timestamp": Datetime.fromtimestamp(record.created, TIMEZONE_BRT)\
                                  .strftime(MainLogger.FORMATO_DATA_LOG),
@@ -55,8 +53,10 @@ class JsonFormatter (logging.Formatter):
             "line": record.lineno,
         }
 
-        return bot.formatos.Json(payload)\
-                           .stringify(indentar=False)
+        return (
+            bot.formatos.Json(payload)
+            .stringify(indentar=False)
+        )
 
 class TracerLogger:
     """Classe logger, obtida pelo `MainLogger`, para realizar o rastreamento de itens relacionados
@@ -88,7 +88,7 @@ class TracerLogger:
             }
         )
 
-    def debug (self, mensagem: str | TSupportsStr,
+    def debug (self, mensagem: SupportsStr,
                      **extra: object) -> typing.Self:
         """Log nível `DEBUG`"""
         self.logger.debug(
@@ -105,7 +105,7 @@ class TracerLogger:
         )
         return self
 
-    def informar (self, mensagem: str | TSupportsStr,
+    def informar (self, mensagem: SupportsStr,
                         **extra: object) -> typing.Self:
         """Log nível `INFO`"""
         self.logger.info(
@@ -122,7 +122,7 @@ class TracerLogger:
         )
         return self
 
-    def alertar (self, mensagem: str | TSupportsStr,
+    def alertar (self, mensagem: SupportsStr,
                        **extra: object) -> typing.Self:
         """Log nível `WARNING`
         - `Exception` capturada automaticamente, caso dentro do `except`"""
@@ -141,7 +141,7 @@ class TracerLogger:
         )
         return self
 
-    def erro (self, mensagem: str | TSupportsStr,
+    def erro (self, mensagem: SupportsStr,
                     excecao: Exception | None = None,
                     **extra: object) -> typing.Self:
         """Log nível `ERROR`
@@ -162,7 +162,7 @@ class TracerLogger:
         return self
 
     def encerrar (self, status: typing.Literal["SUCCESS", "WARNING", "ERROR"],
-                        mensagem: str | TSupportsStr,
+                        mensagem: SupportsStr,
                         excecao: Exception | None = None,
                         **extra: object) -> None:
         """Sinalizar o encerramento do tracer
@@ -276,7 +276,7 @@ class MainLogger:
             if self.INICIALIZACAO_PACOTE - data < limite: break
             caminho.apagar_arquivo()
 
-    def debug (self, mensagem: str | TSupportsStr,
+    def debug (self, mensagem: SupportsStr,
                      **extra: object) -> typing.Self:
         """Log nível `DEBUG`"""
         self.logger.debug(
@@ -286,7 +286,7 @@ class MainLogger:
         )
         return self
 
-    def informar (self, mensagem: str | TSupportsStr,
+    def informar (self, mensagem: SupportsStr,
                         **extra: object) -> typing.Self:
         """Log nível `INFO`"""
         self.logger.info(
@@ -296,7 +296,7 @@ class MainLogger:
         )
         return self
 
-    def alertar (self, mensagem: str | TSupportsStr,
+    def alertar (self, mensagem: SupportsStr,
                        **extra: object) -> typing.Self:
         """Log nível `WARNING`
         - `Exception` capturada automaticamente, caso dentro do `except`"""
@@ -308,7 +308,7 @@ class MainLogger:
         )
         return self
 
-    def erro (self, mensagem: str | TSupportsStr,
+    def erro (self, mensagem: SupportsStr,
                     excecao: Exception | None = None,
                     **extra: object) -> typing.Self:
         """Log nível `ERROR`

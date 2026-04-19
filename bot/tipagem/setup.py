@@ -12,7 +12,13 @@ type rgb = tuple[int, int, int]
 """Tipo da cor RGB"""
 type primitivo = str | int | float | bool | None
 """Tipos primitivos do Python"""
-type SupportsBool = object
+
+type Numerico = int | float
+"""Tipos númericos primitivos do Python
+- `bool` é uma implementação do `int`"""
+type SupportsStr = str | object
+"""Tipo indicador de qualquer objeto que suporte `str(objeto)`"""
+type SupportsBool = bool | object
 """Tipo indicador de qualquer objeto que suporte `bool(objeto)`"""
 
 type tipoSQL = primitivo | bytes | date | time | datetime 
@@ -38,11 +44,13 @@ __all__ = [
     "email",
     "tipoSQL",
     "nomeado",
+    "Numerico",
     "primitivo",
     "posicional",
+    "SupportsStr",
+    "SupportsBool",
     "BOTOES_MOUSE",
     "PORCENTAGENS",
-    "SupportsBool",
     "BOTOES_TECLADO",
     "DIRECOES_SCROLL",
 ]
