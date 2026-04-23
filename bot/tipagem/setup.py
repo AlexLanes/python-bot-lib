@@ -13,6 +13,8 @@ type rgb = tuple[int, int, int]
 type primitivo = str | int | float | bool | None
 """Tipos primitivos do Python"""
 
+type TJson = primitivo | dict[str, TJson] | list[TJson]
+"""Tipos do Python que pertencem ao mesmo formato do `Json`"""
 type Numerico = int | float
 """Tipos númericos primitivos do Python
 - `bool` é uma implementação do `int`"""
@@ -42,6 +44,7 @@ __all__ = [
     "rgb",
     "char",
     "email",
+    "TJson",
     "tipoSQL",
     "nomeado",
     "Numerico",
