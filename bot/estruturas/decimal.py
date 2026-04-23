@@ -77,11 +77,15 @@ class Decimal:
         return not self.nan() and bool(self.d)
 
     def __abs__ (self) -> Decimal:
-        valor_absoluto = str(self.d).removeprefix("-")
-        return Decimal(valor_absoluto, self.precisao)
+        absoluto = str(self.d).removeprefix("-")
+        if self.separador_decimal != ".":
+            absoluto = absoluto.replace(".", self.separador_decimal, 1)
+        return Decimal(absoluto, self.precisao, self.separador_decimal)
     def __round__ (self, n: int = 0) -> Decimal:
         valor = str(round(self.d, n))
-        return Decimal(valor, self.precisao)
+        if self.separador_decimal != ".":
+            valor = valor.replace(".", self.separador_decimal, 1)
+        return Decimal(valor, self.precisao, self.separador_decimal)
 
     def __comparar (self, other: object, operator: typing.Callable) -> bool:
         match other:
