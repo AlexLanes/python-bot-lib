@@ -40,7 +40,7 @@ wheels = [
 
 [[package]]
 name = "bot"
-version = "5.1"
+version = "5.0"
 source = { editable = "." }
 dependencies = [
     { name = "comtypes" },
