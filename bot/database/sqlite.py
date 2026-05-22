@@ -15,7 +15,7 @@ class Sqlite:
 
     def __init__ (self, database: str | bot.sistema.Caminho = ":memory:", **kwargs: typing.Any) -> None:
         database = str(database)
-        bot.logger.informar(f"Iniciando conexão Sqlite com o database '{database}'")
+        bot.logger.debug(f"Iniciando conexão Sqlite com o database '{database}'")
         self.conexao = sqlite3.connect(database, **kwargs)
 
     def __del__ (self) -> None:
@@ -30,7 +30,7 @@ class Sqlite:
         """Fechar a conexão com o `sqlite`
         - Executado automaticamente quando o objeto sair do escopo"""
         self.conexao.close()
-        bot.logger.informar(f"Conexão com o {self!r} encerrada")
+        bot.logger.debug(f"Conexão com o {self!r} encerrada")
 
     def tabelas (self) -> list[str]:
         """Nomes das tabelas disponíveis"""

@@ -31,7 +31,7 @@ class DatabaseOracle:
 
     def __init__ (self, **kwargs: typing.Any) -> None:
         """Criar conexão Oracle (autocommit sempre False)"""
-        bot.logger.informar(f"Iniciando conexão Oracle Database")
+        bot.logger.debug("Iniciando conexão Oracle Database")
         self.__criar_conexao = lambda: oracledb.connect(**kwargs)
         self.conexao = self.__criar_conexao()
         self.conexao.autocommit = False
@@ -49,7 +49,7 @@ class DatabaseOracle:
         - Executado automaticamente quando o objeto sair do escopo"""
         try:
             self.conexao.close()
-            bot.logger.informar(f"Conexão com o {self!r} encerrada")
+            bot.logger.debug(f"Conexão com o {self!r} encerrada")
         except Exception: pass
 
     def reconectar (self) -> typing.Self:

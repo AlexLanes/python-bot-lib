@@ -40,7 +40,7 @@ class DatabaseODBC:
         # escolher um driver dos encontrados (preferência ao `unicode`)
         unicode = [driver for driver in existentes if "unicode" in driver.lower()]
         nome_driver = unicode[0] if unicode else existentes[0]
-        bot.logger.informar(f"Iniciando conexão ODBC com o driver '{nome_driver}'")
+        bot.logger.debug(f"Iniciando conexão ODBC com o driver '{nome_driver}'")
 
         # montar o argumento de conexão
         kwargs["driver"] = nome_driver
@@ -70,7 +70,7 @@ class DatabaseODBC:
         """Fechar a conexão com o database
         - Executado automaticamente quando o objeto sair do escopo"""
         self.conexao.close()
-        bot.logger.informar(f"Conexão com o {self!r} encerrada")
+        bot.logger.debug(f"Conexão com o {self!r} encerrada")
 
     def reconectar (self) -> typing.Self:
         """Refazer a conexão caso encerrada"""
