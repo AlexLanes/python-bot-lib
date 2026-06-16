@@ -123,9 +123,10 @@ class DatabaseODBC:
         - Argumentos nomeados `:nome` não são aceitos pelo `pyodbc`
         - Retornado classe própria `ResultadoSQL`, veja a documentação na definição da classe"""
         cursor = self.conexao.execute(sql, posicional)
+        linhas_afetadas = cursor.rowcount if (cursor.rowcount or 0) >= 1 else None
         colunas = tuple(coluna for coluna, *_ in cursor.description) if cursor.description else tuple()
         return ResultadoSQL(
-            linhas_afetadas = cursor.rowcount if not colunas and cursor.rowcount >= 0 else None,
+            linhas_afetadas = linhas_afetadas,
             colunas = colunas,
             linhas = (tuple(linha) for linha in cursor) if colunas else (tuple() for _ in [])
         )

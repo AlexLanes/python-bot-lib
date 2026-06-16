@@ -126,11 +126,13 @@ class DatabaseOracle:
 
         cursor = self.conexao.cursor()
         cursor.execute(sql, posicional if posicional else nomeado if nomeado else None)
-        colunas = tuple(str(desc[0]) for desc in cursor.description) if cursor.description else tuple()
+
+        linhas_afetadas = cursor.rowcount if (cursor.rowcount or 0) >= 1 else None
+        colunas = tuple(str(coluna) for coluna, *_ in cursor.description) if cursor.description else tuple()
         return ResultadoSQL(
-            linhas_afetadas = cursor.rowcount if not colunas and cursor.rowcount >= 0 else None,
+            linhas_afetadas = linhas_afetadas,
             colunas = colunas,
-            linhas = (tuple(linha) for linha in cursor) if colunas else (tuple() for _ in [])
+            linhas = (tuple(linha) for linha in cursor) if linhas_afetadas or colunas else (tuple() for _ in [])
         )
 
     def execute_many (self, sql: str, parametros: typing.Iterable[bot.tipagem.posicional] | typing.Iterable[bot.tipagem.nomeado]) -> ResultadoSQL:
@@ -140,11 +142,13 @@ class DatabaseOracle:
         - Retornado classe própria `ResultadoSQL`, veja a documentação na definição da classe"""
         cursor = self.conexao.cursor()
         cursor.executemany(sql, parametros)
+
+        linhas_afetadas = cursor.rowcount if (cursor.rowcount or 0) >= 1 else None
         colunas = tuple(str(desc[0]) for desc in cursor.description) if cursor.description else tuple()
         return ResultadoSQL(
-            linhas_afetadas = cursor.rowcount if not colunas and cursor.rowcount >= 0 else None,
+            linhas_afetadas = linhas_afetadas,
             colunas = colunas,
-            linhas = (tuple(linha) for linha in cursor) if colunas else (tuple() for _ in [])
+            linhas = (tuple(linha) for linha in cursor) if linhas_afetadas or colunas else (tuple() for _ in [])
         )
 
 __all__ = ["DatabaseOracle"]
