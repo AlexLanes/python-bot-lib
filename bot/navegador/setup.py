@@ -2,21 +2,26 @@
 from __future__ import annotations
 import time, enum, typing, functools, collections, weakref, contextlib
 from datetime import (
-    datetime as Datetime,
+    datetime  as Datetime,
     timedelta as Timedelta
 )
 # interno
 import bot
-from bot.estruturas import String
+from bot.estruturas import String, Caminho
 from bot.navegador.mensagem import Mensagem
 # externo
 import selenium.webdriver as wd
 import undetected_chromedriver as uc
+
 from selenium.webdriver.common.keys import Keys as Teclas
 from selenium.webdriver.remote.webelement import WebElement
-from selenium.webdriver.support import expected_conditions as ec
+
+from selenium.webdriver.chromium.options import ChromiumOptions
 from selenium.webdriver.chromium.webdriver import ChromiumDriver
+
+from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.ui import WebDriverWait as Wait, Select
+
 from selenium.common.exceptions import (
     TimeoutException,
     StaleElementReferenceException,
@@ -24,16 +29,8 @@ from selenium.common.exceptions import (
     NoSuchElementException as ElementoNaoEncontrado
 )
 
+P = typing.ParamSpec("P")
 COMANDO_VERSAO_CHROME = r'(Get-Item -Path "$env:PROGRAMFILES\Google\Chrome\Application\chrome.exe").VersionInfo.FileVersion'
-CONFIG_PRINT_PDF = bot.formatos.Json({
-    "version": 2,
-    "selectedDestinationId": "Save as PDF",
-    "recentDestinations": [{
-        "id": "Save as PDF",
-        "origin": "local",
-        "account": ""
-    }]
-}).stringify(False)
 ARGUMENTOS_DEFAULT = [
     "--ignore-certificate-errors", "--remote-allow-origins=*", "--no-first-run",
     "--no-service-autorun", "--no-default-browser-check", "--homepage=about:blank",
@@ -44,8 +41,6 @@ ARGUMENTOS_DEFAULT = [
     "--disable-features=IsolateOrigins,site-per-process", "--disable-dev-shm-usage",
     "--disable-session-crashed-bubble", "--disable-search-engine-choice-screen"
 ]
-
-P = typing.ParamSpec("P")
 
 def retry_staleness[R] (func: typing.Callable[P, R]) -> typing.Callable[P, R]: # type: ignore
     @functools.wraps(func)
@@ -323,15 +318,82 @@ class ElementoWEB:
             raise TimeoutError(f"A espera pelo update do elemento não aconteceu após {timeout} segundos")
 
 class Navegador:
-    """Classe do navegador `selenium` que deve ser herdada"""
+    """Classe base, herdada pelas implementações `Edge` `Chrome` `Explorer`, com métodos para manipulações e consultas
+    - `Navegador.from_driver(driver, ...)` para criar o `Navegador` de um `ChromiumDriver` já inicializado
+    - `Navegador.from_chromium_binary("caminho", ...)` para criar o `Navegador` a partir do `caminho` executável de um `Chromium`"""
 
     driver: ChromiumDriver
     """Driver do `Selenium`"""
     timeout_inicial: float
     """Timeout informado na inicialização do navegador"""
-    diretorio_download: bot.sistema.Caminho
-    """Caminho da pasta de download
-    - `Edge | Chrome`"""
+    diretorio_download: Caminho
+    """Caminho da pasta de download"""
+
+    @staticmethod
+    def adicionar_defaults_options (options: ChromiumOptions, download: Caminho) -> None:
+        """Adicionar argumentos defaults no `options`"""
+        for argumento in ARGUMENTOS_DEFAULT:
+            options.add_argument(argumento)
+
+        options.add_experimental_option("useAutomationExtension", False)
+        options.add_experimental_option("excludeSwitches", ["enable-logging"])
+        options.add_experimental_option("prefs", {
+            "credentials_enable_service": False,
+            "profile.password_manager_enabled": False,
+            "profile.default_content_settings.popups": 2,
+
+            # Download
+            "download.directory_upgrade": True,
+            "download.prompt_for_download": False,
+            "download.default_directory": download.string,
+
+            # Print PDF
+            "savefile.default_directory": download.string,
+            "printing.print_preview_sticky_settings.appState": bot.formatos.Json(
+                {
+                    "version": 2,
+                    "selectedDestinationId": "Save as PDF",
+                    "recentDestinations": [{
+                        "id": "Save as PDF",
+                        "origin": "local",
+                        "account": ""
+                    }]
+                }
+            ).stringify(indentar=False)
+        })
+
+    @classmethod
+    def from_driver (cls, driver: ChromiumDriver, *,
+                          timeout = 30.0,
+                          download: str | Caminho = "./downloads") -> typing.Self:
+        """Criar o `Navegador` a partir de um `driver` inicializado"""
+        navegador = cls()
+        navegador.driver = driver
+        navegador.timeout_inicial = timeout
+        navegador.diretorio_download = Caminho(download) if isinstance(download, str) else download
+        driver.implicitly_wait(timeout)
+        return navegador
+
+    @classmethod
+    def from_chromium_binary (cls, caminho: str, *,
+                                   timeout = 30.0,
+                                   download: str | Caminho = "./downloads",
+                                   options_callback: typing.Callable[[wd.ChromeOptions], None] | None = None) -> typing.Self:
+        """Criar o `Navegador` a partir do `caminho` executável de um `Chromium`
+        - `timeout` utilizado na espera por elementos
+        - `download` diretório para download de arquivos
+        - `options_callback` informar um callback para modificar as options do webdriver"""
+        options = wd.ChromeOptions()
+        options.binary_location = caminho
+        cls.adicionar_defaults_options(options, download := Caminho(str(download)))
+        if options_callback: options_callback(options)
+
+        navegador = cls.from_driver(wd.Chrome(options), timeout=timeout, download=download)
+        navegador.driver.maximize_window()
+        return navegador
+
+    def __repr__ (self) -> str:
+        return f"<{self.__class__.__name__} aba focada '{self.titulo}'>"
 
     def __del__ (self) -> None:
         """Encerrar o driver quando a variável do navegador sair do escopo"""
@@ -491,12 +553,12 @@ class Navegador:
 
         return self.focar_aba(aba_com_titulo)
 
-    def aguardar_download (self, *termos: str, timeout=60) -> bot.sistema.Caminho:
+    def aguardar_download (self, *termos: str, timeout=60) -> Caminho:
         """Aguardar um novo arquivo, com nome contendo algum dos `termos`, no diretório de download por `timeout` segundos
         - Retorna o `Caminho` para o arquivo
         - Exceção `TimeoutError` caso não finalize no tempo estipulado"""
         inicio = Datetime.now() - Timedelta(milliseconds=500)
-        arquivo: bot.sistema.Caminho | None = None
+        arquivo: Caminho | None = None
         termos = tuple(str(termo).lower() for termo in termos)
         assert termos, "Pelo menos 1 termo é necessário para a busca"
 
@@ -523,7 +585,7 @@ class Navegador:
         assert arquivo
         return arquivo
 
-    def imprimir_pdf (self) -> bot.sistema.Caminho:
+    def imprimir_pdf (self) -> Caminho:
         """Imprimir a página/frame atual do navegador para `.pdf`
         - Retorna o `Caminho` para o arquivo"""
         self.diretorio_download.criar_diretorios()
@@ -531,36 +593,25 @@ class Navegador:
         return self.aguardar_download(".pdf", timeout=20)
 
 class Edge (Navegador):
-    """Navegador Edge baseado no `selenium`
+    """Navegador Edge
     - `timeout` utilizado na espera por elementos
     - `download` diretório para download de arquivos
+    - `options_callback` informar um callback para modificar as options do webdriver
     - O Edge é o mais provável de estar disponível para utilização"""
 
-    def __init__ (self, timeout=30.0,
-                        download: str | bot.sistema.Caminho = "./downloads") -> None:
-        options, argumentos = wd.EdgeOptions(), ARGUMENTOS_DEFAULT.copy()
-        self.diretorio_download = bot.sistema.Caminho(download) if isinstance(download, str) else download
-        for argumento in argumentos: options.add_argument(argumento)
-        options.add_experimental_option("useAutomationExtension", False)
-        options.add_experimental_option("excludeSwitches", ["enable-logging"])
-        options.add_experimental_option("prefs", {
-            "credentials_enable_service": False,
-            "profile.password_manager_enabled": False,
-            "profile.default_content_settings.popups": 2,
+    def __init__ (self, timeout = 30.0,
+                        download: str | Caminho = "./downloads",
+                        options_callback: typing.Callable[[wd.EdgeOptions], None] | None = None) -> None:
+        self.timeout_inicial = timeout
+        self.diretorio_download = Caminho(download) if isinstance(download, str) else download
 
-            "download.directory_upgrade": True,
-            "download.prompt_for_download": False,
-            "download.default_directory": self.diretorio_download.string,
-
-            "savefile.default_directory": self.diretorio_download.string,
-            "printing.print_preview_sticky_settings.appState": CONFIG_PRINT_PDF
-        })
+        options = wd.EdgeOptions()
+        Navegador.adicionar_defaults_options(options, self.diretorio_download)
+        if options_callback: options_callback(options)
 
         self.driver = wd.Edge(options)
         self.driver.maximize_window()
-        self.timeout_inicial = timeout
         self.driver.implicitly_wait(timeout)
-
         self.driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
             "source": """
                 Object.defineProperty(navigator, "webdriver", {
@@ -571,63 +622,35 @@ class Edge (Navegador):
 
         bot.logger.informar("Navegador Edge iniciado")
 
-    def __repr__ (self) -> str:
-        return f"<Edge aba focada '{self.titulo}'>"
-
 class Chrome (Navegador):
-    """Navegador Chrome baseado no `selenium`
+    """Navegador Chrome com `undetected_chromedriver` para evitar detecção
     - `timeout` utilizado na espera por elementos
     - `download` diretório para download de arquivos
-    - `extensoes` caminhos para extensões existentes do Chrome
-    - `perfil` caminho para o perfil que será utilizado na abertura do navegador
-    - Utilizada a biblioteca `undetected_chromedriver` para evitar detecção (Modo anônimo ocasiona a detecção)
+    - `options_callback` informar um callback para modificar as options do webdriver
     - Possível de capturar as mensagens de rede pelo método `mensagens_rede`"""
 
-    def __init__ (self, timeout=30.0,
-                        download: str | bot.sistema.Caminho = "./downloads",
-                        extensoes: list[str | bot.sistema.Caminho] = [],
-                        perfil: bot.sistema.Caminho | str | None = None,
-                        argumentos_adicionais: list[str] = []) -> None:
+    def __init__ (self, timeout = 30.0,
+                        download: str | Caminho = "./downloads",
+                        options_callback: typing.Callable[[uc.ChromeOptions], None] | None = None) -> None:
         # obter a versão do google chrome para o `undetected_chromedriver`, pois ele utiliza sempre a mais recente
         sucesso, mensagem = bot.sistema.executar(COMANDO_VERSAO_CHROME, powershell=True)
         versao = (mensagem.split(".") or " ")[0]
         if not sucesso or not versao.isdigit():
             raise Exception("Versão do Google Chrome não foi localizada")
 
-        argumentos = { *ARGUMENTOS_DEFAULT, *argumentos_adicionais }
-        if extensoes: argumentos.add(f"--load-extension={ ",".join(str(e).strip() for e in extensoes) }")
-        if perfil:
-            perfil = bot.sistema.Caminho(str(perfil))
-            argumentos.add(f"--user-data-dir={perfil.parente}")
-            argumentos.add(f"--profile-directory={perfil.nome}")
+        self.timeout_inicial = timeout
+        self.diretorio_download = Caminho(download) if isinstance(download, str) else download
 
         options = uc.ChromeOptions()
-        self.diretorio_download = bot.sistema.Caminho(str(download))
-        for argumento in argumentos:
-            options.add_argument(argumento)
+        Navegador.adicionar_defaults_options(options, self.diretorio_download)
         options.set_capability("goog:loggingPrefs", { "performance": "ALL" }) # logs performance
-        options.add_experimental_option("prefs", {
-            "credentials_enable_service": False,
-            "profile.password_manager_enabled": False,
-            "profile.default_content_settings.popups": 2,
-
-            "download.directory_upgrade": True,
-            "download.prompt_for_download": False,
-            "download.default_directory": self.diretorio_download.string,
-
-            "savefile.default_directory": self.diretorio_download.string,
-            "printing.print_preview_sticky_settings.appState": CONFIG_PRINT_PDF
-        })
+        if options_callback: options_callback(options)
 
         self.driver = uc.Chrome(options, version_main=int(versao)) # type: ignore
         self.driver.maximize_window()
-        self.timeout_inicial = timeout
         self.driver.implicitly_wait(timeout)
 
         bot.logger.informar("Navegador Chrome iniciado")
-
-    def __repr__ (self) -> str:
-        return f"<Chrome aba focada '{self.titulo}'>"
 
     @typing.override
     def __del__ (self) -> None:
@@ -686,18 +709,17 @@ class Explorer (Navegador):
 
         bot.logger.informar("Navegador Edge, modo Internet Explorer, iniciado")
 
-    def __repr__ (self) -> str:
-        return f"<Explorer aba focada '{self.titulo}'>"
-
-    @typing.override
-    def aguardar_download (self, *termos: str, timeout=60) -> bot.sistema.Caminho:
-        raise NotImplementedError("Método aguardar_download não disponível para o InternetExplorer")
+    @property
+    def diretorio_download (self) -> Caminho: # type: ignore
+        raise NotImplementedError
 
 __all__ = [
+    "Navegador",
     "Edge",
-    "Teclas",
     "Chrome",
     "Explorer",
+
+    "Teclas",
     "ErroNavegador",
     "ElementoNaoEncontrado"
 ]
