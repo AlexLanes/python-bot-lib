@@ -16,6 +16,14 @@ Utilizar o caminho para o arquivo **whl** baixado `bot @ file://.../bot-5.0-py3-
 ## Changelog 🔧
 
 <details>
+<summary>v5.1</summary>
+
+- Adicionado construtores do `Navegador`
+- Alterado implementações `Edge` `Chrome`
+- Alterado forma de se obter `linhas_afetadas` para o `ResultadoSQL`
+
+</details>
+<details>
 <summary>v5.0</summary>
 
 - Criado novo pacote `erro`
@@ -392,24 +400,27 @@ um loop de `print()` com a posição e cor da posição atual do mouse
 - uv run -m `bot.mouse`
 
 ### `navegador`
-Pacote para navegadores Web.  
-Navegadores são abertos em sua inicialização e fechados quando a sua referencia sair do escopo ou caso seja feito `del navegador`
+Pacote para Navegadore Web utilizando o `selenium` como abstração.
+> Navegadores são abertos em sua inicialização e fechados quando a sua referencia sair do escopo ou caso seja feito `del navegador`
 
 ```python
-# Navegador Edge baseado no `selenium`
+# Navegador Edge
 Edge(
     timeout = 30.0,
-    download: str | sistema.Caminho = "./downloads"
+    download: str | Caminho = "./downloads",
+    options_callback: Callable[[EdgeOptions], None] | None = None
 )
 
-# Navegador Chrome baseado no `selenium`
+# Navegador Chrome com `undetected_chromedriver` para evitar detecção
 Chrome(
     timeout = 30.0,
-    download: str | sistema.Caminho = "./downloads",
-    extensoes: list[str | sistema.Caminho] = [],
-    perfil: Caminho | str | None = None,
-    argumentos_adicionais: list[str] = []
+    download: str | Caminho = "./downloads",
+    options_callback: Callable[[ChromeOptions], None] | None = None
 )
+
+# Navegador custom
+Navegador.from_driver(driver: ChromiumDriver, ...)
+Navegador.from_chromium_binary("caminho", ...)
 
 # Ambos navegadores compartilham os mesmo métodos e propriedades. Alguns exemplos:
 titulo -> str
