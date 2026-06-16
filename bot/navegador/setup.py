@@ -11,17 +11,7 @@ from bot.estruturas import String, Caminho
 from bot.navegador.mensagem import Mensagem
 # externo
 import selenium.webdriver as wd
-import undetected_chromedriver as uc
-
 from selenium.webdriver.common.keys import Keys as Teclas
-from selenium.webdriver.remote.webelement import WebElement
-
-from selenium.webdriver.chromium.options import ChromiumOptions
-from selenium.webdriver.chromium.webdriver import ChromiumDriver
-
-from selenium.webdriver.support import expected_conditions as ec
-from selenium.webdriver.support.ui import WebDriverWait as Wait, Select
-
 from selenium.common.exceptions import (
     TimeoutException,
     StaleElementReferenceException,
@@ -29,8 +19,14 @@ from selenium.common.exceptions import (
     NoSuchElementException as ElementoNaoEncontrado
 )
 
+from selenium.webdriver.remote.webelement import WebElement
+from selenium.webdriver.chromium.options import ChromiumOptions
+from selenium.webdriver.chromium.webdriver import ChromiumDriver
+
+from selenium.webdriver.support import expected_conditions as ec
+from selenium.webdriver.support.ui import WebDriverWait as Wait, Select
+
 P = typing.ParamSpec("P")
-COMANDO_VERSAO_CHROME = r'(Get-Item -Path "$env:PROGRAMFILES\Google\Chrome\Application\chrome.exe").VersionInfo.FileVersion'
 ARGUMENTOS_DEFAULT = [
     "--ignore-certificate-errors", "--remote-allow-origins=*", "--no-first-run",
     "--no-service-autorun", "--no-default-browser-check", "--homepage=about:blank",
@@ -336,7 +332,7 @@ class Navegador:
             options.add_argument(argumento)
 
         options.add_experimental_option("useAutomationExtension", False)
-        options.add_experimental_option("excludeSwitches", ["enable-logging"])
+        options.add_experimental_option("excludeSwitches", ["enable-logging", "enable-automation"])
         options.add_experimental_option("prefs", {
             "credentials_enable_service": False,
             "profile.password_manager_enabled": False,
@@ -395,12 +391,30 @@ class Navegador:
     def __repr__ (self) -> str:
         return f"<{self.__class__.__name__} aba focada '{self.titulo}'>"
 
+    def __enter__ (self) -> typing.Self:
+        return self
+
+    def __exit__ (self, *_) -> None:
+        if getattr(self, "encerrado", False):
+            return
+
+        self.driver.quit()
+        del self.driver
+        setattr(self, "encerrado", True)
+
+        try: bot.logger.informar("Navegador fechado")
+        except Exception: pass
+
     def __del__ (self) -> None:
         """Encerrar o driver quando a variável do navegador sair do escopo"""
-        try:
-            self.driver.quit()
-            bot.logger.informar("Navegador fechado")
-            del self.driver
+        if getattr(self, "encerrado", False):
+            return
+
+        self.driver.quit()
+        del self.driver
+        setattr(self, "encerrado", True)
+
+        try: bot.logger.informar("Navegador fechado")
         except Exception: pass
 
     def __setattr__ (self, nome: str, valor: typing.Any) -> None:
@@ -455,14 +469,14 @@ class Navegador:
 
     def atualizar (self) -> typing.Self:
         """Atualizar a aba focada"""
-        bot.logger.informar(f"Atualizando aba '{self.titulo}'")
+        bot.logger.debug(f"Atualizando aba '{self.titulo}'")
         self.driver.refresh()
         return self.sleep(2)
 
     def nova_aba (self) -> typing.Self:
         """Abrir uma nova aba e alterar o foco para ela"""
         self.driver.switch_to.new_window("tab")
-        bot.logger.informar("Aberto uma nova aba")
+        bot.logger.debug("Aberto uma nova aba")
         return self
 
     def fechar_aba (self) -> typing.Self:
@@ -474,12 +488,12 @@ class Navegador:
             self.driver.switch_to.window(aba)
         self.driver.close()
         self.driver.switch_to.window(self.abas[0])
-        bot.logger.informar(f"Fechado a aba '{titulo}' e focado na aba '{self.titulo}'")
+        bot.logger.debug(f"Fechado a aba '{titulo}' e focado na aba '{self.titulo}'")
         return self
 
     def limpar_abas (self) -> typing.Self:
         """Fechar as abas abertas, abrir uma nova e focar"""
-        bot.logger.informar("Limpando as abas abertas do navegador")
+        bot.logger.debug("Limpando as abas abertas do navegador")
         nova_aba = self.nova_aba().aba
         for aba in self:
             if aba == nova_aba: continue
@@ -491,7 +505,7 @@ class Navegador:
         """Focar na aba com base no `identificador`
         - `None` para focar na primeira aba"""
         self.driver.switch_to.window(identificador or self.abas[0])
-        bot.logger.informar(f"O navegador focou na aba '{self.titulo}'")
+        bot.logger.debug(f"O navegador focou na aba '{self.titulo}'")
         return self
 
     def encontrar (self, localizador: str | enum.Enum) -> ElementoWEB:
@@ -612,6 +626,7 @@ class Edge (Navegador):
         self.driver = wd.Edge(options)
         self.driver.maximize_window()
         self.driver.implicitly_wait(timeout)
+
         self.driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
             "source": """
                 Object.defineProperty(navigator, "webdriver", {
@@ -623,7 +638,7 @@ class Edge (Navegador):
         bot.logger.informar("Navegador Edge iniciado")
 
 class Chrome (Navegador):
-    """Navegador Chrome com `undetected_chromedriver` para evitar detecção
+    """Navegador Chrome
     - `timeout` utilizado na espera por elementos
     - `download` diretório para download de arquivos
     - `options_callback` informar um callback para modificar as options do webdriver
@@ -631,33 +646,28 @@ class Chrome (Navegador):
 
     def __init__ (self, timeout = 30.0,
                         download: str | Caminho = "./downloads",
-                        options_callback: typing.Callable[[uc.ChromeOptions], None] | None = None) -> None:
-        # obter a versão do google chrome para o `undetected_chromedriver`, pois ele utiliza sempre a mais recente
-        sucesso, mensagem = bot.sistema.executar(COMANDO_VERSAO_CHROME, powershell=True)
-        versao = (mensagem.split(".") or " ")[0]
-        if not sucesso or not versao.isdigit():
-            raise Exception("Versão do Google Chrome não foi localizada")
-
+                        options_callback: typing.Callable[[wd.ChromeOptions], None] | None = None) -> None:
         self.timeout_inicial = timeout
         self.diretorio_download = Caminho(download) if isinstance(download, str) else download
 
-        options = uc.ChromeOptions()
+        options = wd.ChromeOptions()
         Navegador.adicionar_defaults_options(options, self.diretorio_download)
         options.set_capability("goog:loggingPrefs", { "performance": "ALL" }) # logs performance
         if options_callback: options_callback(options)
 
-        self.driver = uc.Chrome(options, version_main=int(versao)) # type: ignore
+        self.driver = wd.Chrome(options)
         self.driver.maximize_window()
         self.driver.implicitly_wait(timeout)
 
-        bot.logger.informar("Navegador Chrome iniciado")
+        self.driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
+            "source": """
+                Object.defineProperty(navigator, "webdriver", {
+                    get: () => false
+                })
+            """
+        })
 
-    @typing.override
-    def __del__ (self) -> None:
-        bot.logger.informar("Navegador fechado")
-        try: getattr(self.driver, "quit", lambda: "")()
-        # usado TASKKILL ao fim da execução caso tenha ocorrido erro
-        except Exception: bot.sistema.executar("TASKKILL", "/F", "/IM", "chrome.exe", timeout=5)
+        bot.logger.informar("Navegador Chrome iniciado")
 
     def mensagens_rede (self, filtro: typing.Callable[[Mensagem], bool] | None = None) -> list[Mensagem]:
         """Consultar as mensagens de rede produzidas pelas abas

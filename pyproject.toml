@@ -31,8 +31,6 @@ dependencies = [
 
   # navegador
   "selenium",
-  "setuptools",
-  "undetected-chromedriver",
 
   # sistema
   "psutil",

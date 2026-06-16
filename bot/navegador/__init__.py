@@ -2,7 +2,8 @@
 
 ## Navegador
 Classe base, herdada pelas implementações `Edge` `Chrome` `Explorer`, com métodos para manipulações e consultas.  
-Navegadores são abertos em sua inicialização e fechados quando a sua referencia sair do escopo ou caso seja feito `del navegador`
+Navegadores são abertos em sua inicialização e fechados quando a sua referencia sair do escopo ou caso seja feito `del navegador`.  
+Possível de se utilizar com o `with` para encerrar automaticamente
 
 ## Implementações
 `Edge()`  
