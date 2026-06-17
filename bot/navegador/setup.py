@@ -1,12 +1,14 @@
 # std
 from __future__ import annotations
-import time, enum, typing, functools, collections, weakref, contextlib
+import time, enum, typing, base64
+import functools, collections, weakref, contextlib
 from datetime import (
     datetime  as Datetime,
     timedelta as Timedelta
 )
 # interno
 import bot
+from bot.sistema import JanelaW32
 from bot.estruturas import String, Caminho
 from bot.navegador.mensagem import Mensagem
 # externo opcional [navegador]
@@ -516,9 +518,16 @@ class Navegador:
 
     def focar_aba (self, identificador: str | None = None) -> typing.Self:
         """Focar na aba com base no `identificador`
-        - `None` para focar na primeira aba"""
+        - `None` para focar na primeira aba
+        - Não traz a janela para frente. Utilizar `focar_janela()`"""
         self.driver.switch_to.window(identificador or self.abas[0])
         bot.logger.debug(f"O navegador focou na aba '{self.titulo}'")
+        return self
+
+    def focar_janela (self) -> typing.Self:
+        """Focar na janela do `Navegador`"""
+        try: JanelaW32(lambda j: self.titulo.lower() in j.titulo.lower()).focar()
+        except Exception: pass
         return self
 
     def encontrar (self, localizador: str | enum.Enum) -> ElementoWEB:
@@ -561,6 +570,21 @@ class Navegador:
         self.driver.implicitly_wait(timeout)
         return self
 
+    @contextlib.contextmanager
+    def com_timeout_alterado (self, timeout: float) -> typing.Generator[None, None, None]:
+        """Alterar o tempo de `timeout` para ações realizadas pelo navegador
+        ### Utilizar com o `with` e realizar ações com o tempo de timeout alterado
+        ```
+        with navegador.com_timeout_alterado(1):
+            ...
+        ```
+        """
+        try:
+            self.driver.implicitly_wait(timeout)
+            yield
+        finally:
+            self.driver.implicitly_wait(self.timeout_inicial)
+
     def aguardar_titulo (self, titulo: str, timeout=30) -> typing.Self:
         """Aguardar alguma aba conter o `título` e alterar o foco para ela
         - Exceção `TimeoutError` caso não finalize no tempo estipulado"""
@@ -580,17 +604,27 @@ class Navegador:
 
         return self.focar_aba(aba_com_titulo)
 
-    def aguardar_download (self, *termos: str, timeout=60) -> Caminho:
+    @contextlib.contextmanager
+    def aguardar_download (self, *termos: str, timeout=60.0) -> typing.Generator[Caminho, None, None]:
         """Aguardar um novo arquivo, com nome contendo algum dos `termos`, no diretório de download por `timeout` segundos
         - Retorna o `Caminho` para o arquivo
-        - Exceção `TimeoutError` caso não finalize no tempo estipulado"""
-        inicio = Datetime.now() - Timedelta(milliseconds=500)
-        arquivo: Caminho | None = None
+        - Criado o `diretorio_download` caso não exista
+        - Exceção `TimeoutError` caso não finalize no tempo estipulado
+        ### Utilizar com o `with` e realizar uma ação que resultará em download
+        ```
+        with navegador.aguardar_download(".pdf") as arquivo:
+            botao.clicar()
+        ```
+        """
+        self.diretorio_download.criar_diretorios()
         termos = tuple(str(termo).lower() for termo in termos)
         assert termos, "Pelo menos 1 termo é necessário para a busca"
 
+        inicio = Datetime.now() - Timedelta(milliseconds=500)
+        dummy = object.__new__(Caminho)
+        yield dummy
+
         def download_finalizar () -> bool:
-            nonlocal arquivo
             arquivo, *_ = [
                 caminho
                 for caminho in self.diretorio_download
@@ -601,7 +635,12 @@ class Navegador:
                     any(data >= inicio for data in (caminho.data_criacao, caminho.data_modificao))
                 ))
             ] or [None]
-            return arquivo != None
+
+            if arquivo is None:
+                return False
+
+            dummy.path = arquivo.path
+            return True
 
         if not bot.tempo.aguardar(download_finalizar, timeout):
             erro = TimeoutError(f"Espera por download não encontrou nenhum arquivo novo após {timeout} segundos")
@@ -609,15 +648,32 @@ class Navegador:
             raise erro
 
         time.sleep(1)
-        assert arquivo
+
+    def imprimir_pdf_script (self, timeout=20.0) -> Caminho:
+        """Imprimir a página/frame atual do navegador para `.pdf`
+        - Utilizado script `window.print()`
+        - Retorna o `Caminho` para o arquivo"""
+        with self.aguardar_download(".pdf", timeout=timeout) as arquivo:
+            self.driver.execute_script("window.print();")
         return arquivo
 
-    def imprimir_pdf (self) -> Caminho:
+    def imprimir_pdf_cdp (self, nome_arquivo="blob", **kwargs) -> Caminho:
         """Imprimir a página/frame atual do navegador para `.pdf`
+        - Utilizado comando CDP `Page.printToPDF`
         - Retorna o `Caminho` para o arquivo"""
-        self.diretorio_download.criar_diretorios()
-        self.driver.execute_script("window.print();")
-        return self.aguardar_download(".pdf", timeout=20)
+        pdf_data: dict = self.driver.execute_cdp_cmd(
+            "Page.printToPDF",
+            { "printBackground": True } | kwargs
+        )
+
+        nome_arquivo = nome_arquivo.strip().removesuffix(".pdf")
+        caminho = self.diretorio_download.criar_diretorios() / f"{nome_arquivo}.pdf"
+
+        with open(caminho.path, "wb") as writer:
+            b64: str = pdf_data["data"]
+            writer.write(base64.b64decode(b64))
+
+        return caminho
 
 class Edge (Navegador):
     """Navegador Edge
