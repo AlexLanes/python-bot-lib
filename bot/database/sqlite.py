@@ -67,13 +67,7 @@ class Sqlite:
         - Retornado classe própria `ResultadoSQL`, veja a documentação na definição da classe"""
         assert bool(posicional) + bool(nomeado) < 2, "Não é possível misturar argumentos posicionais com nomeados"
         cursor = self.conexao.execute(sql, posicional or nomeado)
-        linhas_afetadas = cursor.rowcount if (cursor.rowcount or 0) >= 1 else None
-        colunas = tuple(str(coluna) for coluna, *_ in cursor.description) if cursor.description else tuple()
-        return ResultadoSQL(
-            linhas_afetadas = linhas_afetadas,
-            colunas = colunas,
-            linhas = (linha for linha in cursor) if linhas_afetadas or colunas else (tuple() for _ in [])
-        )
+        return ResultadoSQL.from_cursor(cursor)
 
     def execute_many (self, sql: str, parametros: typing.Iterable[bot.tipagem.posicional] | typing.Iterable[bot.tipagem.nomeado]) -> ResultadoSQL:
         """Executar uma ou mais instruções SQL
@@ -81,19 +75,13 @@ class Sqlite:
         - `parametros` quantidade de argumentos, posicionais `?` **ou** nomeados `:nome`, que serão executados
         - Retornado classe própria `ResultadoSQL`, veja a documentação na definição da classe"""
         cursor = self.conexao.executemany(sql, parametros) # type: ignore
-        linhas_afetadas = cursor.rowcount if (cursor.rowcount or 0) >= 1 else None
-        colunas = tuple(str(coluna) for coluna, *_ in cursor.description) if cursor.description else tuple()
-        return ResultadoSQL(
-            linhas_afetadas = linhas_afetadas,
-            colunas = colunas,
-            linhas = (linha for linha in cursor) if linhas_afetadas or colunas else (tuple() for _ in [])
-        )
+        return ResultadoSQL.from_cursor(cursor)
 
     def to_excel (self, caminho: bot.sistema.Caminho) -> bot.sistema.Caminho:
         """Salvar as linhas de todas as tabelas da conexão no `caminho` formato excel
         - Necessário dependência `[dataset]`
         - `caminho` deve terminar com `.xlsx`"""
-        from bot.dataset import DataFrame, Excel
+        from bot.dataset import DataFrame, Excel # type: ignore
         return Excel(caminho).escrever_dataframe({
             tabela: DataFrame(self.execute(f"SELECT * FROM {tabela}").to_dict())
             for tabela in self.tabelas()

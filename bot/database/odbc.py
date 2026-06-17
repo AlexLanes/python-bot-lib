@@ -120,28 +120,32 @@ class DatabaseODBC:
         """Executar uma única instrução SQL
         - `sql` Comando que será executado
         - Recomendado ser parametrizado com argumentos posicionais `?`
-        - Argumentos nomeados `:nome` não são aceitos pelo `pyodbc`
+            - Nomeados `:nome` não são aceitos pelo `pyodbc`
         - Retornado classe própria `ResultadoSQL`, veja a documentação na definição da classe"""
         cursor = self.conexao.execute(sql, posicional)
-        linhas_afetadas = cursor.rowcount if (cursor.rowcount or 0) >= 1 else None
-        colunas = tuple(coluna for coluna, *_ in cursor.description) if cursor.description else tuple()
-        return ResultadoSQL(
-            linhas_afetadas = linhas_afetadas,
-            colunas = colunas,
-            linhas = (tuple(linha) for linha in cursor) if colunas else (tuple() for _ in [])
-        )
+        return ResultadoSQL.from_cursor(cursor) # type: ignore
 
-    def execute_many (self, sql: str, parametros: typing.Iterable[bot.tipagem.posicional], fast=False) -> None:
+    def execute_many (self, sql: str, parametros: typing.Iterable[bot.tipagem.posicional]) -> ResultadoSQL:
         """Executar uma ou mais instruções SQL
         - `sql` Comando que será executado
         - `parametros` quantidade de argumentos posicionais `?` que serão executados
-        - `fast` Parâmetro especial do `pyodbc` para acelerar o `execute_many`, utilizar com cautela
-        - O `pyodbc` não retorna a quantidade de linhas afetadas no `execute_many`
-            - Utilizar o `execute` em loop caso seja necessário"""
+            - Nomeados `:nome` não são aceitos pelo `pyodbc`
+        - Retornado classe própria `ResultadoSQL`, veja a documentação na definição da classe
+        - O `executemany()` do `pyodbc` não funciona corretamente. Feito um loop do `execute`"""
+        linhas_afetadas = 0
+        linhas = list[tuple]()
+        colunas = tuple[str, ...]()
+
         cursor = self.conexao.cursor()
-        cursor.fast_executemany = fast
-        cursor.executemany(sql, parametros) # type: ignore
+        for params in parametros:
+            cursor.execute(sql, params)
+            linhas_afetadas += max(cursor.rowcount or 0, 0)
+            linhas.extend((tuple(linha) for linha in cursor) if cursor.description else tuple())
+            if not colunas:
+                colunas = tuple(str(coluna) for coluna, *_ in cursor.description) if cursor.description else tuple()
+
         cursor.close()
+        return ResultadoSQL(linhas_afetadas, colunas, linhas)
 
     @staticmethod
     def listar_drivers () -> list[str]:

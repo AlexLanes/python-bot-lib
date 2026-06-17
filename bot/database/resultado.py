@@ -1,10 +1,18 @@
 # std
-import typing
-import itertools, functools, dataclasses
+from __future__ import annotations
+import typing, dataclasses
+import itertools, functools
 # interno
 import bot
-# externo
-import polars
+
+class ICursorPEP249 (typing.Protocol):
+    @property
+    def rowcount (self) -> int | None: ...
+    @property
+    def description (self) -> typing.Iterable[typing.Sequence[typing.Any]] | None: ...
+    def __iter__ (self) -> typing.Self: ...
+    def __next__ (self) -> typing.Sequence[typing.Any]: ...
+    def close (self) -> None: ...
 
 @dataclasses.dataclass
 class ResultadoSQL:
@@ -12,8 +20,8 @@ class ResultadoSQL:
 
     ### Representação
     ```
-    - repr(resultado) # vazio, com linhas afetadas ou com colunas e linhas
-    - resultado.linhas_afetadas != None # para comandos de manipulação
+    - repr(resultado)
+    - resultado.linhas_afetadas == None # não aplicado para o comando
     - resultado.colunas e resultado.linhas # para comandos de consulta
     ```
 
@@ -35,20 +43,15 @@ class ResultadoSQL:
     - linha: tuple[tipagem.tipoSQL, ...] = next(resultado.linhas)
     - for linha in resultado.linhas: ...
     - for linha in resultado: ...
+    ```
 
-    # Transformações das linhas retornadas
+    ### Transformações das linhas retornadas
+    ```
+    - resultado.primeira_linha
     - resultado.to_dict()
-    - resultado.to_dataframe()
     - resultado.unmarshal(classe)
     - resultado.filtrar(lambda linha: bool)
     - resultado.transformar(nome_coluna = lambda valor: str(valor), ...)
-    ```
-
-    ### Fácil acesso a primeira linha
-    ```
-    - resultado.primeira_linha # None caso não retornado linhas
-    - resultado[0] # Obter valor pelo index da coluna
-    - resultado["nome_coluna"] # Obter valor pelo nome exato da coluna
     ```
     """
 
@@ -61,6 +64,20 @@ class ResultadoSQL:
     """Generator das linhas retornadas (se houver)
     - Consumido quando iterado sobre"""
 
+    cursor: ICursorPEP249 | None = None
+    """Cursor de onde os dados são obtidos
+    - Fechado automaticamente caso informado"""
+
+    @classmethod
+    def from_cursor (cls, cursor: ICursorPEP249) -> ResultadoSQL:
+        colunas = tuple(str(coluna) for coluna, *_ in cursor.description) if cursor.description else tuple()
+        return cls(
+            None if cursor.rowcount is None else max(cursor.rowcount, 0),
+            colunas,
+            (tuple(linha) for linha in cursor) if colunas else tuple(),
+            cursor
+        )
+
     @functools.cached_property
     def quantidade_linhas (self) -> int:
         """Obter a quantidade de linhas retornadas sem consumir o gerador"""
@@ -68,49 +85,35 @@ class ResultadoSQL:
         return sum(1 for _ in linhas)
 
     @functools.cached_property
-    def primeira_linha (self) -> tuple[bot.tipagem.tipoSQL, ...] | None:
+    def primeira_linha (self) -> dict[str, bot.tipagem.tipoSQL]:
         """Cache da primeira linha no resultado
-        - Não altera o gerador das `linhas`
-        - `None` caso não possua"""
+        - Não altera o gerador das `linhas`"""
         self.linhas, linhas = itertools.tee(self.linhas)
-        try: return next(linhas)
-        except StopIteration: return None
+        try: return dict(zip(self.colunas, next(linhas)))
+        except StopIteration: return {}
+
+    def __del__ (self) -> None:
+        if self.cursor is None: return
+        try: self.cursor.close()
+        except Exception: pass
 
     def __iter__ (self) -> typing.Generator[tuple[bot.tipagem.tipoSQL, ...], None, None]:
-        """Generator do self.linhas"""
+        """Generator do `self.linhas`"""
         for linha in self.linhas:
             yield linha
 
     def __repr__ (self) -> str:
         "Representação da classe"
-        if (self.linhas_afetadas or 0) >= 1:
-            return f"<ResultadoSQL com {self.linhas_afetadas} linha(s) afetada(s)"
-        if self.quantidade_linhas:
-            return f"<ResultadoSQL com '{len(self.colunas)}' coluna(s) e '{self.quantidade_linhas}' linha(s)"
-        return f"<ResultadoSQL vazio>"
+        linhas_afetadas = self.linhas_afetadas
+        quantidade_linhas = self.quantidade_linhas
+        return f"<ResultadoSQL {linhas_afetadas=!r} {quantidade_linhas=!r}>"
 
     def __bool__ (self) -> bool:
         """Representação se possui linhas ou linhas_afetadas"""
-        return "vazio" not in repr(self)
+        return ((self.linhas_afetadas or 0) >= 1) or bool(self.quantidade_linhas)
 
     def __len__ (self) -> int:
         return self.quantidade_linhas
-
-    def __getitem__ (self, value: str | int) -> bot.tipagem.tipoSQL:
-        """Obter um valor na primeira linha
-        - `str` nome exato do campo
-        - `int` index
-        - Retornado `None` caso não tenha linha retornada"""
-        if not self.primeira_linha:
-            return
-
-        match value:
-            case str() as campo:
-                return self.primeira_linha[self.colunas.index(campo)]
-            case int() as index:
-                return self.primeira_linha[index]
-            case _:
-                raise ValueError(f"Esperado(str | int) ao se obter valor na primeira linha do ResultadoSQL; Recebido({type(value)})")
 
     def transformar (self, **colunas: typing.Callable[[bot.tipagem.tipoSQL], typing.Any]) -> typing.Self:
         """Aplicar uma transformação no valor das colunas informadas
@@ -127,8 +130,7 @@ class ResultadoSQL:
         return self
 
     def filtrar (self, filtro: typing.Callable[[tuple[bot.tipagem.tipoSQL, ...]], bot.tipagem.SupportsBool]) -> typing.Self:
-        """Aplicar um filtro nas linhas retornadas.  
-        Caso não retorne um valor verdadeiro ou o `filtro` resulte em erro, a linha será filtrada
+        """Aplicar um filtro nas linhas retornadas
         - `resultado.filtrar(lambda linha: bool)`"""
         linhas = self.linhas
         self.linhas = (
@@ -142,26 +144,14 @@ class ResultadoSQL:
         """Representação das linhas e colunas no formato `dict`
         - Consome o gerador das `linhas`"""
         return [
-            { 
-                coluna: valor
-                for coluna, valor in zip(self.colunas, linha)
-            }
+            dict(zip(self.colunas, linha))
             for linha in self
         ]
 
-    def to_dataframe (self, transformar_string=False) -> polars.DataFrame:
-        """Salvar o resultado em um `polars.DataFrame`
-        - `transformar_string` flag se os dados serão convertidos em `str`
+    def stringify (self, indentar: bool = False) -> str:
+        """Representação das linhas e colunas no formato `json str`
         - Consome o gerador das `linhas`"""
-        to_string = lambda linha: tuple(
-            str(valor) if valor != None else None
-            for valor in linha
-        )
-        return polars.DataFrame(
-            map(to_string, self.linhas) if transformar_string else self.linhas,
-            { coluna: str for coluna in self.colunas } if transformar_string else self.colunas,
-            nan_to_null=True
-        )
+        return bot.formatos.Json(self.to_dict()).stringify(indentar)
 
     def unmarshal[T] (self, cls: type[T]) -> list[T]:
         """Realizar o unmarshal das linhas conforme a classe anotada `cls`
