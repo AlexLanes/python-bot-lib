@@ -22,6 +22,7 @@ Utilizar o caminho para o arquivo **whl** baixado `bot @ file://.../bot-6.0-py3-
 - Alterado comportamento do `ResultadoSQL`
 
 </details>
+<details>
 <summary>v5.1</summary>
 
 - Removido `undetected-chromedriver`
