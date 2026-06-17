@@ -3,12 +3,12 @@
 ⚠️ <span style="color: red;"><strong>Python</strong> <code>&gt;=3.12</code></span> ⚠️
 
 > **Instalação via url do release no github:**  
-Via pip `pip install https://github.com/AlexLanes/python-bot-lib/releases/download/v5.1/bot-5.1-py3-none-any.whl`  
-Via uv `uv add https://github.com/AlexLanes/python-bot-lib/releases/download/v5.1/bot-5.1-py3-none-any.whl`
+Via pip `pip install https://github.com/AlexLanes/python-bot-lib/releases/download/v6.0/bot-6.0-py3-none-any.whl`  
+Via uv `uv add https://github.com/AlexLanes/python-bot-lib/releases/download/v6.0/bot-6.0-py3-none-any.whl`
 
 > **Para referenciar como dependência:**  
-Utilizar o link para o arquivo **whl** do release `bot @ https://github.com/AlexLanes/python-bot-lib/releases/download/v5.1/bot-5.1-py3-none-any.whl`  
-Utilizar o caminho para o arquivo **whl** baixado `bot @ file://.../bot-5.1-py3-none-any.whl`
+Utilizar o link para o arquivo **whl** do release `bot @ https://github.com/AlexLanes/python-bot-lib/releases/download/v6.0/bot-6.0-py3-none-any.whl`  
+Utilizar o caminho para o arquivo **whl** baixado `bot @ file://.../bot-6.0-py3-none-any.whl`
 
 > Os pacotes podem ser encontrados diretamentes no namespace **bot** após import da biblioteca **import bot** ou importado diretamente o pacote desejado **from bot import pacote**
 
@@ -16,6 +16,12 @@ Utilizar o caminho para o arquivo **whl** baixado `bot @ file://.../bot-5.1-py3-
 ## Changelog 🔧
 
 <details>
+<summary>v6.0</summary>
+
+- Alterado pacotes `imagem` `navegador` `dataset` para serem opcionais devido ao tamanho das dependências
+- Alterado comportamento do `ResultadoSQL`
+
+</details>
 <summary>v5.1</summary>
 
 - Removido `undetected-chromedriver`
@@ -155,7 +161,10 @@ OracleDatabase.configurar_cliente(caminho)
 ```
 
 ### `dataset`
-Pacote para ler e escrever dados estruturados como `xlsx` e `csv`. Exportado o pacote `polars` para utilização de `DataFrames`
+Pacote para ler e escrever dados estruturados como `xlsx` e `csv`  
+> Exportado `DataFrame` do pacote `polars`
+### Dependência `bot[dataset]` necessária para utilizar `bot.dataset`
+
 ```python
 # Excel
 excel = bot.dataset.Excel("./exemplo.xlsx")
@@ -315,19 +324,20 @@ Url(url: str)
 
 ### `imagem`
 Pacote agregador para ações envolvendo imagens
+### Dependência `bot[imagem]` necessária para utilizar `Imagem`
+
 ```python
+# Classe para manipulação e procura de imagem
+Imagem(caminho: Caminho | str)
+
 # Capturar imagem da tela na `regiao` informada e transformar para `cinza` se requisitado
 capturar_tela(
     regiao: Coordenada | None = None,
     cinza = False
-)
-
-# Classe para manipulação e procura de imagem
-Imagem(caminho: Caminho | str)
+) -> Imagem
 ```
 
-> Pacote opcional para realizar OCR.  
-Necessário realizar a instalação adicional `bot[ocr]`
+### Dependência `bot[ocr]` necessária para utilizar `LeitorOCR` e `Imagem`
 ```Python
 # Classe de abstração do pacote `EasyOCR` para ler/detectar textos em imagens
 LeitorOCR()
@@ -404,6 +414,8 @@ um loop de `print()` com a posição e cor da posição atual do mouse
 Pacote para Navegadore Web utilizando o `selenium` como abstração.
 > Navegadores são abertos em sua inicialização e fechados quando a sua referencia sair do escopo ou caso seja feito `del navegador`.  
 > Possível de se utilizar com o `with` para encerrar automaticamente
+
+### Dependência `bot[navegador]` necessária para utilizar `bot.navegador`
 
 ```python
 # Navegador Edge

@@ -1,5 +1,5 @@
 """Pacote para Navegadore Web utilizando o `selenium` como abstração
-## Necessário `bot[navegador]` para instalar dependências do `bot.navegador`
+## Dependência `bot[navegador]` necessária para utilizar `bot.navegador`
 
 <br>
 

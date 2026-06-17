@@ -28,10 +28,10 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-imagem = ["numpy", "opencv-python"]
-ocr = ["numpy==1.26.4", "easyocr", "opencv-python"]
-dataset = ["fastexcel", "xlsxwriter", "polars"]
 navegador = ["selenium"]
+imagem = ["numpy", "opencv-python"]
+dataset = ["fastexcel", "xlsxwriter", "polars"]
+ocr = ["numpy==1.26.4", "easyocr", "opencv-python"]
 
 [build-system]
 requires = ["uv_build>=0.8.11,<0.9.0"]

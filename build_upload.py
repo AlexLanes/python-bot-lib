@@ -21,14 +21,16 @@ def obter_descricao_release () -> str:
 
     requer_python = toml.obter("project.requires-python")
     dependencias = toml.obter("project.dependencies", list[str])
-    pacotes = [atributo
-               for atributo in dir(bot)
-               if not atributo.startswith("_")]
+    pacotes = [caminho.nome
+               for caminho in bot.sistema.Caminho("./bot")
+               if caminho.diretorio() and not caminho.nome.startswith("__")]
+    opcionais = toml.obter("project.optional-dependencies", dict[str, list[str]])
 
     return "<br>".join((
         f"**Python:** {requer_python!r}",
         f"**Pacotes:** {pacotes!r}",
         f"**Dependências:** {dependencias!r}",
+        f"**Opcionais:** {opcionais!r}",
     ))
 
 def criar_release (release: str) -> int:

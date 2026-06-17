@@ -1,6 +1,6 @@
 """Pacote para ler e escrever dados estruturados como `xlsx` e `csv`
-- `DataFrame` exportado do `polars`
-## Necessário `bot[dataset]` para instalar dependências do `bot.dataset`"""
+- Exportado `DataFrame` do pacote `polars`
+## Dependência `bot[dataset]` necessária para utilizar `bot.dataset`"""
 
 from bot.dataset.setup import *
 from bot.dataset.excel import *
