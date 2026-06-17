@@ -1,5 +1,6 @@
 # std
 from __future__ import annotations
+from decimal import Decimal
 import copy, datetime, types, tomllib, inspect, base64, json as jsonlib
 from typing import (
     Any, Generator, Literal, Self, Union, TypeAliasType,
@@ -186,6 +187,9 @@ class Json:
         def tratamentos (obj: Any) -> Any:
             if type(obj) in (int, float, str, bool, type(None)): return obj
             if isinstance(obj, datetime.datetime): return obj.isoformat(sep="T", timespec="seconds")
+            if isinstance(obj, datetime.time): return obj.isoformat(timespec="seconds")
+            if isinstance(obj, datetime.date): return obj.isoformat()
+            if isinstance(obj, Decimal): return float(obj)
             if hasattr(obj, "__dict__"): return obj.__dict__
             if hasattr(obj, "__iter__"): return [tratamentos(item) for item in obj]
             if hasattr(obj, "__str__"): return obj.__str__()
