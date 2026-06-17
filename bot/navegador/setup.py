@@ -9,22 +9,23 @@ from datetime import (
 import bot
 from bot.estruturas import String, Caminho
 from bot.navegador.mensagem import Mensagem
-# externo
-import selenium.webdriver as wd
-from selenium.webdriver.common.keys import Keys as Teclas
-from selenium.common.exceptions import (
-    TimeoutException,
-    StaleElementReferenceException,
-    WebDriverException as ErroNavegador,
-    NoSuchElementException as ElementoNaoEncontrado
+# externo opcional [navegador]
+try:
+    import selenium.webdriver as wd
+    from selenium.webdriver.common.keys import Keys as Teclas
+    from selenium.webdriver.remote.webelement import WebElement
+    from selenium.webdriver.chromium.options import ChromiumOptions
+    from selenium.webdriver.chromium.webdriver import ChromiumDriver
+    from selenium.webdriver.support import expected_conditions as ec
+    from selenium.webdriver.support.ui import WebDriverWait as Wait, Select
+    from selenium.common.exceptions import (TimeoutException,
+                                            StaleElementReferenceException,
+                                            WebDriverException as ErroNavegador,
+                                            NoSuchElementException as ElementoNaoEncontrado)
+except ImportError: raise ImportError(
+    "Dependência opcional 'bot[navegador]' necessária. "
+    "Instale como 'bot[navegador]' para utilizar o módulo 'bot.navegador'"
 )
-
-from selenium.webdriver.remote.webelement import WebElement
-from selenium.webdriver.chromium.options import ChromiumOptions
-from selenium.webdriver.chromium.webdriver import ChromiumDriver
-
-from selenium.webdriver.support import expected_conditions as ec
-from selenium.webdriver.support.ui import WebDriverWait as Wait, Select
 
 P = typing.ParamSpec("P")
 ARGUMENTOS_DEFAULT = [
@@ -119,13 +120,12 @@ class ElementoWEB:
 
     @property
     @retry_staleness
-    def imagem (self) -> bot.imagem.Imagem:
-        """Capturar a imagem do elemento
+    def imagem_png (self) -> bytes:
+        """Capturar a imagem `.png` do elemento
         - Feito scroll do elemento"""
         assert (driver := self.__driver()), "Navegador encerrado"
         wd.ActionChains(driver).scroll_to_element(self.elemento).perform()
-        png = self.sleep(2).elemento.screenshot_as_png
-        return bot.imagem.Imagem.from_bytes(png)
+        return self.sleep(2).elemento.screenshot_as_png
 
     @property
     @retry_staleness
@@ -326,6 +326,17 @@ class Navegador:
     """Caminho da pasta de download"""
 
     @staticmethod
+    def remover_navigator_webdriver (driver: ChromiumDriver) -> None:
+        """Executar comando CDP para remover o `navigator.webdriver`, que indica automação"""
+        driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
+            "source": """
+                Object.defineProperty(navigator, "webdriver", {
+                    get: () => false
+                })
+            """
+        })
+
+    @staticmethod
     def adicionar_defaults_options (options: ChromiumOptions, download: Caminho) -> None:
         """Adicionar argumentos defaults no `options`"""
         for argumento in ARGUMENTOS_DEFAULT:
@@ -367,7 +378,6 @@ class Navegador:
         navegador.driver = driver
         navegador.timeout_inicial = timeout
         navegador.diretorio_download = Caminho(download) if isinstance(download, str) else download
-        driver.implicitly_wait(timeout)
         return navegador
 
     @classmethod
@@ -385,7 +395,10 @@ class Navegador:
         if options_callback: options_callback(options)
 
         navegador = cls.from_driver(wd.Chrome(options), timeout=timeout, download=download)
+        navegador.driver.implicitly_wait(timeout)
         navegador.driver.maximize_window()
+        navegador.remover_navigator_webdriver(navegador.driver)
+
         return navegador
 
     def __repr__ (self) -> str:
@@ -626,14 +639,7 @@ class Edge (Navegador):
         self.driver = wd.Edge(options)
         self.driver.maximize_window()
         self.driver.implicitly_wait(timeout)
-
-        self.driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
-            "source": """
-                Object.defineProperty(navigator, "webdriver", {
-                    get: () => false
-                })
-            """
-        })
+        self.remover_navigator_webdriver(self.driver)
 
         bot.logger.informar("Navegador Edge iniciado")
 
@@ -658,14 +664,7 @@ class Chrome (Navegador):
         self.driver = wd.Chrome(options)
         self.driver.maximize_window()
         self.driver.implicitly_wait(timeout)
-
-        self.driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
-            "source": """
-                Object.defineProperty(navigator, "webdriver", {
-                    get: () => false
-                })
-            """
-        })
+        self.remover_navigator_webdriver(self.driver)
 
         bot.logger.informar("Navegador Chrome iniciado")
 

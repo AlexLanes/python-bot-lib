@@ -6,8 +6,13 @@ import tkinter, tempfile, typing
 import bot
 from bot.estruturas import Coordenada
 # externo
-import cv2, numpy as np
 import win32gui, win32ui, win32con
+# externo opcionais [imagem]
+try: import cv2, numpy as np
+except ImportError: raise ImportError(
+    "Dependência opcional 'bot[imagem]' necessária. "
+    "Instale como 'bot[imagem]' para utilizar o módulo 'bot.imagem'"
+)
 
 def cor_similar (cor1: bot.tipagem.rgb, cor2: bot.tipagem.rgb, tolerancia=20) -> bool:
     """Comparar se as cores `rgb` são similares com base na `tolerancia`
@@ -17,7 +22,7 @@ def cor_similar (cor1: bot.tipagem.rgb, cor2: bot.tipagem.rgb, tolerancia=20) ->
 
 def capturar_tela (regiao: Coordenada | None = None, cinza=False) -> Imagem:
     """Capturar imagem da tela na `regiao` informada e transformar para `cinza` se requisitado"""
-    imagem = object().__new__(Imagem)
+    imagem = object.__new__(Imagem)
     x, y, largura, altura = regiao or Coordenada.tela()
 
     # criar um dispositivo de contexto (DC) compatível e capturar a tela

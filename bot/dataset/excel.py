@@ -1,15 +1,15 @@
 # std
+from __future__ import annotations
 import typing
 # interno
 import bot
 from bot.estruturas import Resultado, Caminho
-# externo
-import polars
-from xlsxwriter import Workbook
-from fastexcel import read_excel
+# externo opcionais [dataset]
+try: import polars, xlsxwriter, fastexcel
+except ImportError: pass
 
 @Resultado.decorador
-def escapar_tag_xml (df: polars.DataFrame) -> polars.DataFrame:
+def escapar_tag_xml (df: "polars.DataFrame") -> "polars.DataFrame":
     return df.select([
         polars.col(col)
             .str.replace_all("<", "&lt;")
@@ -45,10 +45,10 @@ class Excel:
             for nome, dados in planilhas.items()
         })
 
-    def escrever_dataframe (self, planilhas: dict[str, polars.DataFrame]) -> Caminho:
+    def escrever_dataframe (self, planilhas: dict[str, "polars.DataFrame"]) -> Caminho:
         """Criar um arquivo excel no `self.caminho` com os dados informados em `planilhas`
         - `planilhas` sendo `{ nome_planilha: polars.Dataframe }`"""
-        with Workbook(self.caminho.string) as excel:
+        with xlsxwriter.Workbook(self.caminho.string) as excel:
             for nome_planilha, df in planilhas.items():
                 df = escapar_tag_xml(df).valor_ou(df)
                 df.write_excel(excel, nome_planilha, autofit=True)
@@ -58,7 +58,7 @@ class Excel:
     @property
     def planilhas (self) -> list[str]:
         """Nome das planilhas do excel"""
-        return read_excel(self.caminho.path).sheet_names
+        return fastexcel.read_excel(self.caminho.path).sheet_names
 
     def ler_planilha (self, planilha: str | None = None) -> list[dict[str, typing.Any]]:
         """Ler a `planilha` do excel
@@ -78,7 +78,7 @@ class Excel:
             for planilha in self.planilhas
         }
 
-    def ler_dataframe (self, planilha: str | None = None) -> polars.DataFrame:
+    def ler_dataframe (self, planilha: str | None = None) -> "polars.DataFrame":
         """Ler a `planilha` do excel como um `polars.DataFrame`
         - `planilha=None` primeira planilha"""
         return polars.read_excel(

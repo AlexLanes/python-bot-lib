@@ -255,11 +255,6 @@ class ElementoW32:
         return bot.estruturas.Coordenada.from_box(box)
 
     @property
-    def imagem (self) -> bot.imagem.Imagem:
-        coordenada = self.focar().coordenada
-        return bot.imagem.capturar_tela(coordenada)
-
-    @property
     def visivel (self) -> bool:
         return (
             win32gui.IsWindowVisible(self.hwnd) == 1
@@ -450,9 +445,13 @@ class ElementoW32:
             modo: typing.Literal["primeiro", "ultimo", "media"] = "media"
         ) -> tuple[int, int] | None:
         """Encontrar a posição `(x, y)` de um pixel que tenha a `cor` rgb
+        - Necessário dependência `[imagem]`
         - Corrigido a posição retornada da imagem para a tela
         - `None` caso não encontrado"""
-        if posicao := self.imagem.encontrar_cor(cor, modo):
+        from bot.imagem import capturar_tela
+
+        coordenada = self.focar().coordenada
+        if posicao := capturar_tela(coordenada).encontrar_cor(cor, modo):
             c = self.coordenada
             return (
                 posicao[0] + c.x,

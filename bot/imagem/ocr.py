@@ -1,10 +1,12 @@
 # std
+from __future__ import annotations
 import typing, functools, warnings
 # interno
 from bot.estruturas import String
 from bot.imagem import Coordenada, Imagem, capturar_tela
-# externo
-import numpy as np
+# externo opcional [ocr]
+try: import numpy as np # type: ignore
+except ImportError: pass
 
 warnings.filterwarnings("ignore", message="'pin_memory'")
 
@@ -80,8 +82,14 @@ class LeitorOCR:
     - Default utilizado pelo modelo da linguagem"""
 
     def __init__ (self, *linguagem: str, gpu: bool = False) -> None:
-        try: from easyocr import Reader
-        except ImportError: raise ImportError("Pacote opcional [ocr] necessário. Realize `pip install bot[ocr]` para utilizar o LeitorOCR")
+        try:
+            from easyocr import Reader # type: ignore
+            import numpy # type: ignore
+        except ImportError: raise ImportError(
+            "Dependência opcional 'bot[ocr]' necessária. "
+            "Instale como 'bot[ocr]' para utilizar 'bot.imagem.LeitorOCR'"
+        )
+
         self.reader = Reader(
             list(linguagem) or ["en"],
             gpu = gpu

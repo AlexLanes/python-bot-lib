@@ -1,10 +1,12 @@
 # std
+from __future__ import annotations
 import typing
 # interno
 import bot
 from bot.estruturas import Caminho
-# externo
-import polars
+# externo opcional [dataset]
+try: import polars
+except ImportError: pass
 
 class Csv:
     """Classe para manipular arquivos `csv`
@@ -30,7 +32,7 @@ class Csv:
         ```"""
         return self.escrever_dataframe(polars.DataFrame(dados))
 
-    def escrever_dataframe (self, dataframe: polars.DataFrame) -> bot.sistema.Caminho:
+    def escrever_dataframe (self, dataframe: "polars.DataFrame") -> bot.sistema.Caminho:
         """Criar um arquivo csv no `self.caminho` com os dados informados do `dataframe`"""
         dataframe.write_csv(
             self.caminho.string,
@@ -48,7 +50,7 @@ class Csv:
             .obter(list[dict[str, typing.Any]])
         )
 
-    def ler_dataframe (self) -> polars.DataFrame:
+    def ler_dataframe (self) -> "polars.DataFrame":
         """Ler o csv como um `polars.DataFrame`"""
         return polars.read_csv(
             self.caminho.string,

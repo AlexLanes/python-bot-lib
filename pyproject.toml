@@ -1,6 +1,6 @@
 [project]
 name = "bot"
-version = "5.1"
+version = "6.0"
 description = "Biblioteca com funcionalidades gerais para criação de automações para o Windows"
 authors = [
   { name = "Alex Lanes Angelo", email = "alex_lanes@hotmail.com" }
@@ -15,22 +15,12 @@ dependencies = [
   # mouse / teclado / imagem / sistema / estruturas
   "pywin32",
 
-  # database / dataset
+  # database
   "pyodbc",
   "oracledb",
-  "fastexcel",
-  "xlsxwriter",
-  "polars",
 
   # http
   "httpx",
-
-  # imagem
-  "numpy==1.26.4",
-  "opencv-python",
-
-  # navegador
-  "selenium",
 
   # sistema
   "psutil",
@@ -38,7 +28,10 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-ocr = ["easyocr"]
+imagem = ["numpy", "opencv-python"]
+ocr = ["numpy==1.26.4", "easyocr", "opencv-python"]
+dataset = ["fastexcel", "xlsxwriter", "polars"]
+navegador = ["selenium"]
 
 [build-system]
 requires = ["uv_build>=0.8.11,<0.9.0"]

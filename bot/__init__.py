@@ -14,14 +14,11 @@ from bot import (
 
     argumentos,
     database,
-    dataset,
     email,
     erro,
     formatos,
     ftp,
     http,
-    imagem,
-    navegador,
     tempo,
     video
 )

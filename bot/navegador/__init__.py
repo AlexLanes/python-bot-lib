@@ -1,4 +1,7 @@
 """Pacote para Navegadore Web utilizando o `selenium` como abstração
+## Necessário `bot[navegador]` para instalar dependências do `bot.navegador`
+
+<br>
 
 ## Navegador
 Classe base, herdada pelas implementações `Edge` `Chrome` `Explorer`, com métodos para manipulações e consultas.  

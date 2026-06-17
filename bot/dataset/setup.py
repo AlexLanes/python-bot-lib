@@ -1,8 +1,13 @@
-# externo
-import polars
-from polars import DataFrame
+# std
+from __future__ import annotations
+# externo opcionais [dataset]
+try: import polars, xlsxwriter, fastexcel
+except ImportError: raise ImportError(
+    "Dependência opcional 'bot[dataset]' necessária. "
+    "Instale como 'bot[dataset]' para utilizar o módulo 'bot.dataset'"
+)
 
-def formatar_dataframe (df: DataFrame,
+def formatar_dataframe (df: "polars.DataFrame",
                         linhas_maximas = 1000,
                         esconder_shape = True,
                         tamanho_maximo_str = 1000,
@@ -17,8 +22,4 @@ def formatar_dataframe (df: DataFrame,
     with polars.Config(**kwargs):
         return str(df)
 
-__all__ = [
-    "polars",
-    "DataFrame",
-    "formatar_dataframe"
-]
+__all__ = ["formatar_dataframe"]

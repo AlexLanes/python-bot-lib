@@ -91,9 +91,11 @@ class Sqlite:
 
     def to_excel (self, caminho: bot.sistema.Caminho) -> bot.sistema.Caminho:
         """Salvar as linhas de todas as tabelas da conexão no `caminho` formato excel
+        - Necessário dependência `[dataset]`
         - `caminho` deve terminar com `.xlsx`"""
-        return bot.dataset.Excel(caminho).escrever_dataframe({
-            tabela: self.execute(f"SELECT * FROM {tabela}").to_dataframe()
+        from bot.dataset import DataFrame, Excel
+        return Excel(caminho).escrever_dataframe({
+            tabela: DataFrame(self.execute(f"SELECT * FROM {tabela}").to_dict())
             for tabela in self.tabelas()
         })
 
