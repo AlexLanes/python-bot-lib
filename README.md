@@ -21,6 +21,7 @@ Utilizar o caminho para o arquivo **whl** baixado `bot @ file://.../bot-6.0-py3-
 - Alterado pacotes `imagem` `navegador` `dataset` para serem opcionais devido ao tamanho das dependências
 - Alterado comportamento do `ResultadoSQL`
 - Alterado métodos do `Navegador` e adicionado outros
+- Alterado handlers do `logger` para diminuir o tamanho do `stdout`
 
 </details>
 <details>
