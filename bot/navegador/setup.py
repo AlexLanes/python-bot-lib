@@ -417,7 +417,7 @@ class Navegador:
         del self.driver
         setattr(self, "encerrado", True)
 
-        try: bot.logger.informar("Navegador fechado")
+        try: bot.logger.debug("Navegador fechado")
         except Exception: pass
 
     def __del__ (self) -> None:
@@ -429,7 +429,7 @@ class Navegador:
         del self.driver
         setattr(self, "encerrado", True)
 
-        try: bot.logger.informar("Navegador fechado")
+        try: bot.logger.debug("Navegador fechado")
         except Exception: pass
 
     def __setattr__ (self, nome: str, valor: typing.Any) -> None:
@@ -478,7 +478,7 @@ class Navegador:
 
     def pesquisar (self, url: str) -> typing.Self:
         """Pesquisar o url na aba focada"""
-        bot.logger.informar(f"Pesquisando o url '{url}'")
+        bot.logger.debug(f"Pesquisando o url '{url}'")
         self.driver.get(url)
         return self
 

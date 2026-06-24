@@ -73,11 +73,11 @@ def alterar_resolucao (largura: int, altura: int) -> None:
     desejada = (largura, altura)
     atual, _ = informacoes_resolucao()
     if atual == desejada:
-        bot.logger.informar(f"Resolução da tela {desejada} já se encontra definida")
+        bot.logger.debug(f"Resolução da tela {desejada} já se encontra definida")
         return
 
     # alterar
-    bot.logger.informar(f"Alterando a resolução da tela para {largura}x{altura}")
+    bot.logger.debug(f"Alterando a resolução da tela para {largura}x{altura}")
     _, resultado = executar(CAMINHO_QRES.string, f"/X:{largura}", f"/Y:{altura}")
 
     # confirmar
@@ -87,7 +87,7 @@ def alterar_resolucao (largura: int, altura: int) -> None:
         bot.logger.erro(f"Resolução da tela {desejada} não foi aplicada corretamente", erro)
         raise erro
 
-    bot.logger.informar(f"Resolução da tela alterada para {desejada}")
+    bot.logger.debug(f"Resolução da tela alterada para {desejada}")
 
 def copiar_texto (texto: str) -> None:
     """Substituir o texto copiado da área de transferência pelo `texto`"""
