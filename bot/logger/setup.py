@@ -82,9 +82,11 @@ class TracerLogger:
     - Utilizar o `tracer.encerrar()` para sinalizar a finalização do rastreamento"""
 
     def __init__ (self, logger: logging.Logger,
+                        chave: str,
                         extra: dict[str, object]) -> None:
         self.extra = extra
         self.logger = logger
+        self.chave = chave
         self.encerrado = False
         self.id = uuid.uuid4().hex[:8]
         self.cronometro = bot.tempo.Cronometro()
@@ -107,6 +109,7 @@ class TracerLogger:
                 "extra": self.extra | self.extra,
                 "trace": {
                     "id": self.id,
+                    "chave": self.chave,
                     "status": "SUCCESS",
                     "seconds": self.cronometro()
                 }
@@ -121,6 +124,7 @@ class TracerLogger:
                 "extra": self.extra | self.extra,
                 "trace": {
                     "id": self.id,
+                    "chave": self.chave,
                     "status": "ERROR",
                     "seconds": self.cronometro()
                 }
@@ -136,6 +140,7 @@ class TracerLogger:
             extra = self.extra | {
                 "trace": {
                     "id": self.id,
+                    "chave": self.chave,
                     "status": "WARNING",
                     "seconds": self.cronometro()
                 }
@@ -152,6 +157,7 @@ class TracerLogger:
                 "extra": extra | self.extra,
                 "trace": {
                     "id": self.id,
+                    "chave": self.chave,
                     "status": "PROCESSING",
                     "seconds": self.cronometro()
                 }
@@ -169,6 +175,7 @@ class TracerLogger:
                 "extra": extra | self.extra,
                 "trace": {
                     "id": self.id,
+                    "chave": self.chave,
                     "status": "PROCESSING",
                     "seconds": self.cronometro()
                 }
@@ -188,6 +195,7 @@ class TracerLogger:
                 "extra": extra | self.extra,
                 "trace": {
                     "id": self.id,
+                    "chave": self.chave,
                     "status": "PROCESSING",
                     "seconds": self.cronometro()
                 }
@@ -208,6 +216,7 @@ class TracerLogger:
                 "extra": extra | self.extra,
                 "trace": {
                     "id": self.id,
+                    "chave": self.chave,
                     "status": "PROCESSING",
                     "seconds": self.cronometro()
                 }
@@ -239,6 +248,7 @@ class TracerLogger:
                 "extra": extra | self.extra,
                 "trace": {
                     "id": self.id,
+                    "chave": self.chave,
                     "status": status,
                     "seconds": self.cronometro()
                 }
@@ -402,11 +412,14 @@ class MainLogger:
 
         return self
 
-    def obter_tracer (self, **extra: object) -> TracerLogger:
-        """Obter o `TracerLogger` utilizado para realizar o rastreamento de um processo
+    def obter_tracer (self, chave: str, **extra: object) -> TracerLogger:
+        """Obter o `TracerLogger` utilizado para realizar o rastreamento da `chave`
         - `extra` as propriedades serão replicadas em todos os níveis do `Tracer`
         - Deve ser encerrado pelo `tracer.encerrar(status, mensagem)` ou utiizar com o `with` para o encerramento automático"""
-        return TracerLogger(self.logger, extra)
+        return (
+            TracerLogger(self.logger, chave, extra)
+            .debug(f"Iniciado um Tracer para a chave {chave}")
+        )
 
     def tempo_execucao[R] (self, func: typing.Callable[P, R]) -> typing.Callable[P, R]: # type: ignore
         """Loggar o tempo de execução de uma função
