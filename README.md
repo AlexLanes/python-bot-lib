@@ -18,6 +18,7 @@ Utilizar o caminho para o arquivo **whl** baixado `bot @ file://.../bot-6.0-py3-
 <details>
 <summary>v6.0</summary>
 
+- Alterado pacote `database` para ser opcional
 - Alterado pacotes `imagem` `navegador` `dataset` para serem opcionais devido ao tamanho das dependências
 - Alterado comportamento do `ResultadoSQL`
 - Alterado métodos do `Navegador` e adicionado outros
@@ -137,30 +138,26 @@ ativado: bool = obter_opcao_ou("email", "ativado", default=False)
 ```
 
 ### `database`
-Pacote com abstrações e normalização de operações em databases
+Pacote para suporte a operações em banco de dados.  
+Suporte para construção e execução de `Statement` em múltiplas conexões
+### Dependência `bot[database]` necessária para utilizar `bot.database`
+### Exemplo Select + PostgreSQL
 ```python
-# Classe de abstração do módulo `sqlite3`
-Sqlite() # Memória
-Sqlite(caminho: str | Caminho) # Caminho .db ou .sqlite
+from bot.database import E, A, T, Select
+from bot.database.conexoes.postgresql import PostgreSQL
 
-# Classe para manipulação de Databases via drivers ODBC
-# Testado com PostgreSQL, MySQL e SQLServer
-DatabaseODBC(nome_driver: str, **kwargs: str)
-DatabaseODBC(
-    "PostgreSQL Unicode(x64)",
-    uid = "usuário",
-    pwd = "senha",
-    server = "servidor",
-    port = "porta",
-    database = "nome do database",
-)
-
-# Classe para manipulação do Oracle Database
-DatabaseOracle(user="", password="", host="", port="",
-               service_name="", instance_name="")
-# Pode ser necessário instalar o **Oracle instant client** e informar o `caminho` antes de abrir conexão
-# Utilizar o `OracleDatabase.configurar_cliente(caminho)` para problemas de **thick mode**
-OracleDatabase.configurar_cliente(caminho)
+with PostgreSQL.Connect(...) as conn:
+    users = T.users
+    select = (
+        Select(users.id, users.name.Trim().As("user_name"))
+        .From(users)
+        .Where(users.id == 1)
+        .OrderBy(users.id.ASC)
+        .Offset(0)
+        .Limit(100)
+    )
+    result = conn.execute(select)
+    result.print()
 ```
 
 ### `dataset`
@@ -380,10 +377,12 @@ logger.inicializar_logger()
 # Obter o `TracerLogger` utilizado para realizar o rastreamento de um processo
 # Possível de se realizar os logs com a mesma interface que o `MainLogger`
 from bot.logger.interfaces import TracerLogger
-tracer: TracerLogger = logger.obter_tracer()
+tracer: TracerLogger = logger.obter_tracer(chave="")
 # Sinalizar o encerramento do tracer
 tracer.encerrar("SUCCESS", "Sucesso ao se realizar determinada Ação")
 tracer.encerrar("ERROR", "Falha ao realizar determinada Ação")
+# Pode ser usado com o with para encerramento automático
+with logger.obter_tracer(chave="") as tracer: ...
 
 # Loggar o tempo de execução de uma função
 @logger.tempo_execucao
