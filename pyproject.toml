@@ -11,17 +11,10 @@ license = { text = "MIT" }
 urls = { Homepage = "https://github.com/AlexLanes/python-bot-lib" }
 dependencies = [
   "uv>=0.8.11",
-
   # mouse / teclado / imagem / sistema / estruturas
   "pywin32",
-
-  # database
-  "pyodbc",
-  "oracledb",
-
   # http
   "httpx",
-
   # sistema
   "psutil",
   "comtypes",
@@ -32,6 +25,7 @@ navegador = ["selenium"]
 imagem = ["numpy", "opencv-python"]
 dataset = ["fastexcel", "xlsxwriter", "polars"]
 ocr = ["numpy==1.26.4", "easyocr", "opencv-python"]
+database = ["sqlize @ https://github.com/AlexLanes/sqlize/releases/download/v1.1/sqlize-1.1-py3-none-any.whl"]
 
 [build-system]
 requires = ["uv_build>=0.8.11,<0.9.0"]

@@ -13,7 +13,6 @@ from bot import (
     estruturas,
 
     argumentos,
-    database,
     email,
     erro,
     formatos,
