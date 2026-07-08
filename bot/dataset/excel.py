@@ -1,12 +1,10 @@
 # std
-from __future__ import annotations
 import typing
 # interno
-import bot
+from bot.formatos import Unmarshaller, decode
 from bot.estruturas import Resultado, Caminho
 # externo opcionais [dataset]
-try: import polars, xlsxwriter, fastexcel
-except ImportError: pass
+import polars, xlsxwriter, fastexcel
 
 @Resultado.decorador
 def escapar_tag_xml (df: "polars.DataFrame") -> "polars.DataFrame":
@@ -64,10 +62,10 @@ class Excel:
         """Ler a `planilha` do excel
         - `planilha=None` primeira planilha"""
         df = self.ler_dataframe(planilha)
-        return (
-            bot.formatos.Json
-            .parse(df.write_json())
-            .obter(list[dict[str, typing.Any]])
+        return decode(
+            df.write_json(),
+            decoder = "json",
+            formato = list[dict[str, typing.Any]]
         )
 
     def ler_planilhas (self) -> dict[str, list[dict[str, typing.Any]]]:
@@ -87,21 +85,20 @@ class Excel:
             raise_if_empty = False,
         )
 
-    def ler_unmarshal[T] (self, cls: type[T], planilha: str | None = None) -> list[T]:
+    def ler_unmarshal[T: Unmarshaller] (self, cls: type[T], planilha: str | None = None) -> list[T]:
         """Ler a `planilha` do excel e realizar o unmarshal das linhas conforme a classe anotada `cls`
         - `planilha=None` primeira planilha
         ```python
-        class Registro:
+        from bot.formatos import Unmarshaller
+
+        class Registro (Unmarshaller):
             codigo: str
             descricao: str
+
         excel = bot.dataset.Excel("codigos.xlsx")
         registros = excel.ler_unmarshal(Registro)
         print(*registros, sep="\\n")
         ```"""
-        return (
-            bot.formatos.Json
-            .parse(self.ler_dataframe(planilha).write_json())
-            .unmarshal(list[cls])
-        )
+        return cls.UnmarshalMany(self.ler_planilha(planilha))
 
 __all__ = ["Excel"]

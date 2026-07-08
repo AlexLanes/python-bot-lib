@@ -1,12 +1,10 @@
 # std
-from __future__ import annotations
 import typing
 # interno
-import bot
 from bot.estruturas import Caminho
+from bot.formatos import Unmarshaller, decode
 # externo opcional [dataset]
-try: import polars
-except ImportError: pass
+import polars
 
 class Csv:
     """Classe para manipular arquivos `csv`
@@ -32,7 +30,7 @@ class Csv:
         ```"""
         return self.escrever_dataframe(polars.DataFrame(dados))
 
-    def escrever_dataframe (self, dataframe: "polars.DataFrame") -> bot.sistema.Caminho:
+    def escrever_dataframe (self, dataframe: "polars.DataFrame") -> Caminho:
         """Criar um arquivo csv no `self.caminho` com os dados informados do `dataframe`"""
         dataframe.write_csv(
             self.caminho.string,
@@ -44,10 +42,10 @@ class Csv:
     def ler (self) -> list[dict[str, typing.Any]]:
         """Ler o csv"""
         df = self.ler_dataframe()
-        return (
-            bot.formatos.Json
-            .parse(df.write_json())
-            .obter(list[dict[str, typing.Any]])
+        return decode(
+            df.write_json(),
+            decoder = "json",
+            formato = list[dict[str, typing.Any]]
         )
 
     def ler_dataframe (self) -> "polars.DataFrame":
@@ -58,20 +56,19 @@ class Csv:
             raise_if_empty = False
         )
 
-    def ler_unmarshal[T] (self, cls: type[T]) -> list[T]:
+    def ler_unmarshal[T: Unmarshaller] (self, cls: type[T]) -> list[T]:
         """Ler o csv e realizar o unmarshal das linhas conforme a classe anotada `cls`
         ```python
-        class Registro:
+        from bot.formatos import Unmarshaller
+
+        class Registro (Unmarshaller):
             codigo: str
             descricao: str
+
         excel = bot.dataset.Csv("codigos.csv")
         registros = excel.ler_unmarshal(Registro)
         print(*registros, sep="\\n")
         ```"""
-        return (
-            bot.formatos.Json
-            .parse(self.ler_dataframe().write_json())
-            .unmarshal(list[cls])
-        )
+        return cls.UnmarshalMany(self.ler())
 
 __all__ = ["Csv"]
