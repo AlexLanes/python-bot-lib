@@ -2,8 +2,8 @@
 from __future__ import annotations
 import typing, collections
 # interno
-from bot.formatos import Json
 from bot.sistema import Caminho
+from bot.formatos import stringify
 from bot.estruturas.string import String
 # externo
 import win32api, win32con
@@ -254,7 +254,7 @@ class DictNormalizado[T] (collections.UserDict[str, T]):
 
     def stringify (self, indentar: bool = False) -> str:
         """Transformar para um objeto json"""
-        return Json(self.data).stringify(indentar)
+        return stringify(self.data, indentar=indentar)
 
 __all__ = [
     "Caminho",

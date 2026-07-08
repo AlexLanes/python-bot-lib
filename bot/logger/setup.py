@@ -54,10 +54,7 @@ class JsonFormatter (logging.Formatter):
                 "line": record.lineno,
             }
 
-        return (
-            bot.formatos.Json(payload)
-            .stringify(indentar=False)
-        )
+        return bot.formatos.stringify(payload)
 
 class StdoutFilter (logging.Filter):
     """Permitir apenas logs `INFO` para os `MainLogger` e `WARNING` para loggers terceiros"""

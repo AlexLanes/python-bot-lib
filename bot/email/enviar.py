@@ -76,7 +76,7 @@ def enviar_email (destinatarios: typing.Iterable[bot.tipagem.email],
             Resultado(smtp.starttls)
             smtp.login(user, password)
             erro = smtp.sendmail(remetente, destinatarios, mensagem.as_string())
-            assert not erro, bot.formatos.Json(erro).stringify()
+            assert not erro, bot.formatos.stringify(erro)
     except Exception as erro:
         bot.logger.alertar(f"Erro ao enviar e-mail")
         raise

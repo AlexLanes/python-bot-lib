@@ -10,7 +10,6 @@ from datetime import (
 import bot
 from bot.sistema import JanelaW32
 from bot.estruturas import String, Caminho
-from bot.navegador.mensagem import Mensagem
 # externo opcional [navegador]
 try:
     import selenium.webdriver as wd
@@ -358,7 +357,7 @@ class Navegador:
 
             # Print PDF
             "savefile.default_directory": download.string,
-            "printing.print_preview_sticky_settings.appState": bot.formatos.Json(
+            "printing.print_preview_sticky_settings.appState": bot.formatos.stringify(
                 {
                     "version": 2,
                     "selectedDestinationId": "Save as PDF",
@@ -368,7 +367,7 @@ class Navegador:
                         "account": ""
                     }]
                 }
-            ).stringify(indentar=False)
+            )
         })
 
     @classmethod
@@ -703,8 +702,7 @@ class Chrome (Navegador):
     """Navegador Chrome
     - `timeout` utilizado na espera por elementos
     - `download` diretório para download de arquivos
-    - `options_callback` informar um callback para modificar as options do webdriver
-    - Possível de capturar as mensagens de rede pelo método `mensagens_rede`"""
+    - `options_callback` informar um callback para modificar as options do webdriver"""
 
     def __init__ (self, timeout = 30.0,
                         download: str | Caminho = "./downloads",
@@ -714,7 +712,6 @@ class Chrome (Navegador):
 
         options = wd.ChromeOptions()
         Navegador.adicionar_defaults_options(options, self.diretorio_download)
-        options.set_capability("goog:loggingPrefs", { "performance": "ALL" }) # logs performance
         if options_callback: options_callback(options)
 
         self.driver = wd.Chrome(options)
@@ -723,36 +720,6 @@ class Chrome (Navegador):
         self.remover_navigator_webdriver(self.driver)
 
         bot.logger.informar("Navegador Chrome iniciado")
-
-    def mensagens_rede (self, filtro: typing.Callable[[Mensagem], bool] | None = None) -> list[Mensagem]:
-        """Consultar as mensagens de rede produzidas pelas abas
-        - `filtro` função opcional para filtrar as mensagens"""
-        id_mensagem = collections.defaultdict(Mensagem)
-        for log in self.driver.get_log("performance"):
-            if not isinstance(log, dict): continue
-            json, _ = bot.formatos.Json.parse(log.get("message", {}))
-            if not json or not json.message.params.requestId: continue
-
-            message = json.message
-            params = message.params
-            request_id = params.requestId.obter(typing.Any)
-            mensagem = id_mensagem[request_id]
-
-            if "Network.request" in message.method:
-                mensagem.parse_request(params)
-            elif "Network.response" in message.method:
-                mensagem.parse_response(params)
-                try:
-                    body = mensagem.response.body or self.driver.execute_cdp_cmd("Network.getResponseBody", { "requestId": request_id })
-                    mensagem.response.body = body
-                except Exception: pass
-
-        filtro = filtro or (lambda m: True)
-        return list(
-            mensagem
-            for mensagem in id_mensagem.values()
-            if filtro(mensagem)
-        )
 
 class Explorer (Navegador):
     r"""Navegador Edge no modo Internet Explorer
