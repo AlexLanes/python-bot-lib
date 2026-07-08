@@ -1,6 +1,5 @@
 # std
-from typing import Literal, Iterable
-from datetime import datetime, date, time
+from typing import Literal
 
 type url = str
 """String formato url"""
@@ -23,13 +22,6 @@ type SupportsStr = str | object
 type SupportsBool = bool | object
 """Tipo indicador de qualquer objeto que suporte `bool(objeto)`"""
 
-type tipoSQL = primitivo | bytes | date | time | datetime 
-"""Tipos possível de retorno do ResultadoSQL"""
-type nomeado = dict[str, tipoSQL]
-"""Parâmetros necessários quando o SQL é nomeado ':nome'"""
-type posicional = Iterable[tipoSQL]
-"""Parâmetros necessários quando o SQL é posicional '?'"""
-
 DIRECOES_SCROLL = Literal["cima", "baixo"]
 """Direções de scroll aceitos pelo `bot.mouse`"""
 BOTOES_MOUSE = Literal["left", "middle", "right"]
@@ -45,11 +37,8 @@ __all__ = [
     "char",
     "email",
     "TJson",
-    "tipoSQL",
-    "nomeado",
     "Numerico",
     "primitivo",
-    "posicional",
     "SupportsStr",
     "SupportsBool",
     "BOTOES_MOUSE",
