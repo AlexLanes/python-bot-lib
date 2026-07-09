@@ -75,6 +75,9 @@ class SecaoConfigFile:
         """Obter as Opções da Seção"""
         return list(self.__dados)
 
+    def as_dict (self) -> dict[str, str]:
+        return dict(self.__dados)
+
     def obter_ou[T: bot.tipagem.primitivo] (self, opcao: str, default: T = "") -> T:
         """Obter a `opção` da Seção ou `default` caso não exista
         - Transforma o tipo para o mesmo do `default` informado"""
@@ -138,6 +141,7 @@ class ConfigFile:
         parser = configparser.ConfigParser(
             interpolation = Interpolacao()
         )
+        parser.optionxform = lambda optionstr: optionstr.lower().replace(".", "_")
 
         match caminho:
             case Caminho():
@@ -147,28 +151,25 @@ class ConfigFile:
                     if not caminho.arquivo() or not caminho.nome.endswith(".ini"): continue
                     parser.read(caminho.string, encoding="utf-8")
 
-        setattr(self, "__secoes", secoes := [
-            secao
-            for secao in parser
-            if secao.lower() != "default"
-        ])
+        secoes = {
+            nome.replace(".", "_"): secao
+            for nome, secao in parser.items()
+            if nome.lower() != "default"
+        }
+
+        setattr(self, "__secoes", list(secoes))
         self.__dados = DictNormalizado({
-            secao: SecaoConfigFile(
-                secao,
-                DictNormalizado({
-                    opcao: parser[secao][opcao]
-                    for opcao in parser[secao]
-                })
-            )
-            for secao in secoes
+            nome: SecaoConfigFile(nome, DictNormalizado(secao))
+            for nome, secao in secoes.items()
         })
+
         return self
 
     def __len__ (self) -> int:
         return len(self.__dados)
 
     def __getattr__ (self, nome: str) -> SecaoConfigFile:
-        if (valor := self.__dados.get(nome.replace("_", ""), None)) is not None:
+        if (valor := self.__dados.get(nome, None)) is not None:
             return valor
         raise AttributeError(f"Seção '{nome}' não encontrada em {self}")
 
