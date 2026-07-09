@@ -1,6 +1,6 @@
 [project]
 name = "bot"
-version = "6.0"
+version = "7.0"
 description = "Biblioteca com funcionalidades gerais para criação de automações para o Windows"
 authors = [
   { name = "Alex Lanes Angelo", email = "alex_lanes@hotmail.com" }
@@ -11,6 +11,8 @@ license = { text = "MIT" }
 urls = { Homepage = "https://github.com/AlexLanes/python-bot-lib" }
 dependencies = [
   "uv>=0.8.11",
+  # formatos
+  "msgspec>=0.21.1",
   # mouse / teclado / imagem / sistema / estruturas
   "pywin32",
   # http

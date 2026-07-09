@@ -3,12 +3,12 @@
 ⚠️ <span style="color: red;"><strong>Python</strong> <code>&gt;=3.12</code></span> ⚠️
 
 > **Instalação via url do release no github:**  
-Via pip `pip install https://github.com/AlexLanes/python-bot-lib/releases/download/v6.0/bot-6.0-py3-none-any.whl`  
-Via uv `uv add https://github.com/AlexLanes/python-bot-lib/releases/download/v6.0/bot-6.0-py3-none-any.whl`
+Via pip `pip install https://github.com/AlexLanes/python-bot-lib/releases/download/v7.0/bot-7.0-py3-none-any.whl`  
+Via uv `uv add https://github.com/AlexLanes/python-bot-lib/releases/download/v7.0/bot-7.0-py3-none-any.whl`
 
 > **Para referenciar como dependência:**  
-Utilizar o link para o arquivo **whl** do release `bot @ https://github.com/AlexLanes/python-bot-lib/releases/download/v6.0/bot-6.0-py3-none-any.whl`  
-Utilizar o caminho para o arquivo **whl** baixado `bot @ file://.../bot-6.0-py3-none-any.whl`
+Utilizar o link para o arquivo **whl** do release `bot @ https://github.com/AlexLanes/python-bot-lib/releases/download/v7.0/bot-7.0-py3-none-any.whl`  
+Utilizar o caminho para o arquivo **whl** baixado `bot @ file://.../bot-7.0-py3-none-any.whl`
 
 > Os pacotes podem ser encontrados diretamentes no namespace **bot** após import da biblioteca **import bot** ou importado diretamente o pacote desejado **from bot import pacote**
 
@@ -16,11 +16,20 @@ Utilizar o caminho para o arquivo **whl** baixado `bot @ file://.../bot-6.0-py3-
 ## Changelog 🔧
 
 <details>
+<summary>v7.0</summary>
+
+- Alterado pacote `configfile` e renomeado variável de acesso `bot.config`
+- Alterado `formatos.Unmarshaller` para usar dependência `msgspec`
+- Removido `formatos.Json` substituido pelas funções `stringify` `validar` `decode`
+- Alterado pacote `database` para ser opcional e usar dependência `sqlize`
+
+</details>
+<details>
 <summary>v6.0</summary>
 
-- Alterado pacote `database` para ser opcional
-- Alterado pacotes `imagem` `navegador` `dataset` para serem opcionais devido ao tamanho das dependências
+- Alterado `formatos.Unmarshaller` para user dependência `msgspec`
 - Alterado comportamento do `ResultadoSQL`
+- Alterado pacotes `imagem` `navegador` `dataset` para serem opcionais devido ao tamanho das dependências
 - Alterado métodos do `Navegador` e adicionado outros
 - Alterado handlers do `logger` para diminuir o tamanho do `stdout`
 
@@ -67,29 +76,6 @@ Utilizar o caminho para o arquivo **whl** baixado `bot @ file://.../bot-6.0-py3-
 - Criado nova classe de manipulação de database `bot.database.DatabaseOracle`
 
 </details>
-<details>
-<summary>v3.2</summary>
-
-- Alterado métodos e descrição das classes `Sqlite` e `DatabaseODBC` no pacote `database`
-- Adicionado parâmetro de tempo limite no `bot.video.GravadorTela()` e alterado default do `comprimir` para `False`
-- Alterado lógica do `bot.sistema.JanelaW32.focar()`
-
-</details>
-<details>
-<summary>v3.1</summary>
-
-- Criado o pacote `video`
-- Alterado nome do `sistema.abrir_programa` para `abrir_processo`
-
-</details>
-<details>
-<summary>v3.0</summary>
-
-- Removido dependência do `pywinauto`
-- Criado classes próprias para manipulação de Janelas e função para encerrar processos em `bot.sistema`
-- Atualizado métodos para encontrar elementos do `Navegador` para uma classe própria
-
-</details>
 
 
 ## Descrição breve dos pacotes com algumas funcionalidades
@@ -115,8 +101,8 @@ Pacote para inicialização de variáveis a partir de arquivo de configuração 
 - `#` ou `;` comenta a linha se tiver no começo
 - Arquivos terminados em `.ini` devem estar presente em `DIRETORIO_EXECUCAO`
 
-**Exemplo**
-```ini
+### Exemplo
+```
 [LOGIN]
 usuario = rpa
 senha = 123
@@ -126,15 +112,21 @@ usuario = ${LOGIN:usuario}@gmail.com
 ativado = True
 ```
 
+### Utilização
 ```python
-# Obter múltiplas `opções` de uma `seção`. Erro caso alguma não exista
-obter_opcoes_obrigatorias (secao: str, *opcoes: str) -> tuple[str, ...]
-usuario, senha = obter_opcoes_obrigatorias("LOGIN", "usuario", "senha")
+import bot
 
-# Obter `opcao` de uma `secao` do configfile ou `default` caso não exista
-obter_opcao_ou[T] (secao: str, opcao: str, default: T = "") -> T
-usuario: str = obter_opcao_ou("email", "usuario")
-ativado: bool = obter_opcao_ou("email", "ativado", default=False)
+print("Secões", bot.config.secoes())
+assert "minha_secao" in bot.config
+
+secao = bot.config.minha_secao
+print(secao)
+print("Opções Seção", secao.opcoes())
+
+if "usuario" in secao:
+    print(secao.usuario)
+print(secao.obter_ou("usuario", default=""))
+a, b, c = secao.obter("a", "b", "c")
 ```
 
 ### `database`
@@ -258,9 +250,22 @@ DictNormalizado[T](d: Mapping[str, T] | None = None)
 ### `formatos`
 Pacote agregador para diferentes tipos de formatos de dados
 ```python
-# Classe para validação e leitura de objetos JSON
-Json (item: Any)
-Json.parse (json: str) -> Json
+# Validar se o `item` possui o `formato`
+def validar[T] (item: object, formato: type[T]) -> bool: ...
+
+# Formatar o `item` para `JSON String`
+def stringify (item: object, *, indentar: bool = False) -> str: ...
+
+# Realizar o decode do `item`, em seu formato `str` `bytes`, usando o `decoder` informado
+def decode[T] (item: str | bytes, *,
+               decoder: Literal["json", "toml", "yaml"] = "json",
+               formato: type[T] | Any = Any) -> T:
+
+# Classe Base usada para transformação de um `dict` para uma Classe Modelo
+class Dados (Unmarshaller):
+    id: int
+    nome: str
+dados: Dados = Dados.Unmarshal({"id": 1, "nome": "Alex"})
 
 # Classe de manipulação do XML
 ElementoXML.parse(xml: str | Caminho) -> ElementoXML
@@ -270,13 +275,6 @@ ElementoXML(
     namespace: tipagem.url | None = None,
     atributos: dict[str, str] | None = None
 )
-
-# Classe para validação e parse de um `dict` para uma classe anotada
-Unmarshaller[T] (cls: type[T])
-    # Realizar o parse do `item` conforme a classe informada
-    .parse(item: dict[str, Any]) -> T
-    # Realizar o parse dos `itens` conforme a classe informada
-    .parse(item: list[dict[str, Any]]) -> list[T]
 ```
 
 ### `ftp`
