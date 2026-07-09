@@ -26,7 +26,7 @@ def apagar_release (id_release: int) -> None:
 
 def obter_descricao_release () -> str:
     caminho = bot.sistema.Caminho("./pyproject.toml")
-    project = PyProject.Decode(caminho).project
+    project = PyProject.Decode(caminho, decoder="toml").project
     pacotes = [caminho.nome
                for caminho in bot.sistema.Caminho("./bot")
                if caminho.diretorio() and not caminho.nome.startswith("__")]
