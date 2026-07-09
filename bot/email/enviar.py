@@ -35,10 +35,10 @@ def enviar_email (destinatarios: typing.Iterable[bot.tipagem.email],
     assert destinatarios, "Pelo menos um e-mail destinatário é necessário para ser enviado"
 
     # variaveis do configfile
-    secao = "email.enviar"
-    ssl = bot.configfile.obter_opcao_ou(secao, "ssl", False)
-    port = bot.configfile.obter_opcao_ou(secao, "port", 587)
-    user, password, host = bot.configfile.obter_opcoes_obrigatorias(secao, "user", "password", "host")
+    secao = bot.config.email_enviar
+    ssl = secao.obter_ou("ssl", False)
+    port = secao.obter_ou("port", 587)
+    user, password, host = secao.obter("user", "password", "host")
 
     # headers mensagem
     mensagem = MIMEMultipart()

@@ -1,7 +1,15 @@
 # interno
 import bot
+from bot.formatos import Unmarshaller
 
-HOST, USUARIO, REPOSITORIO, TOKEN = bot.configfile.obter_opcoes_obrigatorias("github", "host", "usuario", "repositorio", "token")
+HOST, USUARIO, REPOSITORIO, TOKEN = bot.config.github.obter("host", "usuario", "repositorio", "token")
+
+class Project (Unmarshaller, rename="kebab"):
+    requires_python: str
+    dependencies: list[str]
+    optional_dependencies: dict[str, list[str]]
+class PyProject (Unmarshaller):
+    project: Project
 
 def apagar_release (id_release: int) -> None:
     (
@@ -17,24 +25,20 @@ def apagar_release (id_release: int) -> None:
     )
 
 def obter_descricao_release () -> str:
-    toml = bot.formatos.Toml("pyproject.toml")
-
-    requer_python = toml.obter("project.requires-python")
-    dependencias = toml.obter("project.dependencies", list[str])
+    caminho = bot.sistema.Caminho("./pyproject.toml")
+    project = PyProject.Decode(caminho).project
     pacotes = [caminho.nome
                for caminho in bot.sistema.Caminho("./bot")
                if caminho.diretorio() and not caminho.nome.startswith("__")]
-    opcionais = toml.obter("project.optional-dependencies", dict[str, list[str]])
-
     return "<br>".join((
-        f"**Python:** {requer_python!r}",
+        f"**Python:** {project.requires_python!r}",
         f"**Pacotes:** {pacotes!r}",
-        f"**Dependências:** {dependencias!r}",
-        f"**Opcionais:** {opcionais!r}",
+        f"**Dependências:** {project.dependencies!r}",
+        f"**Opcionais:** {project.optional_dependencies!r}",
     ))
 
 def criar_release (release: str) -> int:
-    class Retorno:
+    class Retorno (Unmarshaller):
         id: int
 
     return (
@@ -58,7 +62,7 @@ def criar_release (release: str) -> int:
 
 def obter_releases () -> dict[str, int]:
     """`{ Versão release: id release }`"""
-    class Release:
+    class Release (Unmarshaller):
         id: int
         tag_name: str | None = None
 
@@ -72,7 +76,7 @@ def obter_releases () -> dict[str, int]:
             }
         )
         .esperar_status_code(200)
-        .unmarshal(list[Release])
+        .unmarshal_many(Release)
     )
 
     return {
@@ -83,7 +87,7 @@ def obter_releases () -> dict[str, int]:
 
 def upload_asset (id_release: int, caminho_build: bot.sistema.Caminho) -> str:
     """retorna o url para a build"""
-    class Retorno:
+    class Retorno (Unmarshaller):
         browser_download_url: str
 
     host = HOST.replace("api", "uploads")

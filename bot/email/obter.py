@@ -73,7 +73,7 @@ def obter_emails (limite: int | slice | None = None,
         - (OR (TO 'example@gmail.com') (FROM 'example@gmail.com')) = Emails enviados para OU recebidos de"""
     limite = limite if isinstance(limite, slice) else slice(limite)
     # variaveis do configfile
-    user, password, host = bot.configfile.obter_opcoes_obrigatorias("email.obter", "user", "password", "host")
+    user, password, host = bot.config.email_obter.obter("user", "password", "host")
 
     with imaplib.IMAP4_SSL(host) as imap:
         imap.login(user, password)

@@ -304,7 +304,7 @@ class MainLogger:
         # Root Handler
         root = self.logger.root
         root.setLevel(logging.DEBUG
-                      if bot.configfile.obter_opcao_ou("logger", "flag_debug", False)
+                      if bot.config.logger.obter_ou("flag_debug", False)
                       else logging.INFO)
         for handler in root.handlers:
             root.removeHandler(handler.close() or handler)
@@ -335,7 +335,7 @@ class MainLogger:
         """Limpar os logs no `CAMINHO_DIRETORIO_PERSISTENCIA` que ultrapassaram a data limite
         - Registrado para executar ao fim do Python automaticamente
         - `Default:` 14 dias"""
-        dias = bot.configfile.obter_opcao_ou("logger", "dias_persistencia", 14)
+        dias = bot.config.logger.obter_ou("dias_persistencia", 14)
         limite = Timedelta(days=dias)
 
         for caminho in self.CAMINHO_DIRETORIO_PERSISTENCIA:

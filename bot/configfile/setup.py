@@ -50,16 +50,54 @@ class Interpolacao (configparser.ExtendedInterpolation):
 
         return self.RE_INTERPOLACAO.sub(replace, value)
 
+class SecaoConfigFile:
+    def __init__ (self, nome: str, dados: DictNormalizado[str]) -> None:
+        self.__nome = nome
+        self.__dados = dados
+
+    def __repr__ (self) -> str:
+        return f"<SeçãoConfigFile Nome={self.__nome!r} Opções={self.opcoes()!r}>"
+
+    def __len__ (self) -> int:
+        return len(self.__dados)
+
+    def __getattr__ (self, nome: str) -> str:
+        if (valor := self.__dados.get(nome, None)) is not None:
+            return valor
+        raise AttributeError(f"Opção '{nome}' não encontrada em {self}")
+
+    def __contains__ (self, item: object) -> bool:
+        if not isinstance(item, str):
+            return NotImplemented
+        return item in self.__dados
+
+    def opcoes (self) -> list[str]:
+        """Obter as Opções da Seção"""
+        return list(self.__dados)
+
+    def obter_ou[T: bot.tipagem.primitivo] (self, opcao: str, default: T = "") -> T:
+        """Obter a `opção` da Seção ou `default` caso não exista
+        - Transforma o tipo para o mesmo do `default` informado"""
+        if (valor := self.__dados.get(opcao, None)) is not None:
+            return bot.util.transformar_tipo(valor, type(default))
+        return default
+
+    def obter (self, *opcao: str) -> tuple[str, ...]:
+        """Obter múltiplas Opções da Seção
+        - Retorno dos valores na mesma ordem"""
+        assert opcao, f"Informar ao menos 1 opção {self}"
+        return tuple(
+            getattr(self, nome)
+            for nome in opcao
+        )
+
 class ConfigFile:
-    """Classe para inicialização de variáveis a partir de arquivo de configuração `.ini`  
-
-    #### Inicializado automaticamente na primeira consulta
-
+    """Classe para inicialização de variáveis a partir de arquivo de configuração `.ini`
     - Para concatenação de valores, utilizar a sintaxe `${opção}` `${seção:opção}`
     - `#` ou `;` comenta a linha se tiver no começo
     - Arquivos terminados em `.ini` devem estar presente em `DIRETORIO_EXECUCAO`
 
-    **Exemplo**
+    ### Exemplo
     ```
     [LOGIN]
     usuario = rpa
@@ -68,101 +106,88 @@ class ConfigFile:
     [email]
     usuario = ${LOGIN:usuario}@gmail.com
     ativado = True
-    ```"""
+    ```
+    ### Utilização
+    ```python
+    import bot
 
-    INICIALIZADO: bool = False
+    print("Secões", bot.config.secoes())
+    assert "minha_secao" in bot.config
+
+    secao = bot.config.minha_secao
+    print(secao)
+    print("Opções Seção", secao.opcoes())
+
+    if "usuario" in secao:
+        print(secao.usuario)
+    print(secao.obter_ou("usuario", default=""))
+    a, b, c = secao.obter("a", "b", "c")
+    ```
+    """
+
     DIRETORIO_EXECUCAO = Caminho.diretorio_execucao()
-    DADOS = DictNormalizado[DictNormalizado[str]]()
-    """`{ secao: { opcao: valor } }`"""
+    __dados: DictNormalizado[SecaoConfigFile]
+    """`{ secao: SecaoConfigFile }`"""
 
     def __repr__ (self) -> str:
-        return f"<bot.ConfigFile com '{len(self.DADOS)}' seções>"
+        return f"<bot.ConfigFile Seções={getattr(self, "__secoes")!r}>"
 
-    @property
-    def parser (self) -> configparser.ConfigParser:
-        return configparser.ConfigParser(
+    def inicializar (self, caminho: Caminho | None = None) -> typing.Self:
+        """Inicializar o `ConfigFile`
+        - `caminho=None` inicializar buscando todos os `.ini` no `DIRETORIO_EXECUCAO`"""
+        parser = configparser.ConfigParser(
             interpolation = Interpolacao()
         )
 
-    def inicializar_configfile (self) -> typing.Self:
-        """Inicializar o configfile"""
-        if self.INICIALIZADO: return self
-        self.INICIALIZADO = True
+        match caminho:
+            case Caminho():
+                parser.read(caminho.string, encoding="utf-8")
+            case None:
+                for caminho in self.DIRETORIO_EXECUCAO:
+                    if not caminho.arquivo() or not caminho.nome.endswith(".ini"): continue
+                    parser.read(caminho.string, encoding="utf-8")
 
-        parser = self.parser
-        for caminho in self.DIRETORIO_EXECUCAO:
-            if not caminho.arquivo() or not caminho.nome.endswith(".ini"): continue
-            parser.read(caminho.string, encoding="utf-8")
-
-        # lower seções e opções
-        for secao in parser:
-            if secao.lower() == "default": continue
-            self.DADOS[secao] = DictNormalizado({
-                opcao: parser[secao][opcao]
-                for opcao in parser[secao]
-            })
-
+        setattr(self, "__secoes", secoes := [
+            secao
+            for secao in parser
+            if secao.lower() != "default"
+        ])
+        self.__dados = DictNormalizado({
+            secao: SecaoConfigFile(
+                secao,
+                DictNormalizado({
+                    opcao: parser[secao][opcao]
+                    for opcao in parser[secao]
+                })
+            )
+            for secao in secoes
+        })
         return self
 
-    def obter_secoes (self) -> list[str]:
-        """Obter as seções do configfile"""
-        return list(self.inicializar_configfile().DADOS)
+    def __len__ (self) -> int:
+        return len(self.__dados)
 
-    def opcoes_secao (self, secao: str) -> list[str]:
-        """Obter as opções de uma `seção` do configfile"""
-        return list(self.inicializar_configfile().DADOS[secao])
+    def __getattr__ (self, nome: str) -> SecaoConfigFile:
+        if (valor := self.__dados.get(nome.replace("_", ""), None)) is not None:
+            return valor
+        raise AttributeError(f"Seção '{nome}' não encontrada em {self}")
 
-    def possui_secao (self, secao: str) -> bool:
-        """Indicador se uma `seção` está presente no configfile"""
-        return secao in self.inicializar_configfile().DADOS
+    def __contains__ (self, item: object) -> bool:
+        if not isinstance(item, str):
+            return NotImplemented
+        return item.replace("_", "") in self.__dados
 
-    def possui_opcao (self, secao: str, opcao: str) -> bool:
-        """Indicador se uma `seção` possui a `opção` no configfile"""
-        return opcao in self.inicializar_configfile().DADOS[secao]
+    def secoes (self) -> list[str]:
+        """Obter as Seções do `ConfigFile`"""
+        return list(getattr(self, "__secoes"))
 
-    def possui_opcoes (self, secao: str, *opcoes: str) -> bool:
-        """Versão do `possui_opcao` que aceita múltiplas `opções`"""
-        self.inicializar_configfile()
-        return all(
-            self.possui_opcao(secao, opcao)
-            for opcao in opcoes
-        )
-
-    def obter_opcao_ou[T: bot.tipagem.primitivo] (self, secao: str, opcao: str, default: T = "") -> T:
-        """Obter `opcao` de uma `secao` do configfile ou `default` caso não exista
-        - Transforma o tipo da variável para o mesmo tipo do `default` informado"""
-        self.inicializar_configfile()
-        return bot.util.transformar_tipo(self.DADOS[secao][opcao], type(default)) \
-            if self.possui_secao(secao) and self.possui_opcao(secao, opcao) else default
-
-    def obter_opcao_obrigatoria (self, secao: str, opcao: str) -> str:
-        """Obter `opção` obrigatória da `seção`
-        - `AssertionError` caso a `seção` ou `opção` não exista"""
-        assert self.possui_secao(secao), f"Seção do configfile '{secao}' não foi configurada"
-        assert self.possui_opcao(secao, opcao), f"Opção do configfile '{opcao}' não foi configurado para a seção '{secao}'"
-        return self.DADOS[secao][opcao]
-
-    def obter_opcoes_obrigatorias (self, secao: str, *opcoes: str) -> tuple[str, ...]:
-        """Obter múltiplas `opções` de uma `seção`
-        - `AssertionError` caso a `seção` ou alguma `opção` não exista
-        - `tuple` de retorno terá os valores na mesma ordem que as `opções`"""
-        assert self.possui_secao(secao), f"Seção do configfile '{secao}' não foi configurada"
-        assert self.possui_opcoes(secao, *opcoes), f"Opções do configfile {opcoes!r} não foram configuradas para a seção '{secao}'"
-        return tuple(
-            self.DADOS[secao][opcao]
-            for opcao in opcoes
-        )
-
-configfile = ConfigFile()
+config = ConfigFile().inicializar()
 """Classe para inicialização de variáveis a partir de arquivo de configuração `.ini`  
-
-#### Inicializado automaticamente na primeira consulta
-
 - Para concatenação de valores, utilizar a sintaxe `${opção}` `${seção:opção}`
 - `#` ou `;` comenta a linha se tiver no começo
 - Arquivos terminados em `.ini` devem estar presente em `DIRETORIO_EXECUCAO`
 
-**Exemplo**
+### Exemplo
 ```
 [LOGIN]
 usuario = rpa
@@ -171,6 +196,23 @@ senha = 123
 [email]
 usuario = ${LOGIN:usuario}@gmail.com
 ativado = True
-```"""
+```
+### Utilização
+```python
+import bot
 
-__all__ = ["configfile"]
+print("Secões", bot.config.secoes())
+assert "minha_secao" in bot.config
+
+secao = bot.config.minha_secao
+print(secao)
+print("Opções Seção", secao.opcoes())
+
+if "usuario" in secao:
+    print(secao.usuario)
+print(secao.obter_ou("usuario", default=""))
+a, b, c = secao.obter("a", "b", "c")
+```
+"""
+
+__all__ = ["config"]

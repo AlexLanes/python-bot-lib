@@ -12,19 +12,15 @@ class FTP:
     __ftp: ftplib.FTP
 
     def __init__ (self) -> None:
-        # instanciar e conectar
-        self.__ftp = ftplib.FTP()
-        host = bot.configfile.obter_opcoes_obrigatorias("FTP", "host")[0]
-        bot.logger.debug(f"Conectando ao servidor FTP '{host}'")
-        self.__ftp.connect(host=host,
-                           port=bot.configfile.obter_opcao_ou("FTP", "port", 21),
-                           timeout=bot.configfile.obter_opcao_ou("FTP", "timeout", 5.0))
+        secao = bot.config.FTP
+        host = secao.host
+        usuario, senha = secao.obter_ou("user"), secao.obter_ou("password")
 
-        # login
-        usuario, senha = bot.configfile.obter_opcao_ou("FTP", "user"), bot.configfile.obter_opcao_ou("FTP", "password")
-        if usuario:
-            bot.logger.debug(f"Realizando o login com o usuário '{usuario}'")
-            self.__ftp.login(usuario, senha)
+        # instanciar e conectar
+        bot.logger.debug(f"Conectando ao servidor FTP '{host}'", usuario=usuario)
+        self.__ftp = ftplib.FTP()
+        self.__ftp.connect(host=host, port=secao.obter_ou("port", 21), timeout=secao.obter_ou("timeout", 5.0))
+        if usuario: self.__ftp.login(usuario, senha)
 
     def __del__ (self, *args) -> None:
         """Encerrar conexão ao sair do escopo"""
