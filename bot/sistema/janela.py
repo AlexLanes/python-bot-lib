@@ -901,9 +901,7 @@ class JanelaW32:
         - Alguns aplicativos podem abrir mais de uma janela, utilizar o `self.janelas_processo()` para verificar"""
         try:
             with cls.aguardar_nova_janela(aguardar) as janela:
-                processo = bot.sistema.abrir_processo(*argumentos, shell=shell)
-                returncode = bot.estruturas.Resultado(processo.wait, 1).valor_ou(None)
-                assert returncode in (None, 0), f"Processo finalizado com erro | returncode({returncode})"
+                bot.sistema.AbrirProcesso(*argumentos, shell=shell)
             return janela.focar()
 
         except Exception as erro:
@@ -920,7 +918,7 @@ class JanelaW32:
         #### Utilizar com o `with`
         ```
         with JanelaW32.aguardar_nova_janela(aguardar=2) as janela:
-            bot.sistema.abrir_processo("notepad")
+            bot.sistema.AbrirProcesso("notepad")
         print(janela.titulo)
         ```"""
         titulos_visiveis = lambda: cls.titulos_janelas_visiveis()

@@ -1,5 +1,5 @@
 # std
-import atexit, shutil, subprocess
+import atexit, shutil
 from typing import Self
 from datetime import datetime, timedelta
 # interno
@@ -31,7 +31,6 @@ class GravadorTela:
     O `ffmpeg` possui parâmetros customizáveis e é automaticamente instalado, via `winget`, caso não seja encontrado.  
     Caso não possua `winget`, será informado em erro para realizar a instalação manual do `ffmpeg` via `chocolatey`
     - `diretorio = ./video_logs` para configurar onde será salvo as gravações
-    - `comprimir = False` Indicador para comprimir a gravação (Pode demorar alguns minutos dependendo do tamanho)
     - Por padrão é gravado até um tempo limite de `1 hora`, que é customizável
 
     # Exemplo
@@ -48,15 +47,12 @@ class GravadorTela:
     ```
     """
 
-    comprimir: bool
-    """Indicador para comprimir a gravação para salvar espaço
-    - Default: `False`"""
     diretorio: Caminho
     """Caminho para o diretório do arquivo
     - Default: `./video_logs`"""
     nome_extensao: str
     """nome do arquivo + extensão apropriada para o `vcodec`"""
-    processo: subprocess.Popen[str] | None
+    processo: bot.sistema.AbrirProcesso | None
     """Processo do ffmpeg"""
 
     # FFMPEG
@@ -82,12 +78,12 @@ class GravadorTela:
     - `51`: pior qualidade
     - Default `33`"""
 
-    def __init__ (self, diretorio: Caminho | None = None, comprimir: bool = False) -> None:
+    def __init__ (self, diretorio: Caminho | None = None) -> None:
         if not checar_existencia_ffmpeg():
             bot.logger.informar("Biblioteca ffmpeg, utilizada para a gravação, não detectada")
             instalar_ffmpeg()
 
-        self.processo, self.comprimir = None, comprimir
+        self.processo = None
         self.diretorio = (diretorio or Caminho.diretorio_execucao() / "video_logs").criar_diretorios()
 
     @property
@@ -142,17 +138,16 @@ class GravadorTela:
         assert len(nome_extensao.split(".")) >= 2, f"Informe a extensão junto com o nome do arquivo: '{nome_extensao}'"
         self.nome_extensao = nome_extensao
 
-        bot.sistema.encerrar_processos_usuario("ffmpeg")
-        self.processo = bot.sistema.abrir_processo(*self.argumentos)
-
-        if self.processo.poll() is not None or not bot.tempo.aguardar(lambda: self.caminho.existe(), timeout=5, delay=0.25):
+        self.processo = bot.sistema.AbrirProcesso(*self.argumentos, shell=False)
+        if self.processo.encerrado or not bot.tempo.aguardar(lambda: self.caminho.existe(), timeout=5, delay=0.25):
             try:
-                stdout, stderr = self.processo.communicate(timeout=10)
-                mensagem = f"Falha ao iniciar a gravação com ffmpeg:\n{stdout}\n{stderr}"
+                returncode = self.processo.encerrar(timeout=10)
+                stdout = self.processo.stdout()
+                mensagem = f"Falha ao iniciar a gravação com ffmpeg, {returncode=} {stdout}"
             except Exception:
                 mensagem = f"Falha ao iniciar a gravação com ffmpeg"
                 bot.sistema.encerrar_processos_usuario("ffmpeg")
-            bot.logger.alertar(mensagem)
+            bot.logger.erro(mensagem)
             raise Exception(mensagem)
 
         atexit.register(lambda: self.parar() if self.processo is not None else None)
@@ -163,30 +158,34 @@ class GravadorTela:
         - Usar apenas após `iniciar`"""
         assert self.processo is not None, "Nenhuma gravação está em andamento para ser parada"
 
+        stdout = b""
         try:
-            if self.processo.poll() is None:
-                self.processo.communicate("q", timeout=3)
-            returncode = self.processo.poll()
+            if self.processo.executando:
+                stdout = self.processo.comunicar(b"q", timeout=5)
+            returncode = self.processo.returncode
             assert returncode == 0, f"Retorno do processo diferente do esperado: '{returncode}'"
 
         except Exception as erro:
-            raise Exception(f"Falha ao parar a gravação: {erro}")
+            erro = Exception(f"Falha ao parar a gravação: {erro}")
+            erro.add_note(stdout.decode(errors="ignore"))
+            raise erro from None
 
         finally:
             p = self.processo
             self.processo = None
-            p.kill(); p.wait(1)
+            p.encerrar()
 
-        if self.comprimir: self.__comprimir()
         return self.caminho
 
-    def __comprimir (self) -> None:
-        """Comprimir o `caminho` da gravação e substituir o original"""
-        assert self.processo is None, "Não possível comprimir pois a gravação está em andamento"
+    def comprimir (self, *, apagar_original: bool = True) -> Caminho:
+        """Comprimir a gravação, após o `.parar()`, e retornar o `Caminho`
+        - `apagar_original` para remover a gração original e manter apenas o comprimido"""
+        assert self.processo is None, "Não é possível comprimir pois a gravação está em andamento"
+
         caminho = self.caminho
+        argumentos = self.argumentos_compressor
 
         try:
-            argumentos = self.argumentos_compressor
             sucesso, mensagem = bot.sistema.executar(*argumentos)
             assert sucesso, mensagem
         except Exception:
@@ -194,7 +193,10 @@ class GravadorTela:
             bot.logger.erro(mensagem)
             raise Exception(mensagem)
 
-        Caminho(argumentos[-1]).renomear(caminho.nome)
+        if apagar_original:
+            self.caminho.apagar_arquivo()
+
+        return Caminho(argumentos[-1])
 
     def registrar_limpeza_diretorio (self, *extensoes: str, limite_dias = 14) -> Self:
         """Registrar a execução da limpeza das gravações no `diretório` que ultrapassarem `limite_dias`
@@ -216,6 +218,4 @@ class GravadorTela:
         atexit.register(limpar)
         return self
 
-__all__ = [
-    "GravadorTela",
-]
+__all__ = ["GravadorTela"]
