@@ -84,7 +84,7 @@ class GravadorTela:
             instalar_ffmpeg()
 
         self.processo = None
-        self.diretorio = (diretorio or Caminho.diretorio_execucao() / "video_logs").criar_diretorios()
+        self.diretorio = (diretorio or Caminho.DiretorioExecucao() / "video_logs").criar_diretorios()
 
     @property
     def argumentos (self) -> list[str]:

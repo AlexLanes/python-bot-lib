@@ -256,7 +256,7 @@ class MainLogger:
     """Classe pré-configurada para criar, consultar e tratar os arquivos de log
     - `name` o mesmo da propriedade que aparecerá nos logs
 
-    #### Inicializar manualmente `logger.inicializar_logger()`
+    #### Inicializar manualmente `logger.inicializar()`
         - Stream para o `stdout`
         - Cria um LOG no diretório de execução para fácil acesso `CAMINHO_LOG_RAIZ`
         - Salva um LOG no diretório de persistência `CAMINHO_LOG_PERSISTENCIA`
@@ -269,8 +269,8 @@ class MainLogger:
     FORMATO_DATA_LOG: str = r"%Y-%m-%dT%H:%M:%S"
     FORMATO_NOME_LOG_PERSISTENCIA: str = r"%Y-%m-%dT%H-%M-%S.jsonl"
 
-    CAMINHO_LOG_RAIZ = Caminho.diretorio_execucao() / "log.jsonl"
-    CAMINHO_DIRETORIO_PERSISTENCIA = Caminho.diretorio_execucao() / "logs"
+    CAMINHO_LOG_RAIZ = Caminho.DiretorioExecucao() / "log.jsonl"
+    CAMINHO_DIRETORIO_PERSISTENCIA = Caminho.DiretorioExecucao() / "logs"
     CAMINHO_LOG_PERSISTENCIA = Caminho(
         CAMINHO_DIRETORIO_PERSISTENCIA.string,
         INICIALIZACAO_PACOTE.strftime(FORMATO_NOME_LOG_PERSISTENCIA)
@@ -284,7 +284,7 @@ class MainLogger:
         return f"<bot.MainLogger nome='{self.__nome}'>"
 
     @classmethod
-    def obter_logger (cls, nome: str) -> "MainLogger":
+    def ObterLogger (cls, nome: str) -> "MainLogger":
         """Obter uma nova instância do `MainLogger` de `name="nome"`"""
         return cls(nome)
 
@@ -293,9 +293,9 @@ class MainLogger:
         """Instância nomeada do `Logger`"""
         return logging.getLogger(self.__nome)
 
-    def inicializar_logger (self) -> typing.Self:
+    def inicializar (self) -> typing.Self:
         """Inicializar o logger pelo `ROOT` para capturar todas as mensagens
-        - Formatação JSONL
+        - Formatação `JSONL`
         - Handlers no `stdout` e `arquivos`
         - Registra a limpeza do diretório de persistência"""
         atexit.register(self.__limpeza_diretorio_persistencia)
@@ -436,9 +436,9 @@ class MainLogger:
 logger = MainLogger("BOT")
 """Classe pré-configurada para criar, consultar e tratar os arquivos de log.  
 Constante do logger com o `name=BOT`.  
-Utilizar `logger.obter_logger(nome)` ou importar o `MainLogger(nome)` para criar uma instância com outro nome
+Utilizar `logger.ObterLogger(nome)` ou importar o `MainLogger(nome)` para criar uma instância com outro nome
 
-#### Inicializar manualmente `logger.inicializar_logger()`
+#### Inicializar manualmente `logger.inicializar()`
     - Stream para o `stdout`
     - Cria um LOG no diretório de execução para fácil acesso `CAMINHO_LOG_RAIZ`
     - Salva um LOG no diretório de persistência `CAMINHO_LOG_PERSISTENCIA`

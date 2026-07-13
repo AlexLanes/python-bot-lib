@@ -28,7 +28,7 @@ def perfil_execucao[R] (func: typing.Callable[P, R]) -> typing.Callable[P, R]: #
     @functools.wraps(func)
     def perfil_execucao (*args, **kwargs) -> R:
         # Diretorio de execução atual para limpar o nome no dataframe
-        cwd = bot.sistema.Caminho.diretorio_execucao().string
+        cwd = bot.sistema.Caminho.DiretorioExecucao().string
         cwd = f"{cwd[0].lower()}{cwd[1:]}"
 
         # Executar função com o profile ativo e gerar o report

@@ -80,7 +80,7 @@ class ClienteHttp (httpx.Client):
             json=json, content=conteudo, data=dados, files=arquivos,
             follow_redirects=follow_redirects, timeout=timeout
         )
-        return ResponseHttp.new(response)
+        return ResponseHttp.New(response)
 
     @typing.override
     def get (self, url: str, # type: ignore

@@ -770,10 +770,10 @@ class JanelaW32:
 
     ### Criação
     ```
-    JanelaW32.from_foco()                                       # Janela focada
+    JanelaW32.FromFoco()                                        # Janela focada
     JanelaW32(lambda j: "titulo" in j.titulo and j.visivel)     # Procurar a janela com filtro dinâmico
     JanelaW32(lambda j: ..., aguardar=10)                       # Aguardar por 10 segundos até encontrar a janela
-    JanelaW32.iniciar("notepad", shell=True, aguardar=30)       # Iniciar uma janela via novo processo
+    JanelaW32.Iniciar("notepad", shell=True, aguardar=30)       # Iniciar uma janela via novo processo
     ```
 
     ### Importante
@@ -857,7 +857,7 @@ class JanelaW32:
 
         encontrados = list[T]()
         def callback (hwnd: int, _) -> bool:
-            j = self.from_hwnd(hwnd)
+            j = self.FromHWND(hwnd)
             try:
                 if filtro(j): encontrados.append(j) # type: ignore
             except Exception: pass
@@ -884,23 +884,23 @@ class JanelaW32:
             )[-1].hwnd
 
     @classmethod
-    def from_hwnd[T: JanelaW32] (cls: type[T], hwnd: int) -> T:
+    def FromHWND[T: JanelaW32] (cls: type[T], hwnd: int) -> T:
         janela = object.__new__(cls)
         janela.hwnd = hwnd
         return janela
 
     @classmethod
-    def from_foco[T: JanelaW32] (cls: type[T]) -> T:
+    def FromFoco[T: JanelaW32] (cls: type[T]) -> T:
         """Obter a janela com o foco do sistema"""
         hwnd = win32gui.GetForegroundWindow()
-        return cls.from_hwnd(hwnd)
+        return cls.FromHWND(hwnd)
 
     @classmethod
-    def iniciar[T: JanelaW32] (cls: type[T], *argumentos: str, shell: bool = True, aguardar: int | float = 30) -> T:
+    def Iniciar[T: JanelaW32] (cls: type[T], *argumentos: str, shell: bool = True, aguardar: int | float = 30) -> T:
         """Iniciar uma janela no sistema a partir dos `argumentos`
         - Alguns aplicativos podem abrir mais de uma janela, utilizar o `self.janelas_processo()` para verificar"""
         try:
-            with cls.aguardar_nova_janela(aguardar) as janela:
+            with cls.AguardarNovaJanela(aguardar) as janela:
                 bot.sistema.AbrirProcesso(*argumentos, shell=shell)
             return janela.focar()
 
@@ -909,7 +909,7 @@ class JanelaW32:
 
     @classmethod
     @contextlib.contextmanager
-    def aguardar_nova_janela[T: JanelaW32] (cls: type[T], aguardar: int | float = 15) -> typing.Generator[T, None, None]:
+    def AguardarNovaJanela[T: JanelaW32] (cls: type[T], aguardar: int | float = 15) -> typing.Generator[T, None, None]:
         """Aguardar e obter uma janela (visível) que irá abrir após executar alguma ação
         - `Exception` caso não seja aberta nenhuma nova janela
         - Dentro do contexto apenas realizar a ação que abrirá a nova janela
@@ -917,13 +917,13 @@ class JanelaW32:
 
         #### Utilizar com o `with`
         ```
-        with JanelaW32.aguardar_nova_janela(aguardar=2) as janela:
+        with JanelaW32.AguardarNovaJanela(aguardar=2) as janela:
             bot.sistema.AbrirProcesso("notepad")
         print(janela.titulo)
         ```"""
         titulos_visiveis = lambda: cls.titulos_janelas_visiveis()
         titulos_antes = titulos_visiveis()
-        janela = cls.from_hwnd(0)
+        janela = cls.FromHWND(0)
         yield janela
 
         try: janela.hwnd = cls(
@@ -1074,7 +1074,7 @@ class JanelaW32:
 
         def callback (hwnd, _) -> typing.Literal[True]:
             if hwnd == self.hwnd: return True
-            j = self.from_hwnd(hwnd)
+            j = self.FromHWND(hwnd)
 
             try:
                 if j.processo.pid == self.processo.pid and filtro(j):
@@ -1188,7 +1188,7 @@ class JanelaW32:
 
     def to_uia (self) -> JanelaUIA:
         """Obter uma instância da `JanelaW32` como `JanelaUIA`"""
-        return self if isinstance(self, JanelaUIA) else JanelaUIA.from_hwnd(self.hwnd)
+        return self if isinstance(self, JanelaUIA) else JanelaUIA.FromHWND(self.hwnd)
 
     @staticmethod
     def titulos_janelas_visiveis () -> set[str]:
@@ -1237,10 +1237,10 @@ class JanelaUIA (JanelaW32):
 
     ### Criação
     ```
-    JanelaUIA.from_foco()                                   # Janela focada
+    JanelaUIA.FromFoco()                                   # Janela focada
     JanelaUIA(lambda j: "titulo" in j.titulo and j.visivel) # Procurar a janela com filtro dinâmico
     JanelaUIA(lambda j: ..., aguardar=10)                   # Aguardar por 10 segundos até encontrar a janela
-    JanelaUIA.iniciar("notepad", shell=True, aguardar=30)   # Iniciar uma janela via novo processo
+    JanelaUIA.Iniciar("notepad", shell=True, aguardar=30)   # Iniciar uma janela via novo processo
     ```
 
     ### Importante

@@ -19,9 +19,9 @@ class ElementoXML:
 
     ```
     # Parse
-    ElementoXML.parse(bot.sistema.Caminho("arquivo.xml"))
-    ElementoXML.parse('<raiz versão="1"><filho1>abc</filho1><filho2>xyz</filho2></raiz>')
-    ElementoXML.parse_b64("PHJhaXogdmVyc8Ojbz0iMSI+PGZpbGhvMT5hYmM8L2ZpbGhvMT48ZmlsaG8yPnh5ejwvZmlsaG8yPjwvcmFpej4=")
+    ElementoXML.Parse(bot.sistema.Caminho("arquivo.xml"))
+    ElementoXML.Parse('<raiz versão="1"><filho1>abc</filho1><filho2>xyz</filho2></raiz>')
+    ElementoXML.ParseB64("PHJhaXogdmVyc8Ojbz0iMSI+PGZpbGhvMT5hYmM8L2ZpbGhvMT48ZmlsaG8yPnh5ejwvZmlsaG8yPjwvcmFpej4=")
 
     # Criação de elementos
     raiz = ElementoXML("raiz", atributos={ "versão": "1" })
@@ -69,7 +69,7 @@ class ElementoXML:
         self.__elemento.text = texto
 
     @classmethod
-    def parse (cls, xml: str | bot.sistema.Caminho) -> ElementoXML:
+    def Parse (cls, xml: str | bot.sistema.Caminho) -> ElementoXML:
         """Parse do `xml` para um `ElementoXML`
         - `xml` pode ser uma string xml ou o caminho até o arquivo .xml"""
         xml = str(xml).lstrip() # remover espaços vazios no começo
@@ -77,13 +77,13 @@ class ElementoXML:
         return ElementoXML.__from_element(element)
 
     @classmethod
-    def parse_b64 (cls, xml: str) -> ElementoXML:
+    def ParseB64 (cls, xml: str) -> ElementoXML:
         """Parse do `xml`, formato base64, para um `ElementoXML`
         - `Exception` caso ocorra erro"""
         try: xml = base64.b64decode(xml).decode()
         except Exception:
             raise Exception("Falha ao realizar o parse de XML no formato base64")
-        return ElementoXML.parse(xml)
+        return ElementoXML.Parse(xml)
 
     @classmethod
     def __from_element (cls, element: Element) -> ElementoXML:
@@ -249,7 +249,7 @@ class ElementoXML:
 
     def copiar (self) -> ElementoXML:
         """Criar uma cópia do `ElementoXML`"""
-        return ElementoXML.parse(str(self))
+        return ElementoXML.Parse(str(self))
 
     @staticmethod
     def registrar_prefixo (prefixo: str, namespace: bot.tipagem.url) -> bot.tipagem.url:

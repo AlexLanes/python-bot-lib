@@ -43,7 +43,7 @@ class Caminho:
         - `Caminho("C:/caminho/completo")`
         - `Caminho(".", "pasta", "arquivo.txt")`
         - `Caminho() / "diretorio" / "arquivo.txt"`
-        - `Caminho.diretorio_usuario()`, `Caminho.diretorio_execucao()`
+        - `Caminho.DiretorioUsuario()`, `Caminho.DiretorioExecucao()`
     ### Acesso
         - `c.string`, `str(c)`
         - `c.nome`, `c.prefixo`, `c.sufixo`
@@ -74,21 +74,21 @@ class Caminho:
         self.path = pathlib.Path(*fragmento).resolve()
 
     @classmethod
-    def diretorio_execucao (cls) -> Caminho:
+    def DiretorioExecucao (cls) -> Caminho:
         """Obter o caminho para o diretório de execução atual"""
         caminho = object.__new__(cls)
         caminho.path = pathlib.Path.cwd().resolve()
         return caminho
 
     @classmethod
-    def diretorio_usuario (cls) -> Caminho:
+    def DiretorioUsuario (cls) -> Caminho:
         """Obter o caminho para o diretório do usuário atual"""
         caminho = object.__new__(cls)
         caminho.path = pathlib.Path.home().resolve()
         return caminho
 
     @classmethod
-    def from_path (cls, path: pathlib.Path) -> Caminho:
+    def FromPath (cls, path: pathlib.Path) -> Caminho:
         caminho = object.__new__(cls)
         caminho.path = path.resolve()
         return caminho
@@ -106,7 +106,7 @@ class Caminho:
         if not self.diretorio():
             return
         for p in self.path.iterdir():
-            yield Caminho.from_path(p)
+            yield Caminho.FromPath(p)
 
     def __eq__ (self, value: object) -> bool:
         caminho = value.string if isinstance(value, Caminho) else str(value)
@@ -124,7 +124,7 @@ class Caminho:
     @property
     def parente (self) -> Caminho:
         """Obter o caminho para o parente do caminho atual"""
-        return Caminho.from_path(self.path.parent)
+        return Caminho.FromPath(self.path.parent)
 
     @property
     def nome (self) -> str:
@@ -193,7 +193,7 @@ class Caminho:
         return [
             caminho
             for path in glob("*")
-            if filtro(caminho := Caminho.from_path(path))
+            if filtro(caminho := Caminho.FromPath(path))
         ]
 
     @functools.cache
@@ -243,16 +243,16 @@ class Caminho:
 
     def com_nome (self, nome: str) -> Caminho:
         """Novo caminho com o `nome` alterado"""
-        return Caminho.from_path(self.path.with_name(nome))
+        return Caminho.FromPath(self.path.with_name(nome))
 
     def com_prefixo (self, prefixo: str) -> Caminho:
         """Novo caminho com o `prefixo` alterado"""
-        return Caminho.from_path(self.path.with_stem(prefixo))
+        return Caminho.FromPath(self.path.with_stem(prefixo))
 
     def com_sufixo (self, sufixo: str) -> Caminho:
         """Novo caminho com o `sufixo` alterado"""
         sufixo = sufixo if sufixo.startswith(".") else f".{sufixo}"
-        return Caminho.from_path(self.path.with_suffix(sufixo))
+        return Caminho.FromPath(self.path.with_suffix(sufixo))
 
     # ---------------------- #
     # Modificação no Sistema #

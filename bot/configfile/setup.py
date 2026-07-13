@@ -128,7 +128,7 @@ class ConfigFile:
     ```
     """
 
-    DIRETORIO_EXECUCAO = Caminho.diretorio_execucao()
+    DIRETORIO_EXECUCAO = Caminho.DiretorioExecucao()
     __dados: DictNormalizado[SecaoConfigFile]
     """`{ secao: SecaoConfigFile }`"""
 

@@ -59,8 +59,8 @@ class Imagem:
     ```
     imagem = Imagem("caminho.png")
     Imagem(bot.sistema.Caminho("caminho.png"))
-    Imagem.from_bytes(b"")
-    Imagem.from_base64("")
+    Imagem.FromBytes(b"")
+    Imagem.FromBase64("")
     ```
 
     ### Transformações
@@ -128,7 +128,7 @@ class Imagem:
         return np.array_equal(self.pixels, other.pixels) if isinstance(other, Imagem) else False
 
     @classmethod
-    def from_bytes (cls, conteudo: bytes) -> Imagem:
+    def FromBytes (cls, conteudo: bytes) -> Imagem:
         """Criar uma imagem a partir de bytes do `conteúdo`"""
         imagem = super().__new__(cls)
         conteudo = np.frombuffer(conteudo, np.uint8) # type: ignore
@@ -136,12 +136,12 @@ class Imagem:
         return imagem
 
     @classmethod
-    def from_base64 (cls, texto: str) -> Imagem:
+    def FromBase64 (cls, texto: str) -> Imagem:
         """Criar uma imagem a partir do `texto` base64 (com ou sem prefixo)"""
         # remover prefixo "data:image/...;base64," se houver
         if texto.startswith("data"):
             _, texto = texto.split(",")
-        return Imagem.from_bytes(
+        return Imagem.FromBytes(
             base64.b64decode(texto)
         )
 

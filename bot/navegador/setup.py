@@ -316,8 +316,8 @@ class ElementoWEB:
 
 class Navegador:
     """Classe base, herdada pelas implementações `Edge` `Chrome` `Explorer`, com métodos para manipulações e consultas
-    - `Navegador.from_driver(driver, ...)` para criar o `Navegador` de um `ChromiumDriver` já inicializado
-    - `Navegador.from_chromium_binary("caminho", ...)` para criar o `Navegador` a partir do `caminho` executável de um `Chromium`"""
+    - `Navegador.FromDriver(driver, ...)` para criar o `Navegador` de um `ChromiumDriver` já inicializado
+    - `Navegador.FromChromiumBinary("caminho", ...)` para criar o `Navegador` a partir do `caminho` executável de um `Chromium`"""
 
     driver: ChromiumDriver
     """Driver do `Selenium`"""
@@ -371,9 +371,9 @@ class Navegador:
         })
 
     @classmethod
-    def from_driver (cls, driver: ChromiumDriver, *,
-                          timeout = 30.0,
-                          download: str | Caminho = "./downloads") -> typing.Self:
+    def FromDriver (cls, driver: ChromiumDriver, *,
+                         timeout = 30.0,
+                         download: str | Caminho = "./downloads") -> typing.Self:
         """Criar o `Navegador` a partir de um `driver` inicializado"""
         navegador = cls()
         navegador.driver = driver
@@ -382,10 +382,10 @@ class Navegador:
         return navegador
 
     @classmethod
-    def from_chromium_binary (cls, caminho: str, *,
-                                   timeout = 30.0,
-                                   download: str | Caminho = "./downloads",
-                                   options_callback: typing.Callable[[wd.ChromeOptions], None] | None = None) -> typing.Self:
+    def FromChromiumBinary (cls, caminho: str, *,
+                                 timeout = 30.0,
+                                 download: str | Caminho = "./downloads",
+                                 options_callback: typing.Callable[[wd.ChromeOptions], None] | None = None) -> typing.Self:
         """Criar o `Navegador` a partir do `caminho` executável de um `Chromium`
         - `timeout` utilizado na espera por elementos
         - `download` diretório para download de arquivos
@@ -395,7 +395,7 @@ class Navegador:
         cls.adicionar_defaults_options(options, download := Caminho(str(download)))
         if options_callback: options_callback(options)
 
-        navegador = cls.from_driver(wd.Chrome(options), timeout=timeout, download=download)
+        navegador = cls.FromDriver(wd.Chrome(options), timeout=timeout, download=download)
         navegador.driver.implicitly_wait(timeout)
         navegador.driver.maximize_window()
         navegador.remover_navigator_webdriver(navegador.driver)

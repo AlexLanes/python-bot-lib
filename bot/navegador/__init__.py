@@ -12,8 +12,8 @@ Possível de se utilizar com o `with` para encerrar automaticamente
 `Edge()`  
 `Chrome()`  
 `Explorer()`  
-`Navegador.from_driver(driver, ...)` para criar o `Navegador` de um `ChromiumDriver` já inicializado  
-`Navegador.from_chromium_binary("caminho", ...)` para criar o `Navegador` a partir do `caminho` executável para um `Chromium`  
+`Navegador.FromDriver(driver, ...)` para criar o `Navegador` de um `ChromiumDriver` já inicializado  
+`Navegador.FromChromiumBinary("caminho", ...)` para criar o `Navegador` a partir do `caminho` executável para um `Chromium`  
 
 ## Util
 - `Teclas` chars especiais para se enviar nos métodos `ElementoWEB.digitar()` ou `WebElement.send_keys()`
