@@ -18,9 +18,11 @@ Utilizar o caminho para o arquivo **whl** baixado `bot @ file://.../bot-7.0-py3-
 <details>
 <summary>v7.0</summary>
 
-- Alterado pacote `configfile` e renomeado variável de acesso `bot.config`
+- Alterado formato para `PascalCase` de diversos métodos que são `@classmethod`
+- Alterado pacote `sistema` na manipulação da `Resolucao` e `AbrirProcesso`
+- Alterado pacote `configfile` e renomeado variável de acesso para `bot.config`
 - Alterado `formatos.Unmarshaller` para usar dependência `msgspec`
-- Removido `formatos.Json` substituido pelas funções `stringify` `validar` `decode`
+- Alterado `formatos.Json` pelas funções `stringify` `validar` `decode`
 - Alterado pacote `database` para ser opcional e usar dependência `sqlize`
 
 </details>
@@ -268,7 +270,7 @@ class Dados (Unmarshaller):
 dados: Dados = Dados.Unmarshal({"id": 1, "nome": "Alex"})
 
 # Classe de manipulação do XML
-ElementoXML.parse(xml: str | Caminho) -> ElementoXML
+ElementoXML.Parse(xml: str | Caminho) -> ElementoXML
 ElementoXML(
     nome: str,
     texto: str | None = None,
@@ -327,6 +329,8 @@ Pacote agregador para ações envolvendo imagens
 ```python
 # Classe para manipulação e procura de imagem
 Imagem(caminho: Caminho | str)
+Imagem.FromBase64(str)
+Imagem.FromBytes(bytes)
 
 # Capturar imagem da tela na `regiao` informada e transformar para `cinza` se requisitado
 capturar_tela(
@@ -366,11 +370,11 @@ logger.informar (
 # Criar um logger com nome próprio
 # Útil para identificar uma execução
 from bot.logger.interfaces import MainLogger
-logger = MainLogger("MEU_LOG")              # 1
-logger = bot.logger.obter_logger("MEU_LOG") # 2
+logger = MainLogger("MEU_LOG")             # 1
+logger = bot.logger.ObterLogger("MEU_LOG") # 2
 
-# Necessário inicializar manualmente para configurar os handlers e formato em algum logger
-logger.inicializar_logger()
+# Necessário inicializar manualmente em algum logger para configurar os handlers e formato
+logger.inicializar()
 
 # Obter o `TracerLogger` utilizado para realizar o rastreamento de um processo
 # Possível de se realizar os logs com a mesma interface que o `MainLogger`
@@ -435,8 +439,8 @@ Chrome(
 )
 
 # Navegador custom
-Navegador.from_driver(driver: ChromiumDriver, ...)
-Navegador.from_chromium_binary("caminho", ...)
+Navegador.FromDriver(driver: ChromiumDriver, ...)
+Navegador.FromChromiumBinary("caminho", ...)
 
 # Ambos navegadores compartilham os mesmo métodos e propriedades. Alguns exemplos:
 titulo -> str
@@ -456,17 +460,19 @@ Pacote para realizar ações no sistema operacional
 Caminho("C:/caminho/completo")
 Caminho(".", "pasta", "arquivo.txt")
 Caminho() / "diretorio" / "arquivo.txt"
-Caminho.diretorio_execucao() / "arquivo.txt"
+Caminho.DiretorioExecucao() / "arquivo.txt"
 
 # Executar um comando com os `argumentos` no `prompt` e aguardar finalizar
 executar(
     *argumentos: str,
-    powershell = False,
+    powershell: bool = False,
     timeout: float | None = None
 ) -> tuple[bool, str]
 
-# Alterar a resolução da tela
-alterar_resolucao (largura: int, altura: int) -> None
+# Obter informações e realizar modificações da resolução da tela
+r = Resolucao()
+r == "1920x1080"
+r.alterar(1920, 1080)
 
 # Encerrar os processos do usuário atual que comecem com algum nome em `nome_processo`
 encerrar_processos_usuario (*nome_processo: str) -> int
@@ -526,7 +532,8 @@ Pacote agregador de funções utilitárias
 Pacote agregador para ações envolvendo vídeos
 ```python
 # Classe para realizar a captura de vídeo da tela utilizando o `ffmpeg`
-gravador = GravadorTela().iniciar()
+gravador = GravadorTela().registrar_limpeza_diretorio().iniciar()
 ...
 caminho = gravador.parar()
+# a gravação ficará aberta até o fim do Python caso não encerrada manualmente
 ```
