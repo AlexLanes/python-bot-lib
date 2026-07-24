@@ -176,7 +176,7 @@ class ConfigFile:
     def __contains__ (self, item: object) -> bool:
         if not isinstance(item, str):
             return NotImplemented
-        return item.replace("_", "") in self.__dados
+        return item.replace(".", "_") in self.__dados
 
     def secoes (self) -> list[str]:
         """Obter as Seções do `ConfigFile`"""
