@@ -1,134 +1,191 @@
 # std
-import typing, dataclasses, imaplib
-from datetime import datetime as Datetime
-from email.message import Message
-from email import message_from_bytes
-from email.header import decode_header
-from email.utils import parsedate_to_datetime
+from typing import Self, Iterator
+from datetime import date as Date, datetime as Datetime
 # interno
 import bot
-from bot.estruturas import String
+# externo
+import imap_tools
 
-@dataclasses.dataclass
 class Email:
-    """Classe para armazenar informações extraídas de Email"""
 
-    uid: int
-    """id do e-mail"""
-    remetente: bot.tipagem.email
-    """Remetente que enviou o e-mail"""
-    destinatarios: list[bot.tipagem.email]
-    """Destinatários que receberam o e-mail"""
-    assunto: str
-    """Assunto do e-mail"""
-    data: Datetime
-    """Data de envio do e-mail"""
-    texto: str | None
-    """Conteúdo do e-mail como texto"""
-    html: str | None
-    """Conteúdo do e-mail como html"""
-    anexos: list[tuple[str, str, bytes]]
-    """Anexos do e-mail
-    - `for nome, tipo, conteudo in email.anexos:`"""
+    def __init__ (self, mail: imap_tools.MailMessage, client: imap_tools.MailBox) -> None:
+        self.mail = mail
+        self.__client = client
 
-def extrair_email (email: str) -> bot.tipagem.email:
-    """Extrair apenas a parte do e-mail da string fornecida
-    - `email` pode conter o nome da pessoa antes do e-mail"""
-    if resultado := String(email).re_search(r"[\w\-\.]+@([\w\-]+\.)+[\w\-]{2,4}"):
-        return resultado
-    bot.logger.alertar(f"Uma extração de e-mail não retornou resultado", email=email)
-    return ""
+    def __repr__ (self) -> str:
+        return f"<Email uid='{self.uid}' {self.assunto!r}>"
 
-def extrair_assunto (assunto: str) -> str:
-    """Extrair assunto do e-mail e realizar o decode quando necessário
-    - O subject pode vir em formatos não convencionais como `=?utf-8?B?Q29tbyBvIEhvbG1lcyByZWNlYmUgb3Mgbm92b3MgdXN1w6FyaW9z?=`"""
-    return "".join(
-        mensagem.decode(charset or "utf-8") if isinstance(mensagem, bytes) else mensagem 
-        for mensagem, charset in decode_header(assunto)
-    )
+    @property
+    def uid (self) -> str:
+        """identificador do Email"""
+        assert self.mail.uid, "UID do email é inválido"
+        return self.mail.uid
 
-def extrair_datetime (datetime: str | None) -> Datetime:
-    """Extrair o datetime do e-mail e realizar o parse para o `Datetime` BRT
-    - Retorna `Datetime.now()` BRT caso seja `None` ou ocorra algum erro"""
-    try:
-        data = parsedate_to_datetime(datetime)
-        assert isinstance(data, Datetime)
-        return data.astimezone(bot.tempo.TIMEZONE_BRT)
-    except Exception:
-        bot.logger.alertar(f"Extração do datetime '{datetime}' de e-mail resultou em falha")
-        return bot.tempo.datetime_brt()
+    @property
+    def data (self) -> Datetime:
+        return self.mail.date.astimezone()
 
-def obter_emails (limite: int | slice | None = None,
-                  query = "ALL",
-                  visualizar = False) -> typing.Generator[Email, None, None]:
-    """Obter e-mails de uma `Inbox`
-    - Abstração `imaplib`
-    - Variáveis .ini `[email.obter] -> user, password, host`
-    - `visualizar` Flag caso queria marcar o e-mail como a flag de visualizado
-    - `query` pode variar de acordo com gmail e outlook. No outlook não é necessário as aspas simples em alguns casos
-    - `query` search-criteria do fetch de acordo com documentação (https://www.marshallsoft.com/ImapSearch.htm)
-        - ALL = Todos os emails
-        - UNSEEN = Emails não vistos
-        - FROM 'example@gmail.com' = Emails recebidos de
-        - (OR (TO 'example@gmail.com') (FROM 'example@gmail.com')) = Emails enviados para OU recebidos de"""
-    limite = limite if isinstance(limite, slice) else slice(limite)
-    # variaveis do configfile
-    user, password, host = bot.config.email_obter.obter("user", "password", "host")
+    @property
+    def assunto (self) -> str:
+        return self.mail.subject
 
-    with imaplib.IMAP4_SSL(host) as imap:
-        imap.login(user, password)
-        imap.select(readonly=not visualizar) # Selecionar Inbox e método de visualização
+    @property
+    def remetente (self) -> bot.tipagem.email:
+        return self.mail.from_
 
-        # obter os ids da query
-        uids_bytes: bytes = imap.search(None, query)[1][0] # type: ignore
-         # inverter para os mais recentes primeiro e aplicar o slice nos ids
-        uids = list(reversed(uids_bytes.decode().split(" ")))[limite]
+    @property
+    def destinatarios (self) -> list[bot.tipagem.email]:
+        return list(self.mail.to)
 
-        if not uids or uids[0] == "": return
+    def conteudo (self, html=False) -> str:
+        """Obter o conteúdo do email
+        - `html=True` para ler como html"""
+        return self.mail.html if html else self.mail.text
 
-        for uid in uids:
-            # marcar lido
-            if visualizar: imap.store(uid, "+FLAGS", "SEEN")
+    def anexos (self) -> list[imap_tools.MailAttachment]:
+        """Anexos presentes no Email
+        - `anexo.filename` nome do anexo
+        - `anexo.content_type` mime type do anexo
+        - `anexo.payload` para obter os `bytes`"""
+        return self.mail.attachments
 
-            # parse da mensagem
-            bytes_email: bytes = imap.fetch(uid, '(RFC822)')[1][0][1] # type: ignore
-            mensagem: Message = message_from_bytes(bytes_email)
+    def visualizar (self) -> Self:
+        """Marcar como lido"""
+        self.__client.flag(
+            [self.uid],
+            [imap_tools.MailMessageFlags.SEEN],
+            True,
+        )
+        return self
 
-            # criar estrutura
-            email = Email(
-                uid = int(uid),
-                remetente = extrair_email(mensagem.get("From", "")),
-                destinatarios = [extrair_email(email) for email in mensagem.get("To", "").split(",")],
-                assunto = extrair_assunto(mensagem.get("Subject", "")),
-                data = extrair_datetime(mensagem.get("Date")),
-                texto = None,
-                html = None,
-                anexos = [],
-            )
+    def copiar (self, pasta: str) -> Self:
+        """Copiar o email para a `pasta`"""
+        self.__client.copy(self.uid, pasta)
+        return self
 
-            # navegar pelas partes do multipart/...
-            # extrair o conteúdo e possíveis anexos
-            for parte in mensagem.walk():
+    def mover (self, pasta: str) -> Self:
+        """Mover o email para a `pasta`"""
+        self.__client.move(self.uid, pasta)
+        return self
 
-                # extrair anexo
-                if "attachment" in parte.get("Content-Disposition", ""):
-                    nome = parte.get_filename("blob")
-                    tipo = parte.get_content_type()
-                    arquivo = parte.get_payload(decode=True)
-                    email.anexos.append((nome, tipo, arquivo)) # type: ignore
+    def apagar (self) -> Self:
+        """Apagar o email da pasta atual"""
+        self.__client.delete(self.uid)
+        return self
 
-                # extrai o conteúdo como string
-                elif "text/plain" in parte.get_content_type():
-                    payload: bytes = parte.get_payload(decode=True) # type: ignore
-                    charset = parte.get_content_charset("utf-8")
-                    email.texto = payload.decode(charset)
+class CaixaEntradaIMAP:
+    """Criar uma conexão IMAP para realizar a leitura / modificações em Emails
+    - Abstração `imap_tools`
+    - Variáveis .ini `[email.obter] -> [host: imap.gmail.com, port: 993, usuario, senha]`
 
-                # extrai o conteúdo html como string
-                elif "text/html" in parte.get_content_type():
-                    payload: bytes = parte.get_payload(decode=True) # type: ignore
-                    charset = parte.get_content_charset("utf-8")
-                    email.html = payload.decode(charset)
+    ## Inicialização, usado como contexto
+    `with CaixaEntradaIMAP() as caixa: ...`
+    ## Pastas
+    - Inicialmente em `INBOX`
+    - `caixa.pasta` nome da pasta atual
+    - `caixa.pasta = "outra"` alterar pasta atual
+    - `caixa.pastas()` pastas existentes
+    ## Emails
+    - `caixa.obter(...)` obter emails com critérios simplificados
+    - `caixa.search(...)` obter emails com critério expandido
+    """
 
-            yield email
+    client: imap_tools.MailBox
 
-__all__ = ["obter_emails"]
+    def __init__ (self, host: str = "imap.gmail.com",
+                        port: int = 993,
+                        *,
+                        usuario: str | None = None,
+                        senha: str | None = None) -> None:
+        if "email_obter" in bot.config:
+            secao = bot.config.email_obter
+            usuario = usuario or secao.obter_ou("usuario")
+            senha = senha or secao.obter_ou("senha")
+            host = secao.obter_ou("host", host)
+            port = secao.obter_ou("port", port)
+
+        self.__pasta = "INBOX"
+        assert usuario and senha, "Necessário informar `CaixaEntradaIMAP(usuario=, senha=)` via argumentos ou configfile"
+        try: self.client = imap_tools.MailBox(host=host, port=port, timeout=3)\
+                                     .login_utf8(username=usuario, password=senha, initial_folder=self.__pasta)
+        except Exception as erro:
+            raise Exception(f"Falha Conexão/Login IMAP `{usuario}` -> `{host}:{port}` | {erro}")
+
+    def __enter__ (self) -> Self:
+        return self
+
+    def __exit__ (self, exc_type, exc, tb) -> None:
+        self.client.__exit__(exc_type, exc, tb)
+
+    def __repr__ (self) -> str:
+        return f"<CaixaEntradaIMAP {self.pasta!r}>"
+
+    @property
+    def pasta (self) -> str:
+        """Nome da pasta atualmente selecionada
+        - Use `self.pasta = ""` para alterar"""
+        return self.__pasta
+
+    @pasta.setter
+    def pasta (self, nome: str) -> None:
+        if nome == self.__pasta:
+            return
+        try:
+            self.client.folder.set(nome)
+            self.__pasta = nome
+        except Exception as erro:
+            raise Exception(f"Falha ao alterar a pasta IMAP para {nome!r} | {erro}")
+
+    def pastas (self) -> list[str]:
+        """Nome das pastas existentes"""
+        self.client.fetch()
+        return [
+            folder.name
+            for folder in self.client.folder.list()
+        ]
+
+    def obter (self, limite: int = 100,
+                     *,
+                     mais_recentes: bool = False,
+                     visualizado: bool | None = None,
+                     remetente: str | None = None,
+                     destinatario: str | None = None,
+                     assunto: str | None = None,
+                     desde: Date | None = None,
+                     antes_de: Date | None = None) -> Iterator[Email]:
+        """Obter emails de acordo com os critérios nomeados
+        - `mais_recentes=True` Mais recentes primeiro
+        - `visualizado` Filtrar apenas os que foram visualizados ou não"""
+        criterios = {}
+
+        if visualizado is True: criterios["seen"] = True
+        elif visualizado is False: criterios["seen"] = False
+
+        if remetente: criterios["from_"] = remetente
+        if destinatario: criterios["to"] = destinatario
+        if assunto: criterios["subject"] = assunto
+        if desde is not None: criterios["date_gte"] = desde
+        if antes_de is not None: criterios["date_lt"] = antes_de
+
+        return self.search(
+            query = imap_tools.AND(**criterios).combine_params()
+                    if criterios
+                    else "ALL",
+            limite = limite,
+            mais_recentes = mais_recentes,
+        )
+
+    def search (self, query: str = "ALL",
+                      limite: int = 100,
+                      *,
+                      mais_recentes: bool = False) -> Iterator[Email]:
+        """Obter emails de acordo com a `query` aceita pelo IMAP
+        - `mais_recentes=True` Mais recentes primeiro
+        - Referência: https://www.marshallsoft.com/ImapSearch.htm"""
+        for mail in self.client.fetch(query, "UTF-8",
+                                      limit = limite,
+                                      reverse = mais_recentes,
+                                      mark_seen = False):
+            yield Email(mail, self.client)
+
+__all__ = ["CaixaEntradaIMAP"]

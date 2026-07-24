@@ -36,6 +36,7 @@ source = { editable = "." }
 dependencies = [
     { name = "comtypes" },
     { name = "httpx" },
+    { name = "imap-tools" },
     { name = "msgspec" },
     { name = "psutil" },
     { name = "pywin32" },
@@ -70,6 +71,7 @@ requires-dist = [
     { name = "easyocr", marker = "extra == 'ocr'" },
     { name = "fastexcel", marker = "extra == 'dataset'" },
     { name = "httpx" },
+    { name = "imap-tools" },
     { name = "msgspec", specifier = ">=0.21.1" },
     { name = "numpy", marker = "extra == 'imagem'" },
     { name = "numpy", marker = "extra == 'ocr'", specifier = "==1.26.4" },
@@ -324,6 +326,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/b1/84/93bcd1300216ea50811cee96873b84a1bebf8d0489ffaf7f2a3756bab866/imageio-2.37.3.tar.gz", hash = "sha256:bbb37efbfc4c400fcd534b367b91fcd66d5da639aaa138034431a1c5e0a41451", size = 389673, upload-time = "2026-03-09T11:31:12.573Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/49/fa/391e437a34e55095173dca5f24070d89cbc233ff85bf1c29c93248c6588d/imageio-2.37.3-py3-none-any.whl", hash = "sha256:46f5bb8522cd421c0f5ae104d8268f569d856b29eb1a13b92829d1970f32c9f0", size = 317646, upload-time = "2026-03-09T11:31:10.771Z" },
+]
+
+[[package]]
+name = "imap-tools"
+version = "1.14.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/41/66/d52b6c7740aa81678404a9039668ab2b4887f46055290f232229a2d5b612/imap_tools-1.14.0.tar.gz", hash = "sha256:d730a35763c09ca02be45b93c8d5d638d9f098876c95841c7ce4d337ede403da", size = 48268, upload-time = "2026-07-24T06:23:43.804Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/02/eb/8567f7542aaee43575002915a959e8891d2d9f3642d1bc5d32410d871bb5/imap_tools-1.14.0-py3-none-any.whl", hash = "sha256:eab3506e701eba44269bc04760b8b29a96c93b173553057180fe40a084d65426", size = 36410, upload-time = "2026-07-24T06:23:41.945Z" },
 ]
 
 [[package]]

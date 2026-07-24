@@ -19,6 +19,7 @@ Utilizar o caminho para o arquivo **whl** baixado `bot @ file://.../bot-7.0-py3-
 <summary>v7.0</summary>
 
 - Alterado formato para `PascalCase` de diversos métodos que são `@classmethod`
+- Alterado pacote `email` para se obter e modificar emails
 - Alterado pacote `sistema` na manipulação da `Resolucao` e `AbrirProcesso`
 - Alterado pacote `configfile` e renomeado variável de acesso para `bot.config`
 - Alterado `formatos.Unmarshaller` para usar dependência `msgspec`
@@ -195,13 +196,10 @@ enviar_email (
     no_reply: bool = True
 ) -> Resultado[None]
 
-# Obter e-mails de uma `Inbox`
-# Utiliza variáveis do `configfile` para conexão
-obter_emails (
-    limite: int | slice | None = None,
-    query = "ALL",
-    visualizar = False
-) -> Generator[Email]
+# Criar uma conexão IMAP para realizar a leitura / modificações em Emails
+with CaixaEntradaIMAP(usuario="", senha="") as caixa:
+    for email in caixa.obter(1, mais_recentes=True):
+        print(email)
 ```
 
 ### `erro`

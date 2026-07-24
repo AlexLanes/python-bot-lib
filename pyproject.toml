@@ -11,6 +11,8 @@ license = { text = "MIT" }
 urls = { Homepage = "https://github.com/AlexLanes/python-bot-lib" }
 dependencies = [
   "uv>=0.8.11",
+  # email
+  "imap-tools",
   # formatos
   "msgspec>=0.21.1",
   # mouse / teclado / imagem / sistema / estruturas
