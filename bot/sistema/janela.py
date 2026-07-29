@@ -896,11 +896,12 @@ class JanelaW32:
         return cls.FromHWND(hwnd)
 
     @classmethod
-    def Iniciar[T: JanelaW32] (cls: type[T], *argumentos: str, shell: bool = True, aguardar: int | float = 30) -> T:
+    def Iniciar[T: JanelaW32] (cls: type[T], *argumentos: str, nome: str | None = None, shell: bool = True, aguardar: int | float = 30) -> T:
         """Iniciar uma janela no sistema a partir dos `argumentos`
+        - `nome` para procurar pelo `titulo` ou `class_name`, se não primeira janela aberta
         - Alguns aplicativos podem abrir mais de uma janela, utilizar o `self.janelas_processo()` para verificar"""
         try:
-            with cls.AguardarNovaJanela(aguardar) as janela:
+            with cls.AguardarNovaJanela(nome, aguardar) as janela:
                 bot.sistema.AbrirProcesso(*argumentos, shell=shell)
             return janela.focar()
 
@@ -909,8 +910,9 @@ class JanelaW32:
 
     @classmethod
     @contextlib.contextmanager
-    def AguardarNovaJanela[T: JanelaW32] (cls: type[T], aguardar: int | float = 15) -> typing.Generator[T, None, None]:
+    def AguardarNovaJanela[T: JanelaW32] (cls: type[T], nome: str | None = None, aguardar: int | float = 15) -> typing.Generator[T, None, None]:
         """Aguardar e obter uma janela (visível) que irá abrir após executar alguma ação
+        - `nome` para procurar pelo `titulo` ou `class_name`, se não primeira janela aberta
         - `Exception` caso não seja aberta nenhuma nova janela
         - Dentro do contexto apenas realizar a ação que abrirá a nova janela
         - Acessar a variável `as janela` apenas após o contexto
@@ -921,15 +923,25 @@ class JanelaW32:
             bot.sistema.AbrirProcesso("notepad")
         print(janela.titulo)
         ```"""
-        titulos_visiveis = lambda: cls.titulos_janelas_visiveis()
-        titulos_antes = titulos_visiveis()
+        titulos = lambda: cls.titulos_janelas_visiveis()
+        titulos_antes = titulos()
         janela = cls.FromHWND(0)
         yield janela
 
-        try: janela.hwnd = cls(
-            lambda j: j.titulo and j.visivel and j.titulo in titulos_antes.symmetric_difference(titulos_visiveis()),
-            aguardar = aguardar
-        ).hwnd
+        try:
+            nome = None if nome is None else nome.strip().lower()
+            janela.hwnd = cls(
+                lambda j:
+                    j.titulo
+                    and j.visivel
+                    and j.titulo in titulos_antes.symmetric_difference(titulos())
+                    and (
+                        nome is None
+                        or nome in j.class_name.lower()
+                        or nome in j.titulo.lower()
+                    ),
+                aguardar = aguardar
+            ).hwnd
         except Exception:
             raise Exception(f"Nenhuma nova janela foi encontrada após o tempo de espera") from None
 
@@ -1194,7 +1206,7 @@ class JanelaW32:
     def titulos_janelas_visiveis () -> set[str]:
         encontrados = set()
         def callback (hwnd: int, _) -> bool:
-            if win32gui.IsWindowVisible(hwnd):
+            if win32gui.IsWindowVisible(hwnd) and win32gui.IsWindowEnabled(hwnd):
                 titulo = win32gui.GetWindowText(hwnd).strip().replace("&", "")
                 if titulo: encontrados.add(titulo)
             return True
