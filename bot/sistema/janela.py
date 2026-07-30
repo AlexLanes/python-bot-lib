@@ -879,7 +879,8 @@ class JanelaW32:
     hwnd: int
 
     def __init__[T: JanelaW32] (self: T, filtro: typing.Callable[[T], bot.tipagem.SupportsBool],
-                                         aguardar: int | float = 0) -> None:
+                                         aguardar: int | float = 0,
+                                         msg_erro: str | None = None) -> None:
         assert aguardar >= 0, "Tempo para aguardar por janela deve ser >= 0"
 
         encontrados = list[T]()
@@ -897,7 +898,7 @@ class JanelaW32:
             except Exception: pass
 
         match encontrados:
-            case []: raise Exception(f"Janela não encontrada para o filtro informado")
+            case []: raise Exception(msg_erro or "Janela não encontrada para o filtro informado")
             # Apenas 1
             case [janela]: self.hwnd = janela.hwnd
             # > 1 | Ordenar pelos que não possuem parente, visíveis e com mais filhos
