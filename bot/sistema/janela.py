@@ -226,6 +226,25 @@ class ElementoW32:
             case _:
                 raise ValueError(f"Tipo {type(value)} inesperado ao se obter elemento")
 
+    def __getattr__[T: ElementoW32] (self: T, nome: str) -> T:
+        """Encontrar exatamente 1 elemento `nome` ativo e visível nos filhos
+        - Aceito `class_name` ou `texto`"""
+        elementos = self.aguardar().filhos(
+            lambda e: 
+                e.visivel and e.ativo
+                and (
+                    nome in String(e.class_name)
+                    or nome in String(e.texto)
+                ),
+            aguardar = 5
+        )
+
+        if not elementos:
+            raise Exception(f"Elemento `{nome}` não foi encontrado em {self}")
+        if len(elementos) > 1:
+            raise Exception(f"Elemento `{nome}` resultou em {len(elementos)} elementos possíveis em {self}")
+        return elementos[0]
+
     @property
     def parente (self) -> ElementoW32:
         """Elemento na árvore de elementos que `self` é filho
@@ -241,9 +260,11 @@ class ElementoW32:
     def texto (self) -> str:
         """Texto do elemento
         - Realizado `strip()` e removido o chars `(&, \\r)`"""
-        return win32gui.GetWindowText(self.hwnd)\
-            .strip()\
+        return (
+            win32gui.GetWindowText(self.hwnd)
+            .strip()
             .translate(TABELA_SUBSTITUICAO_CHARS)
+        )
 
     @functools.cached_property
     def class_name (self) -> str:
@@ -321,10 +342,11 @@ class ElementoW32:
         return descendentes
 
     def encontrar[T: ElementoW32] (self: T, filtro: typing.Callable[[T], bot.tipagem.SupportsBool],
-                                            aguardar: int | float = 0) -> T:
+                                            aguardar: int | float = 0,
+                                            msg_erro: str | None = None) -> T:
         """Encontrar o primeiro elemento descendente, com a menor profundidade, de acordo com o `filtro`
         - `aguardar` tempo em segundos para aguardar pelo elemento
-        - `AssertionError` caso não encontre"""
+        - `AssertionError(msg_erro)` caso não encontre"""
         assert aguardar >= 0, "Tempo para aguardar por elemento deve ser >= 0"
 
         filtro_todos = lambda e: True
@@ -341,7 +363,7 @@ class ElementoW32:
                 except Exception: pass
                 elementos.extend(elemento.filhos(filtro_todos))
 
-        raise AssertionError("Nenhum elemento descendente encontrado para o filtro")
+        raise AssertionError(msg_erro or "Nenhum elemento descendente encontrado para o filtro")
 
     def textos (self, separador=" | ") -> str:
         """Textos dos descendentes concatenados pelo `separador`"""
@@ -522,9 +544,11 @@ class ElementoUIA (ElementoW32):
 
     @property
     def texto (self) -> str:
-        return str(self.uiaelement.CurrentName or "")\
-            .strip()\
+        return (
+            str(self.uiaelement.CurrentName or "")
+            .strip()
             .translate(TABELA_SUBSTITUICAO_CHARS)
+        )
 
     @functools.cached_property
     def class_name (self) -> str:
@@ -812,6 +836,9 @@ class JanelaW32:
     elemento["texto/class_name"]        # Obter primeiro elemento via `texto/class_name`
     elemento["texto/class_name", 0]     # Obter `texto/class_name` no `index`
     primeiro, ultimo = elemento[0, -1]  # Obter elementos via `index`
+    # Encontrar exatamente 1 elemento filho visível e ativo
+    botao = janela.OK                   # texto do elemento
+    input_usuario = elemento.TEdit      # class_name do elemento
     ```
 
     ### Métodos
@@ -954,6 +981,30 @@ class JanelaW32:
     def __hash__ (self) -> int:
         return hash(self.hwnd)
 
+    def __getattr__ (self, nome: str) -> ElementoW32:
+        """Encontrar exatamente 1 elemento `nome` ativo e visível nos filhos
+        - Aceito `class_name` ou `texto`"""
+        elementos = self.elemento.aguardar().filhos(
+            lambda e: 
+                e.visivel and e.ativo
+                and (
+                    nome in String(e.class_name)
+                    or nome in String(e.texto)
+                ),
+            aguardar = 5
+        )
+
+        if not elementos:
+            raise Exception(f"Elemento `{nome}` não foi encontrado em {self}")
+        if len(elementos) > 1:
+            raise Exception(f"Elemento `{nome}` resultou em {len(elementos)} elementos possíveis em {self}")
+        return elementos[0]
+
+    @functools.cached_property
+    def elemento (self) -> ElementoW32:
+        """Elemento superior da janela para acessar, procurar e manipular elementos"""
+        return ElementoW32(self.hwnd, self)
+
     @property
     def titulo (self) -> str:
         """Texto do elemento
@@ -971,11 +1022,6 @@ class JanelaW32:
         """Checar se a janela está visível
         - Importante utilização nos filtros para não interagir com a janela cedo demais"""
         return self.elemento.visivel
-
-    @functools.cached_property
-    def elemento (self) -> ElementoW32:
-        """Elemento superior da janela para acessar, procurar e manipular elementos"""
-        return ElementoW32(self.hwnd, self)
     @functools.cached_property
     def processo (self) -> psutil.Process:
         """Processo do módulo `psutil` para controle via `PID`"""
@@ -1291,6 +1337,9 @@ class JanelaUIA (JanelaW32):
     elemento["texto/class_name"]        # Obter primeiro elemento via `texto/class_name`
     elemento["texto/class_name", 0]     # Obter `texto/class_name` no `index`
     primeiro, ultimo = elemento[0, -1]  # Obter elementos via `index`
+    # Encontrar exatamente 1 elemento filho visível e ativo
+    botao = janela.OK                   # texto do elemento
+    input_usuario = elemento.TEdit      # class_name do elemento
     ```
 
     # Específico UIA
@@ -1337,6 +1386,9 @@ class JanelaUIA (JanelaW32):
     JanelaUIA.ordernar_elementos_coordenada(elementos=[]) # Ordenar os `elementos` pela posição Y e X
     ```
     """
+    
+    def __getattr__ (self, nome: str) -> ElementoUIA:
+        return super().__getattr__(nome).to_uia()
 
     @functools.cached_property
     def elemento (self) -> ElementoUIA:
