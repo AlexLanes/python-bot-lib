@@ -180,70 +180,119 @@ class ElementoW32:
         return hash(repr(self))
 
     @typing.overload
-    def __getitem__[T: ElementoW32] (self: T, value: int | str | tuple[str, int]) -> T: ...
+    def __getitem__ (self, value: int) -> typing.Self: ...
     @typing.overload
-    def __getitem__[T: ElementoW32] (self: T, value: tuple[int, ...]) -> list[T]: ...
-    def __getitem__[T: ElementoW32] (self: T, value: object) -> T | list[T]:
-        """Obter elemento filho visível ordenado pela coordenada
-        - `int`         -> `index`
-        - `str`         -> `texto/class_name`
-        - `(str, int)`  -> `texto/class_name` no `index`
-        - `(int, ...)`  -> 2 ou mais `index`"""
-        normalizar = lambda t: String(t).normalizar()
+    def __getitem__ (self, value: tuple[int, ...]) -> list[typing.Self]: ...
+    def __getitem__ (self, value: object) -> typing.Self | list[typing.Self]:
+        """Obter elemento filho, visível e ativo, ordenado pela coordenada
+        - `int` -> `index`
+        - `(int, ...)` -> n `index`"""
         filhos = self.janela.ordernar_elementos_coordenada(
-            self.aguardar().filhos(aguardar=5)
+            self.aguardar().filhos(
+                lambda e: e.visivel and e.ativo,
+                aguardar = 1
+            )
         )
 
         match value:
             case int() as index:
                 try: return filhos[index]
                 except IndexError:
-                    raise IndexError(f"Elemento filho na {self.janela} não encontrado no index '{index}'")
-
-            case str() as texto:
-                try: return next(
-                    filho
-                    for filho in filhos
-                    if normalizar(texto) in (normalizar(filho.class_name), normalizar(filho.texto))
-                )
-                except StopIteration:
-                    raise Exception(f"Elemento filho na {self.janela} não encontrado com texto/class_name '{texto}'")
-
-            case (str() as texto, int() as index):
-                try: return [
-                    filho
-                    for filho in filhos
-                    if normalizar(texto) in (normalizar(filho.class_name), normalizar(filho.texto))
-                ][index]
-                except IndexError:
-                    raise Exception(f"Elemento filho na {self.janela} não encontrado com texto/class_name '{texto}' no index '{index}'")
+                    raise IndexError(f"Elemento filho não encontrado no {index=}")
 
             case tuple() as indexes if all(isinstance(index, int) for index in indexes):
                 try: return [filhos[index] for index in indexes]
                 except IndexError:
-                    raise IndexError(f"Elementos filhos na {self.janela} não encontrados nos índices '{indexes}'")
+                    raise IndexError(f"Elementos filhos não encontrados em {indexes=}")
 
             case _:
                 raise ValueError(f"Tipo {type(value)} inesperado ao se obter elemento")
 
-    def __getattr__[T: ElementoW32] (self: T, nome: str) -> T:
-        """Encontrar exatamente 1 elemento `nome` ativo e visível nos filhos
-        - Aceito `class_name` ou `texto`"""
-        elementos = self.aguardar().filhos(
-            lambda e: 
-                e.visivel and e.ativo
-                and (
-                    nome in String(e.class_name)
-                    or nome in String(e.texto)
-                ),
-            aguardar = 5
+    def __truediv__ (self, nome: str) -> typing.Self:
+        """Obter elemento filho visível e ativo
+        - Possível de utilizar index no fim do nome `[0]`"""
+        index: int | None = None
+        if -1 not in (l := nome.find("["), r := nome.find("]", l)):
+            index = int(nome[l + 1 : r])
+            nome = nome[0 : l]
+
+        elementos = self.janela.ordernar_elementos_coordenada(
+            self.aguardar().filhos(
+                lambda e: 
+                    e.visivel and e.ativo
+                    and (
+                        nome in String(e.class_name)
+                        or nome in String(e.texto)
+                    ),
+                aguardar = 1
+            )
         )
 
         if not elementos:
-            raise Exception(f"Elemento `{nome}` não foi encontrado em {self}")
-        if len(elementos) > 1:
-            raise Exception(f"Elemento `{nome}` resultou em {len(elementos)} elementos possíveis em {self}")
-        return elementos[0]
+            raise Exception(f"Nenhum elemento filho {nome=} encontrado")
+        if index is None and len(elementos) > 1:
+            raise Exception(f"Múltiplas opções encontradas para o elemento filho {nome=}. Utilizar index para restringir '{nome}[0]'")
+
+        try: return elementos[index or 0]
+        except IndexError:
+            raise IndexError(f"Elemento filho {nome=} não encontrado no {index=}")
+
+    def __floordiv__ (self, nome: str) -> typing.Self:
+        """Obter elemento descendente visível e ativo
+        - Possível de utilizar index no fim do nome `[0]`"""
+        index: int | None = None
+        if -1 not in (l := nome.find("["), r := nome.find("]", l)):
+            index = int(nome[l + 1 : r])
+            nome = nome[0 : l]
+
+        elementos = self.janela.ordernar_elementos_coordenada(
+            self.aguardar().descendentes(
+                lambda e: 
+                    e.visivel and e.ativo
+                    and (
+                        nome in String(e.class_name)
+                        or nome in String(e.texto)
+                    ),
+                aguardar = 1
+            )
+        )
+
+        if not elementos:
+            raise Exception(f"Nenhum elemento descendente {nome=} encontrado")
+        if index is None and len(elementos) > 1:
+            raise Exception(f"Múltiplas opções encontradas para o elemento descendente {nome=}. Utilizar index para restringir '{nome}[0]'")
+
+        try: return elementos[index or 0]
+        except IndexError:
+            raise IndexError(f"Elemento descendente {nome=} não encontrado no {index=}")
+
+    def __gt__ (self, nome: str) -> list[typing.Self]:
+        """Obter elementos filhos visível e ativo"""
+        return self.janela.ordernar_elementos_coordenada(
+            self.aguardar().filhos(
+                lambda e: 
+                    e.visivel and e.ativo
+                    and (
+                        nome in String(e.class_name)
+                        or nome in String(e.texto)
+                    ),
+                aguardar = 1
+            )
+        )
+
+    def __rshift__ (self, nome: str) -> list[typing.Self]:
+        """Obter elementos descendentes visível e ativo"""
+        return self.janela.ordernar_elementos_coordenada(
+            self.aguardar().descendentes(
+                lambda e: 
+                    e.visivel and e.ativo
+                    and (
+                        nome in String(e.class_name)
+                        or nome in String(e.texto)
+                    ),
+                aguardar = 1
+            )
+        )
 
     @property
     def parente (self) -> ElementoW32:
@@ -618,24 +667,6 @@ class ElementoUIA (ElementoW32):
         return self.query_interface(uiaclient.UIA_SelectionItemPatternId, uiaclient.IUIAutomationSelectionItemPattern)
 
     @property
-    def grid (self) -> uiaclient.IUIAutomationGridPattern | None:
-        """Obter a interface `Grid`
-        - `None` caso o elemento não suporte o `Pattern`"""
-        return self.query_interface(
-            uiaclient.UIA_GridPatternId,
-            uiaclient.IUIAutomationGridPattern
-        )
-
-    @property
-    def table (self) -> uiaclient.IUIAutomationTablePattern | None:
-        """Obter a interface `Table`
-        - `None` caso o elemento não suporte o `Pattern`"""
-        return self.query_interface(
-            uiaclient.UIA_TablePatternId,
-            uiaclient.IUIAutomationTablePattern
-        )
-
-    @property
     def caixa_selecao (self) -> uiaclient.IUIAutomationTogglePattern | None: # type: ignore
         """Obter a interface da caixa de seleção de uma `CheckBox`
         - `None` caso o elemento não seja uma caixa de seleção
@@ -766,6 +797,28 @@ class ElementoUIA (ElementoW32):
         expansivel.Collapse()
         self.aguardar()
 
+    def abrir_abas (self, *nomes: str) -> ElementoUIA:
+        """Abrir as abas `*nome` e retornar o elemento
+        - Procurado por elementos `aba` e `item_aba`"""
+        assert nomes, "Pelo menos 1 nome é necessário para abrir as abas do elemento"
+
+        elemento = self
+        for nome in nomes:
+            aba = elemento.aguardar().encontrar(
+                lambda e: e.item_aba and nome in String(e.texto),
+                aguardar = 1,
+                msg_erro = f"Falha ao abrir as abas{nomes}. Aba {nome!r} não encontrada"
+            )
+            if s := aba.item_selecionavel: s.Select()
+            else: aba.clicar()
+            elemento = aba.parente
+
+        if painel := elemento.filhos(lambda e: not e.item_aba and nomes[-1] in String(e.texto)):
+            return painel[0]
+        if not elemento.aba:
+            raise Exception(f"Abas abertas {nomes} com sucesso, porém o elemento final não foi encontrado")
+        return elemento
+
     def query_interface[T] (self, pattern_id: int, interface: type[T]) -> T | None:
         """Obter o `pattern_id` do `uiaelement` e realizar a query da `interface`
         - `None` caso o `uiaelement` não esteja de acordo com a `interface`"""
@@ -831,14 +884,13 @@ class JanelaW32:
     elemento.clicar("left")     # Clicar com o `botão` no centro do elemento
     elemento.digitar("texto")   # Digitar o `texto` no elemento
     ...
-    # Encontrar visível e ordenando pela posição Y e X
-    primeiro = elemento[0]              # Obter elemento via `index`
-    elemento["texto/class_name"]        # Obter primeiro elemento via `texto/class_name`
-    elemento["texto/class_name", 0]     # Obter `texto/class_name` no `index`
-    primeiro, ultimo = elemento[0, -1]  # Obter elementos via `index`
-    # Encontrar exatamente 1 elemento filho visível e ativo
-    botao = janela.OK                   # texto do elemento
-    input_usuario = elemento.TEdit      # class_name do elemento
+    # Acessores Janela/Elemento, visível e ativo, ordenando pela posição Y e X
+    elemento[0]                 # Obter elemento via `index`
+    elemento[0, -1]             # Obter elementos via `index`
+    janela / "OK"               # Obter elemento filho via `class_name` ou `texto`
+    janela // "OK"              # Obter elemento descendente via `class_name` ou `texto`
+    janela > "TPanel"           # Obter elementos filhos via `class_name` ou `texto`
+    janela >> "TPanel"          # Obter elementos descendentes via `class_name` ou `texto`
     ```
 
     ### Métodos
@@ -982,29 +1034,28 @@ class JanelaW32:
     def __hash__ (self) -> int:
         return hash(self.hwnd)
 
-    def __getattr__ (self, nome: str) -> ElementoW32:
-        """Encontrar exatamente 1 elemento `nome` ativo e visível nos filhos
-        - Aceito `class_name` ou `texto`"""
-        elementos = self.elemento.aguardar().filhos(
-            lambda e: 
-                e.visivel and e.ativo
-                and (
-                    nome in String(e.class_name)
-                    or nome in String(e.texto)
-                ),
-            aguardar = 5
-        )
-
-        if not elementos:
-            raise Exception(f"Elemento `{nome}` não foi encontrado em {self}")
-        if len(elementos) > 1:
-            raise Exception(f"Elemento `{nome}` resultou em {len(elementos)} elementos possíveis em {self}")
-        return elementos[0]
-
     @functools.cached_property
     def elemento (self) -> ElementoW32:
         """Elemento superior da janela para acessar, procurar e manipular elementos"""
         return ElementoW32(self.hwnd, self)
+
+    def __truediv__ (self, nome: str) -> ElementoW32:
+        """Obter elemento filho visível e ativo
+        - Possível de utilizar index no fim do nome `[0]`"""
+        return self.elemento / nome
+
+    def __floordiv__ (self, nome: str) -> ElementoW32:
+        """Obter elemento descendente visível e ativo
+        - Possível de utilizar index no fim do nome `[0]`"""
+        return self.elemento // nome
+
+    def __gt__ (self, nome: str) -> list[ElementoW32]:
+        """Obter elementos filhos visível e ativo"""
+        return self.elemento > nome
+
+    def __rshift__ (self, nome: str) -> list[ElementoW32]:
+        """Obter elementos descendentes visível e ativo"""
+        return self.elemento >> nome
 
     @property
     def titulo (self) -> str:
@@ -1333,14 +1384,13 @@ class JanelaUIA (JanelaW32):
     elemento.clicar("left")     # Clicar com o `botão` no centro do elemento
     elemento.digitar("texto")   # Digitar o `texto` no elemento
     ...
-    # Encontrar visível e ordenando pela posição Y e X
-    primeiro = elemento[0]              # Obter elemento via `index`
-    elemento["texto/class_name"]        # Obter primeiro elemento via `texto/class_name`
-    elemento["texto/class_name", 0]     # Obter `texto/class_name` no `index`
-    primeiro, ultimo = elemento[0, -1]  # Obter elementos via `index`
-    # Encontrar exatamente 1 elemento filho visível e ativo
-    botao = janela.OK                   # texto do elemento
-    input_usuario = elemento.TEdit      # class_name do elemento
+    # Acessores Janela/Elemento, visível e ativo, ordenando pela posição Y e X
+    elemento[0]                 # Obter elemento via `index`
+    elemento[0, -1]             # Obter elementos via `index`
+    janela / "OK"               # Obter elemento filho via `class_name` ou `texto`
+    janela // "OK"              # Obter elemento descendente via `class_name` ou `texto`
+    janela > "TPanel"           # Obter elementos filhos via `class_name` ou `texto`
+    janela >> "TPanel"          # Obter elementos descendentes via `class_name` ou `texto`
     ```
 
     # Específico UIA
@@ -1387,13 +1437,22 @@ class JanelaUIA (JanelaW32):
     JanelaUIA.ordernar_elementos_coordenada(elementos=[]) # Ordenar os `elementos` pela posição Y e X
     ```
     """
-    
-    def __getattr__ (self, nome: str) -> ElementoUIA:
-        return super().__getattr__(nome).to_uia()
 
     @functools.cached_property
     def elemento (self) -> ElementoUIA:
         return ElementoUIA(self.hwnd, self)
+
+    def __truediv__ (self, nome: str) -> ElementoUIA:
+        return self.elemento / nome
+
+    def __floordiv__ (self, nome: str) -> ElementoUIA:
+        return self.elemento // nome
+
+    def __gt__ (self, nome: str) -> list[ElementoUIA]: # type: ignore
+        return self.elemento > nome
+
+    def __rshift__ (self, nome: str) -> list[ElementoUIA]: # type: ignore
+        return self.elemento >> nome
 
     @property
     def maximizada (self) -> bool:

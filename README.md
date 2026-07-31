@@ -16,6 +16,14 @@ Utilizar o caminho para o arquivo **whl** baixado `bot @ file://.../bot-7.0-py3-
 ## Changelog 🔧
 
 <details>
+<summary>v7.1</summary>
+
+- Removido acessor de elemento `__getattr__` e alterado `__getitem__` na `JanelaW32` e `ElementoW32`
+- Incluído novos acessores de elementos `/ // > >>` na `JanelaW32` e `ElementoW32`
+- Adicionado método no `abrir_abas()` e removido propriedades do `ElementoUIA`
+
+</details>
+<details>
 <summary>v7.0</summary>
 
 - Alterado formato para `PascalCase` de diversos métodos que são `@classmethod`
@@ -476,6 +484,7 @@ r.alterar(1920, 1080)
 encerrar_processos_usuario (*nome_processo: str) -> int
 
 # Classe para manipulação de janelas e elementos para o backend Win32 e UIA
+# docstring das classes com mais informações sobre a utilização
 JanelaW32(lambda janela: bool)
 JanelaUIA(lambda janela: bool)
 ```
