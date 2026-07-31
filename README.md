@@ -19,7 +19,7 @@ Utilizar o caminho para o arquivo **whl** baixado `bot @ file://.../bot-7.0-py3-
 <summary>v7.1</summary>
 
 - Removido acessor de elemento `__getattr__` e alterado `__getitem__` na `JanelaW32` e `ElementoW32`
-- Incluído novos acessores de elementos `/ // > >>` na `JanelaW32` e `ElementoW32`
+- Incluído novos acessores de elementos `/ // > >> <<` na `JanelaW32` e `ElementoW32`
 - Adicionado método no `abrir_abas()` e removido propriedades do `ElementoUIA`
 
 </details>

@@ -218,7 +218,7 @@ class ElementoW32:
 
         elementos = self.janela.ordernar_elementos_coordenada(
             self.aguardar().filhos(
-                lambda e: 
+                lambda e:
                     e.visivel and e.ativo
                     and (
                         nome in String(e.class_name)
@@ -247,7 +247,7 @@ class ElementoW32:
 
         elementos = self.janela.ordernar_elementos_coordenada(
             self.aguardar().descendentes(
-                lambda e: 
+                lambda e:
                     e.visivel and e.ativo
                     and (
                         nome in String(e.class_name)
@@ -270,7 +270,7 @@ class ElementoW32:
         """Obter elementos filhos visível e ativo"""
         return self.janela.ordernar_elementos_coordenada(
             self.aguardar().filhos(
-                lambda e: 
+                lambda e:
                     e.visivel and e.ativo
                     and (
                         nome in String(e.class_name)
@@ -284,7 +284,7 @@ class ElementoW32:
         """Obter elementos descendentes visível e ativo"""
         return self.janela.ordernar_elementos_coordenada(
             self.aguardar().descendentes(
-                lambda e: 
+                lambda e:
                     e.visivel and e.ativo
                     and (
                         nome in String(e.class_name)
@@ -293,6 +293,17 @@ class ElementoW32:
                 aguardar = 1
             )
         )
+
+    def __lshift__ (self, profundidade: int) -> typing.Self:
+        """Obter o elemento parente subindo a `profundidade`"""
+        assert profundidade >= 1
+        assert profundidade <= self.profundidade, f"Profundidade desejada '{profundidade}' maior que o nível atual '{self.profundidade}'"
+
+        elemento = self
+        while profundidade > 0:
+            profundidade -= 1
+            elemento = elemento.parente
+        return elemento # type: ignore
 
     @property
     def parente (self) -> ElementoW32:
@@ -891,6 +902,7 @@ class JanelaW32:
     janela // "OK"              # Obter elemento descendente via `class_name` ou `texto`
     janela > "TPanel"           # Obter elementos filhos via `class_name` ou `texto`
     janela >> "TPanel"          # Obter elementos descendentes via `class_name` ou `texto`
+    elemento << 2               # Subir para o parente do elemento de acordo com a profundidade
     ```
 
     ### Métodos
@@ -1391,6 +1403,7 @@ class JanelaUIA (JanelaW32):
     janela // "OK"              # Obter elemento descendente via `class_name` ou `texto`
     janela > "TPanel"           # Obter elementos filhos via `class_name` ou `texto`
     janela >> "TPanel"          # Obter elementos descendentes via `class_name` ou `texto`
+    elemento << 2               # Subir para o parente do elemento de acordo com a profundidade
     ```
 
     # Específico UIA
