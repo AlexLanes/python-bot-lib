@@ -201,7 +201,7 @@ class RadioGroup:
         """Opção selecionada
         - `""` caso nenhum selecionado"""
         for filho in self.elemento.filhos():
-            if pattern := filho.pattern.selecionavel:
+            if pattern := filho.pattern.item_selecionavel:
                 if pattern.CurrentIsSelected: return filho.texto
             elif win32gui.SendMessage(filho.hwnd, win32con.BM_GETCHECK, 0, 0) == 1:
                 return filho.texto
@@ -218,9 +218,56 @@ class RadioGroup:
     def selecionar (self, opcao: str) -> None:
         """Selecionar a `opção`"""
         elemento = self.elemento // opcao
-        if (pattern := elemento.pattern.selecionavel) is not None:
+        if (pattern := elemento.pattern.item_selecionavel) is not None:
             pattern.Select()
         else: win32gui.SendMessage(elemento.hwnd, win32con.BM_CLICK, 0, 0)
+
+class ListControl:
+
+    elemento: ElementoUIA
+
+    def __init__ (self, elemento: ElementoW32) -> None:
+        self.elemento = elemento.to_uia().aguardar()
+
+    @property
+    def multipla_selecao (self) -> bool:
+        """Checar se aceita múltipla seleção"""
+        if (selecionavel := self.elemento.pattern.selecionavel) is not None:
+            return selecionavel.CurrentCanSelectMultiple == 1
+        return False
+
+    @property
+    def opcoes (self) -> list[str]:
+        """Opções existentes"""
+        return [
+            filho.texto
+            for filho in self.elemento.filhos()
+            if filho.tipo.item_lista
+        ]
+
+    @property
+    def selecionados (self) -> list[str]:
+        return [
+            filho.texto
+            for filho in self.elemento.filhos()
+            if (item := filho.pattern.item_selecionavel) and item.CurrentIsSelected
+        ]
+
+    def selecionar (self, *opcoes: str) -> None:
+        """Selecionar as `opções`
+        - Apenas 1 aceito quando não aceita múltipla seleção"""
+        multiplo = self.multipla_selecao
+        if not multiplo and len(opcoes) > 1:
+            raise ValueError("A lista não permite múltipla seleção")
+
+        for opcao in opcoes:
+            elemento = self.elemento / opcao
+            selecionavel = elemento.pattern.item_selecionavel
+            assert selecionavel is not None, f"Elemento Nome='{opcao}' não é um item selecionável"
+
+            if not selecionavel.CurrentIsSelected:
+                if multiplo: selecionavel.AddToSelection()
+                else: selecionavel.Select()
 
 class ElementoW32:
     """Elemento para o backend Win32"""
@@ -434,6 +481,13 @@ class ElementoW32:
         - Elemento deve possui filhos `RadioButton`
         - Elemento pode não aceitar"""
         return RadioGroup(self)
+
+    @property
+    def listcontrol (self) -> ListControl:
+        """Obter a interface de uma `List`
+        - Elemento deve possui filhos `ListItem`
+        - Elemento pode não aceitar"""
+        return ListControl(self)
 
     def filhos[T: ElementoW32] (self: T, filtro: typing.Callable[[T], bot.tipagem.SupportsBool] | None = None,
                                          aguardar: int | float = 0) -> list[T]:
@@ -729,6 +783,16 @@ class TiposUIA:
         """Checar se o elemento é um item de uma aba"""
         return self.e.uiaelement.CurrentControlType == uiaclient.UIA_TabItemControlTypeId
 
+    @property
+    def lista (self) -> bool:
+        """Checar se o elemento é uma lista"""
+        return self.e.uiaelement.CurrentControlType == uiaclient.UIA_ListControlTypeId
+
+    @property
+    def item_lista (self) -> bool:
+        """Checar se o elemento é um item de uma lista"""
+        return self.e.uiaelement.CurrentControlType == uiaclient.UIA_ListItemControlTypeId
+
 class PatternsUIA:
     def __init__ (self, elemento: ElementoUIA) -> None:
         self.e = elemento
@@ -746,8 +810,14 @@ class PatternsUIA:
         return self.query(uiaclient.UIA_ExpandCollapsePatternId, uiaclient.IUIAutomationExpandCollapsePattern)
 
     @property
-    def selecionavel (self) -> uiaclient.IUIAutomationSelectionItemPattern | None:
-        """Obter a interface do item selecionável de uma `Lista` `ComboBox` `RadioButton`
+    def selecionavel (self) -> uiaclient.IUIAutomationSelectionPattern | None:
+        """Obter a interface selecionável usado em `Lista`
+        - `None` caso o elemento não seja selecionável"""
+        return self.query(uiaclient.UIA_SelectionPatternId, uiaclient.IUIAutomationSelectionPattern)
+
+    @property
+    def item_selecionavel (self) -> uiaclient.IUIAutomationSelectionItemPattern | None:
+        """Obter a interface do item selecionável de uma `Item Lista` `ComboBox` `RadioButton`
         - `None` caso o elemento não seja um item selecionável"""
         return self.query(uiaclient.UIA_SelectionItemPatternId, uiaclient.IUIAutomationSelectionItemPattern)
 
@@ -981,9 +1051,9 @@ class ElementoUIA (ElementoW32):
 
         (
             self.encontrar(lambda e: texto in e.texto.lower() and
-                                     e.pattern.selecionavel is not None)
+                                     e.pattern.item_selecionavel is not None)
             .pattern
-            .selecionavel
+            .item_selecionavel
             .Select() # type: ignore
         )
 
@@ -1002,7 +1072,7 @@ class ElementoUIA (ElementoW32):
                 aguardar = 1,
                 msg_erro = f"Falha ao abrir as abas{nomes}. Aba {nome!r} não encontrada"
             )
-            if s := aba.pattern.selecionavel: s.Select()
+            if s := aba.pattern.item_selecionavel: s.Select()
             else: aba.clicar()
             elemento = aba.parente
 
