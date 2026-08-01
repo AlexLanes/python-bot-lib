@@ -42,7 +42,7 @@ class Mouse:
     @staticmethod
     def posicao_central () -> tuple[int, int]:
         """Obter a posição `(x, y)` central da tela"""
-        return Coordenada.tela().centro()
+        return Coordenada.Tela().centro()
 
     def mover (self, coordenada: tuple[int, int] | Coordenada) -> Self:
         """Mover o mouse, de forma instantânea, até a `coordenada`

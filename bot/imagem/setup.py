@@ -23,7 +23,7 @@ def cor_similar (cor1: bot.tipagem.rgb, cor2: bot.tipagem.rgb, tolerancia=20) ->
 def capturar_tela (regiao: Coordenada | None = None, cinza=False) -> Imagem:
     """Capturar imagem da tela na `regiao` informada e transformar para `cinza` se requisitado"""
     imagem = object.__new__(Imagem)
-    x, y, largura, altura = regiao or Coordenada.tela()
+    x, y, largura, altura = regiao or Coordenada.Tela()
 
     # criar um dispositivo de contexto (DC) compatível e capturar a tela
     desktop = win32gui.GetDesktopWindow()

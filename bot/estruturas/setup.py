@@ -26,7 +26,7 @@ class Coordenada:
         self.x, self.y, self.largura, self.altura = map(int, (x, y, largura, altura))
 
     @classmethod
-    def tela (cls) -> Coordenada:
+    def Tela (cls) -> Coordenada:
         """Coordenada da tela"""
         return Coordenada(
             win32api.GetSystemMetrics(win32con.SM_XVIRTUALSCREEN),
@@ -36,7 +36,7 @@ class Coordenada:
         )
 
     @classmethod
-    def from_box (cls, box: tuple[int, int, int, int]) -> Coordenada:
+    def FromBox (cls, box: tuple[int, int, int, int]) -> Coordenada:
         """Criar coordenada a partir de uma `box`
         - `(x-esquerda, y-cima, x-direita, y-baixo)`"""
         x, y = box[0], box[1]

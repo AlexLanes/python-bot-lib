@@ -98,7 +98,7 @@ class LeitorOCR:
     def ler_imagem (self, imagem: Imagem) -> list[tuple[str, Coordenada, float]]:
         """Extrair dados de `(texto, coordenada, confiança)` da `imagem`"""
         return [
-            (texto, Coordenada.from_box((box[0][0], box[0][1], box[1][0], box[2][1])), confianca) # type: ignore
+            (texto, Coordenada.FromBox((box[0][0], box[0][1], box[1][0], box[2][1])), confianca) # type: ignore
             for box, texto, confianca in self.reader.readtext(
                 imagem.pixels,
                 decoder   = self.decoder,
@@ -237,7 +237,7 @@ class LeitorOCR:
         )
         boxes: list[tuple[np.int32, ...]] = np.concatenate(boxes) # type: ignore
         return [
-            Coordenada.from_box((
+            Coordenada.FromBox((
                 max(0, x1), # corrigir possível negativo
                 max(0, y1), # corrigir possível negativo
                 x2,
