@@ -31,7 +31,7 @@ wheels = [
 
 [[package]]
 name = "bot"
-version = "7.0"
+version = "7.1"
 source = { editable = "." }
 dependencies = [
     { name = "comtypes" },

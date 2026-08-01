@@ -41,7 +41,7 @@ class Dialogo:
         return "; ".join(
             elemento.texto
             for elemento in self.elemento.to_uia().descendentes(aguardar=0.5)
-            if elemento.texto and not elemento.botao
+            if elemento.texto and not elemento.tipo.botao
         )
 
     def aguardar_fechar (self, timeout: float = 5) -> bool:
@@ -113,23 +113,23 @@ class Popup:
 
     def itens_menu (self) -> list[ElementoUIA]:
         """Elementos do popup que são `item_barra_menu`"""
-        return self.elemento.aguardar().descendentes(lambda e: e.item_barra_menu)
+        return self.elemento.aguardar().descendentes(lambda e: e.tipo.item_barra_menu)
 
-    def clicar (self, opcao: str, virtual: bool = True) -> typing.Self:
+    def clicar (self, opcao: str) -> typing.Self:
         """Clicar no item de menu com o texto `opção`"""
         opcao = String(opcao).normalizar()
         elemento, *_ = [
             item
             for item in self.itens_menu()
-            if opcao in String(item.texto).normalizar()
+            if opcao in String(item.texto)
         ] or [None]
 
         assert elemento is not None, f"Nenhum item no popup encontrado com a opção '{opcao}'"
-        elemento.clicar(virtual=virtual, focar=False)
+        elemento.clicar(focar=False)
 
         return self
 
-class CaixaSelecaoW32:
+class CheckBoxW32:
     """Classe para tratar a caixa de seleção do W32"""
 
     elemento: ElementoW32
@@ -148,10 +148,14 @@ class CaixaSelecaoW32:
 
     def alternar (self) -> None:
         """Alterar o estado da seleção
-        - O `elemento.clicar()` pode ser preferencial caso elementos aguardando o evento não atualizem"""
+        - O `clicar()` pode ser preferencial caso elementos aguardando o evento não atualizem"""
         estado = 0 if self.selecionado else 1
         win32gui.SendMessage(self.elemento.hwnd, win32con.BM_CLICK, estado, 0)
         self.elemento.aguardar(5).sleep(0.1)
+
+    def clicar (self) -> typing.Self:
+        self.elemento.clicar()
+        return self
 
 class ElementoW32:
     """Elemento para o backend Win32"""
@@ -333,7 +337,7 @@ class ElementoW32:
     @property
     def coordenada (self) -> bot.estruturas.Coordenada:
         box = win32gui.GetWindowRect(self.hwnd)
-        return bot.estruturas.Coordenada.from_box(box)
+        return bot.estruturas.Coordenada.FromBox(box)
 
     @property
     def visivel (self) -> bool:
@@ -347,10 +351,10 @@ class ElementoW32:
         return win32gui.IsWindowEnabled(self.hwnd) == 1
 
     @property
-    def caixa_selecao (self) -> CaixaSelecaoW32:
+    def checkbox (self) -> CheckBoxW32:
         """Obter a interface da caixa de seleção de uma `CheckBox`
         - O Elemento pode não aceitar caso não seja uma `CheckBox`, necessário teste"""
-        return CaixaSelecaoW32(self)
+        return CheckBoxW32(self)
 
     def filhos[T: ElementoW32] (self: T, filtro: typing.Callable[[T], bot.tipagem.SupportsBool] | None = None,
                                          aguardar: int | float = 0) -> list[T]:
@@ -457,25 +461,49 @@ class ElementoW32:
         return self.aguardar()
 
     def clicar (self, botao: bot.tipagem.BOTOES_MOUSE = "left",
-                      virtual: bool = True,
                       focar: bool = True) -> typing.Self:
-        """Clicar com o `botão` no centro do elemento
-        - `virtual` indica se o click deve ser simulado ou feito com o mouse de fato
+        """Clicar virtualmente com o `botão` no centro do elemento
         - `focar` indicador se dever ser feito o foco no elemento
-        - Apenas alguns elementos aceitam clicks virtuais"""
+        - Elemento pode não aceitar"""
         if focar: self.focar()
         coordenada = self.coordenada
 
-        if virtual:
-            lparam = win32api.MAKELONG(coordenada.largura // 2, coordenada.altura // 2)
-            down, up, wparam = BOTOES_VIRTUAIS_MOUSE[botao]
-            win32gui.PostMessage(self.hwnd, down, wparam, lparam)
-            win32gui.PostMessage(self.hwnd, up, 0, lparam)
-        else: bot.mouse.mover(coordenada).clicar(botao=botao)
+        lparam = win32api.MAKELONG(coordenada.largura // 2, coordenada.altura // 2)
+        down, up, wparam = BOTOES_VIRTUAIS_MOUSE[botao]
+        win32gui.PostMessage(self.hwnd, down, wparam, lparam)
+        win32gui.PostMessage(self.hwnd, up, 0, lparam)
 
         return self.sleep(0.01).aguardar()
 
-    def apertar (self, *teclas: bot.tipagem.char | bot.tipagem.BOTOES_TECLADO,
+    def input (self, texto: str, focar: bool = True) -> typing.Self:
+        """Substituir o texto do elemento pelo `texto`
+        - `focar` indicador se dever ser feito o foco no elemento
+        - Elemento pode não aceitar"""
+        if focar: self.focar()
+        win32gui.SendMessage(self.hwnd, win32con.WM_SETTEXT, 0, texto) # type: ignore
+        return self.sleep(0.01).aguardar()
+
+    def limpar (self) -> typing.Self:
+        """Limpar o texto do elemento
+        - Elemento pode não aceitar"""
+        win32gui.SendMessage(self.hwnd, win32con.WM_SETTEXT, 0, None)
+        return self.sleep(0.01).aguardar()
+
+    def clicar_mouse (self, botao: bot.tipagem.BOTOES_MOUSE = "left",
+                            focar: bool = True,
+                            xOffset = 0.5,
+                            yOffset = 0.5) -> typing.Self:
+        """Clicar com o `botão` do mouse no elemento
+        - `focar` indicador se dever ser feito o foco no elemento
+        - `xOffset` `yOffset` usado para transformar a posição `Default: Centro`"""
+        if focar: self.focar()
+
+        posicao = self.coordenada.transformar(xOffset, yOffset)
+        bot.mouse.mover(posicao).clicar(botao=botao)
+
+        return self.sleep(0.01).aguardar()
+
+    def teclar (self, *teclas: bot.tipagem.char | bot.tipagem.BOTOES_TECLADO,
                        focar: bool = True) -> typing.Self:
         """Apertar e soltar as `teclas` uma por vez
         - `focar` indicador se dever ser feito o foco no elemento"""
@@ -485,17 +513,22 @@ class ElementoW32:
             self.aguardar()
         return self.sleep(0.01).aguardar()
 
-    def digitar (self, texto: str,
-                       virtual: bool = True,
-                       focar: bool = True) -> typing.Self:
-        """Digitar o `texto` no elemento
-        - `virtual` indica se deve ser simulado ou feito com o teclado de fato
-        - `virtual` substitui o texto atual pelo `texto`
-        - `focar` indicador se dever ser feito o foco no elemento
-        - Apenas alguns elementos aceitam o `virtual`"""
+    def teclar_n (self, tecla: bot.tipagem.char | bot.tipagem.BOTOES_TECLADO,
+                        n: int,
+                        focar: bool = True) -> typing.Self:
+        """Apertar e soltar a `tecla` `n` vezes
+        - `focar` indicador se dever ser feito o foco no elemento"""
         if focar: self.focar()
-        if virtual: win32gui.SendMessage(self.hwnd, win32con.WM_SETTEXT, 0, texto) # type: ignore
-        else: bot.teclado.digitar(texto)
+        for _ in range(max(n, 1)):
+            bot.teclado.apertar(tecla)
+            self.aguardar()
+        return self.sleep(0.01).aguardar()
+
+    def digitar (self, texto: str, focar: bool = True) -> typing.Self:
+        """Digitar o `texto` no elemento
+        - `focar` indicador se dever ser feito o foco no elemento"""
+        if focar: self.focar()
+        bot.teclado.digitar(texto)
         return self.sleep(0.01).aguardar()
 
     def atalho (self, *teclas: bot.tipagem.char | bot.tipagem.BOTOES_TECLADO,
@@ -557,6 +590,125 @@ class ElementoW32:
             self.janela.to_uia(),
             self.profundidade,
         )
+
+class TiposUIA:
+    def __init__ (self, elemento: ElementoUIA) -> None:
+        self.e = elemento
+
+    @property
+    def nome (self) -> str:
+        """Nome do tipo do elemento"""
+        try: return str(self.e.uiaelement.CurrentControlType or "")
+        except Exception: return ""
+
+    @property
+    def nome_localizado (self) -> str:
+        """Nome localizado do tipo do elemento"""
+        try: return str(self.e.uiaelement.CurrentLocalizedControlType or "")
+        except Exception: return ""
+
+    @property
+    def botao (self) -> bool:
+        """Checar se o elemento é um botão"""
+        return self.e.uiaelement.CurrentControlType == uiaclient.UIA_ButtonControlTypeId
+
+    @property
+    def botao_radio (self) -> bool:
+        """Checar se o elemento é um radio button"""
+        return self.e.uiaelement.CurrentControlType == uiaclient.UIA_RadioButtonControlTypeId
+
+    @property
+    def checkbox (self) -> bool:
+        """Checar se o elemento é um checkbox"""
+        return self.e.uiaelement.CurrentControlType == uiaclient.UIA_CheckBoxControlTypeId
+
+    @property
+    def combobox (self) -> bool:
+        """Checar se o elemento é um combobox"""
+        return self.e.uiaelement.CurrentControlType == uiaclient.UIA_ComboBoxControlTypeId
+
+    @property
+    def barra_menu (self) -> bool:
+        """Checar se o elemento é uma barra de menu"""
+        menu_controls = (uiaclient.UIA_MenuBarControlTypeId, uiaclient.UIA_MenuControlTypeId)
+        return self.e.uiaelement.CurrentControlType in menu_controls\
+            or "windowedpopupclass" in self.e.class_name.lower()
+
+    @property
+    def item_barra_menu (self) -> bool:
+        """Checar se o elemento é um item da barra de menu"""
+        return self.e.uiaelement.CurrentControlType == uiaclient.UIA_MenuItemControlTypeId
+
+    @property
+    def aba (self) -> bool:
+        """Checar se o elemento é uma aba"""
+        return self.e.uiaelement.CurrentControlType == uiaclient.UIA_TabControlTypeId
+
+    @property
+    def item_aba (self) -> bool:
+        """Checar se o elemento é um item de uma aba"""
+        return self.e.uiaelement.CurrentControlType == uiaclient.UIA_TabItemControlTypeId
+
+class PatternsUIA:
+    def __init__ (self, elemento: ElementoUIA) -> None:
+        self.e = elemento
+
+    @property
+    def valor (self) -> uiaclient.IUIAutomationValuePattern | None:
+        """Obter a interface para obter e alterar o valor de um elemento
+        - `None` caso o elemento não suporte expansão"""
+        return self.query(uiaclient.UIA_ValuePatternId, uiaclient.IUIAutomationValuePattern)
+
+    @property
+    def expansivel (self) -> uiaclient.IUIAutomationExpandCollapsePattern | None:
+        """Obter a interface de expandir se for `Lista ou ComboBox`
+        - `None` caso o elemento não suporte expansão"""
+        return self.query(uiaclient.UIA_ExpandCollapsePatternId, uiaclient.IUIAutomationExpandCollapsePattern)
+
+    @property
+    def item_selecionavel (self) -> uiaclient.IUIAutomationSelectionItemPattern | None:
+        """Obter a interface do item selecionável de uma `Lista ou ComboBox`
+        - `None` caso o elemento não seja um item selecionável"""
+        return self.query(uiaclient.UIA_SelectionItemPatternId, uiaclient.IUIAutomationSelectionItemPattern)
+
+    @property
+    def toggle (self) -> uiaclient.IUIAutomationTogglePattern | None:
+        """Obter a interface usada em elementos com estado `ON` `OFF`
+        - `None` caso o elemento não seja uma caixa de seleção
+        - `CurrentToggleState` para se obter o estado da caixa `desativado == 0` e `ativo == 1`
+        - `Toggle()` para alterar o estado"""
+        return self.query(uiaclient.UIA_TogglePatternId, uiaclient.IUIAutomationTogglePattern)
+
+    @property
+    def invocavel (self) -> uiaclient.IUIAutomationInvokePattern | None:
+        """Obter a interface para invocar o elemento, semelhante a um left click
+        - `None` caso o elemento não seja um item invocável"""
+        return self.query(uiaclient.UIA_InvokePatternId, uiaclient.IUIAutomationInvokePattern)
+
+    @property
+    def window (self) -> uiaclient.IUIAutomationWindowPattern | None:
+        """Obter a interface para modificar a janela
+        - `None` caso o elemento não seja um item invocável"""
+        return self.query(uiaclient.UIA_WindowPatternId, uiaclient.IUIAutomationWindowPattern)
+
+    def query[T] (self, pattern_id: int, interface: type[T]) -> T | None:
+        """Obter o `pattern_id` do `uiaelement` e realizar a query da `interface`
+        - `None` caso o `uiaelement` não esteja de acordo com a `interface`"""
+        try: return self.e.uiaelement\
+                        .GetCurrentPattern(pattern_id)\
+                        .QueryInterface(interface)
+        except Exception: return None
+
+    def print (self) -> None:
+        """Realizar o print dos nomes dos patterns suportados pelo elemento"""
+        for nome in dir(uiaclient):
+            if not nome.startswith("UIA_") or not nome.endswith("PatternId"):
+                continue
+            try:
+                pattern_id = getattr(uiaclient, nome)
+                if bool(self.e.uiaelement.GetCurrentPattern(pattern_id)):
+                    print(nome)
+            except Exception: pass
 
 class ElementoUIA (ElementoW32):
     """Elemento para o backend UIA"""
@@ -640,14 +792,8 @@ class ElementoUIA (ElementoW32):
         """Propriedade `value` do elemento. Útil para inputs
         - Feito `strip()`"""
         try:
-            value = self.query_interface(uiaclient.UIA_ValuePatternId, uiaclient.IUIAutomationValuePattern)
-            return str(value.CurrentValue).strip() if value else ""
-        except Exception: return ""
-
-    @property
-    def tipo (self) -> str:
-        """Nome localizado do tipo do elemento"""
-        try: return str(self.uiaelement.CurrentLocalizedControlType or "")
+            valor = self.pattern.valor
+            return str(valor.CurrentValue).strip() if valor is not None else ""
         except Exception: return ""
 
     @property
@@ -666,61 +812,14 @@ class ElementoUIA (ElementoW32):
         except Exception: return []
 
     @property
-    def expansivel (self) -> uiaclient.IUIAutomationExpandCollapsePattern | None:
-        """Obter a interface de expandir se for `Lista ou ComboBox`
-        - `None` caso o elemento não suporte expansão"""
-        return self.query_interface(uiaclient.UIA_ExpandCollapsePatternId, uiaclient.IUIAutomationExpandCollapsePattern)
+    def tipo (self) -> TiposUIA:
+        """Tipos de controle UIA"""
+        return TiposUIA(self)
 
     @property
-    def item_selecionavel (self) -> uiaclient.IUIAutomationSelectionItemPattern | None:
-        """Obter a interface do item selecionável de uma `Lista ou ComboBox`
-        - `None` caso o elemento não seja um item selecionável"""
-        return self.query_interface(uiaclient.UIA_SelectionItemPatternId, uiaclient.IUIAutomationSelectionItemPattern)
-
-    @property
-    def caixa_selecao (self) -> uiaclient.IUIAutomationTogglePattern | None: # type: ignore
-        """Obter a interface da caixa de seleção de uma `CheckBox`
-        - `None` caso o elemento não seja uma caixa de seleção
-        - `CurrentToggleState` para se obter o estado da caixa `desativado == 0` e `ativo == 1`
-        - `Toggle()` para alterar o estado"""
-        return self.query_interface(uiaclient.UIA_TogglePatternId, uiaclient.IUIAutomationTogglePattern)
-
-    @property
-    def invocavel (self) -> uiaclient.IUIAutomationInvokePattern | None:
-        """Obter a interface para invocar o elemento, semelhante a um click
-        - `None` caso o elemento não seja um item invocável"""
-        return self.query_interface(uiaclient.UIA_InvokePatternId, uiaclient.IUIAutomationInvokePattern)
-
-    @property
-    def botao (self) -> bool:
-        """Checar se o elemento é um botão"""
-        return self.uiaelement.CurrentControlType == uiaclient.UIA_ButtonControlTypeId
-
-    @property
-    def editavel (self) -> bool:
-        return self.query_interface(uiaclient.UIA_ValuePatternId, uiaclient.IUIAutomationValuePattern) != None
-
-    @property
-    def barra_menu (self) -> bool:
-        """Checar se o elemento é uma barra de menu"""
-        menu_controls = (uiaclient.UIA_MenuBarControlTypeId, uiaclient.UIA_MenuControlTypeId)
-        return self.uiaelement.CurrentControlType in menu_controls\
-            or "windowedpopupclass" in self.class_name.lower()
-
-    @property
-    def item_barra_menu (self) -> bool:
-        """Checar se o elemento é um item da barra de menu"""
-        return self.uiaelement.CurrentControlType == uiaclient.UIA_MenuItemControlTypeId
-
-    @property
-    def aba (self) -> bool:
-        """Checar se o elemento é uma aba"""
-        return self.uiaelement.CurrentControlType == uiaclient.UIA_TabControlTypeId
-
-    @property
-    def item_aba (self) -> bool:
-        """Checar se o elemento é um item de uma aba"""
-        return self.uiaelement.CurrentControlType == uiaclient.UIA_TabItemControlTypeId
+    def pattern (self) -> PatternsUIA:
+        """Patterns de controles UIA"""
+        return PatternsUIA(self)
 
     def filhos (self, filtro: typing.Callable[[ElementoUIA], bot.tipagem.SupportsBool] | None = None,
                       aguardar: int | float = 0) -> list[ElementoUIA]:
@@ -754,56 +853,58 @@ class ElementoUIA (ElementoW32):
         return self.aguardar()
 
     def clicar (self, botao: bot.tipagem.BOTOES_MOUSE = "left",
-                      virtual: bool = True,
                       focar: bool = True) -> typing.Self:
-        """Clicar com o `botão` no centro do elemento
-        - `virtual` indica se o click deve ser simulado ou feito com o mouse de fato
-        - Apenas alguns elementos aceitam clicks virtuais"""
         if focar: self.focar()
-        invocavel = self.invocavel
+        invocavel = self.pattern.invocavel
 
-        if virtual and invocavel and botao == "left":
+        if invocavel is not None and botao == "left":
             try:
                 invocavel.Invoke()
-                self.sleep(0.01).aguardar()
-            except Exception:
-                super().clicar(botao, virtual, focar)
+                return self.sleep(0.01).aguardar()
+            except Exception: pass
 
-        else: super().clicar(botao, virtual, focar)
+        return super().clicar(botao, focar)
 
-        return self
-
-    def digitar (self, texto: str,
-                       virtual: bool = True,
-                       focar: bool = True) -> typing.Self:
+    def input (self, texto: str, focar: bool = True) -> typing.Self:
         if focar: self.focar()
-        value = self.query_interface(uiaclient.UIA_ValuePatternId, uiaclient.IUIAutomationValuePattern)
+        valor = self.pattern.valor
 
-        if virtual and value:
+        if valor is not None:
             try:
-                value.SetValue(texto)
-                self.sleep(0.01).aguardar()
-            except Exception:
-                super().digitar(texto, virtual, focar)
+                valor.SetValue(texto)
+                return self.sleep(0.01).aguardar()
+            except Exception: pass
 
-        else: super().digitar(texto, virtual, focar)
+        return super().input(texto, focar)
 
-        return self
+    def limpar (self) -> typing.Self:
+        valor = self.pattern.valor
+        if valor is not None:
+            try:
+                valor.SetValue(None)
+                return self.sleep(0.01).aguardar()
+            except Exception: pass
+
+        return super().limpar()
 
     def selecionar (self, texto: str) -> None:
         """Selecionar a opção que possua o `texto`
         - Elemento deve ser `expansivel` e conter `item_selecionavel`"""
         texto = texto.lower()
-        expansivel = self.expansivel
+        expansivel = self.pattern.expansivel
         assert expansivel, f"Elemento não é expansível {self}"
 
         self.focar()
         expansivel.Expand()
         self.aguardar()
 
-        self.encontrar(lambda e: e.item_selecionavel != None and texto in e.texto.lower())\
-            .item_selecionavel\
+        (
+            self.encontrar(lambda e: texto in e.texto.lower() and
+                                     e.pattern.item_selecionavel is not None)
+            .pattern
+            .item_selecionavel
             .Select() # type: ignore
+        )
 
         expansivel.Collapse()
         self.aguardar()
@@ -816,42 +917,19 @@ class ElementoUIA (ElementoW32):
         elemento = self
         for nome in nomes:
             aba = elemento.aguardar().encontrar(
-                lambda e: e.item_aba and nome in String(e.texto),
+                lambda e: nome in String(e.texto) and e.tipo.item_aba,
                 aguardar = 1,
                 msg_erro = f"Falha ao abrir as abas{nomes}. Aba {nome!r} não encontrada"
             )
-            if s := aba.item_selecionavel: s.Select()
+            if s := aba.pattern.item_selecionavel: s.Select()
             else: aba.clicar()
             elemento = aba.parente
 
-        if painel := elemento.filhos(lambda e: not e.item_aba and nomes[-1] in String(e.texto)):
+        if painel := elemento.filhos(lambda e: nomes[-1] in String(e.texto) and not e.tipo.item_aba):
             return painel[0]
-        if not elemento.aba:
+        if not elemento.tipo.aba:
             raise Exception(f"Abas abertas {nomes} com sucesso, porém o elemento final não foi encontrado")
         return elemento
-
-    def query_interface[T] (self, pattern_id: int, interface: type[T]) -> T | None:
-        """Obter o `pattern_id` do `uiaelement` e realizar a query da `interface`
-        - `None` caso o `uiaelement` não esteja de acordo com a `interface`"""
-        try: return self.uiaelement\
-                        .GetCurrentPattern(pattern_id)\
-                        .QueryInterface(interface)
-        except Exception: return None
-
-    def listar_patterns (self) -> list[str]:
-        """Lista os nomes dos patterns suportados pelo elemento"""
-        patterns = []
-
-        for nome in dir(uiaclient):
-            if not nome.startswith("UIA_") or not nome.endswith("PatternId"):
-                continue
-            try:
-                pattern_id = getattr(uiaclient, nome)
-                if bool(self.uiaelement.GetCurrentPattern(pattern_id)):
-                    patterns.append(nome)
-            except Exception: pass
-
-        return patterns
 
 class JanelaW32:
     """Classe para manipulação de janelas e elementos para o backend Win32
@@ -893,7 +971,7 @@ class JanelaW32:
     elemento.descendentes()     # Todos os elementos
     elemento.encontrar(...)     # Encontrar o primeiro elemento descendente de acordo com o `filtro`
     elemento.clicar("left")     # Clicar com o `botão` no centro do elemento
-    elemento.digitar("texto")   # Digitar o `texto` no elemento
+    elemento.input("texto")     # Substituir o texto do elemento pelo `texto`
     ...
     # Acessores Janela/Elemento, visível e ativo, ordenando pela posição Y e X
     elemento[0]                 # Obter elemento via `index`
@@ -1394,7 +1472,7 @@ class JanelaUIA (JanelaW32):
     elemento.descendentes()     # Todos os elementos
     elemento.encontrar(...)     # Encontrar o primeiro elemento descendente de acordo com o `filtro`
     elemento.clicar("left")     # Clicar com o `botão` no centro do elemento
-    elemento.digitar("texto")   # Digitar o `texto` no elemento
+    elemento.input("texto")     # Substituir o texto do elemento pelo `texto`
     ...
     # Acessores Janela/Elemento, visível e ativo, ordenando pela posição Y e X
     elemento[0]                 # Obter elemento via `index`
@@ -1408,9 +1486,9 @@ class JanelaUIA (JanelaW32):
 
     # Específico UIA
     elemento.valor              # Propriedade `value` do elemento. Útil para inputs
-    elemento.aba                # Checar se o elemento é uma aba
-    elemento.barra_menu         # Checar se o elemento é uma barra de menu
-    elemento.botao              # Checar se o elemento é um botão
+    elemento.automation_id      # Checar se o elemento é uma aba
+    elemento.tipo
+    elemento.pattern
     ...
     ```
 
@@ -1469,36 +1547,36 @@ class JanelaUIA (JanelaW32):
 
     @property
     def maximizada (self) -> bool:
-        pattern = self.elemento.query_interface(uiaclient.UIA_WindowPatternId, uiaclient.IUIAutomationWindowPattern)
+        pattern = self.elemento.pattern.window
         if not pattern: return False
         return pattern.CurrentWindowVisualState == uiaclient.WindowVisualState_Maximized
     def maximizar (self) -> typing.Self:
-        pattern = self.elemento.query_interface(uiaclient.UIA_WindowPatternId, uiaclient.IUIAutomationWindowPattern)
+        pattern = self.elemento.pattern.window
         if pattern: pattern.SetWindowVisualState(uiaclient.WindowVisualState_Maximized)
         else: super().maximizar()
         return self
 
     @property
     def normal (self) -> bool:
-        pattern = self.elemento.query_interface(uiaclient.UIA_WindowPatternId, uiaclient.IUIAutomationWindowPattern)
+        pattern = self.elemento.pattern.window
         if not pattern: return not self.minimizada and not self.maximizada
         return pattern.CurrentWindowVisualState == uiaclient.WindowVisualState_Normal
     def restaurar (self) -> typing.Self:
         """Restaurar a janela e trazer para o foco
         - Caso estiver `minimizada/maximizada`, é restaurada para o foco na sua versão `normal`
         - Caso estiver `normal`, apenas é feito o foco"""
-        pattern = self.elemento.query_interface(uiaclient.UIA_WindowPatternId, uiaclient.IUIAutomationWindowPattern)
+        pattern = self.elemento.pattern.window
         if pattern: pattern.SetWindowVisualState(uiaclient.WindowVisualState_Normal)
         else: super().restaurar()
         return self
 
     @property
     def minimizada (self) -> bool:
-        pattern = self.elemento.query_interface(uiaclient.UIA_WindowPatternId, uiaclient.IUIAutomationWindowPattern)
+        pattern = self.elemento.pattern.window
         if not pattern: return not self.fechada
         return pattern.CurrentWindowVisualState == uiaclient.WindowVisualState_Minimized
     def minimizar (self) -> typing.Self:
-        pattern = self.elemento.query_interface(uiaclient.UIA_WindowPatternId, uiaclient.IUIAutomationWindowPattern)
+        pattern = self.elemento.pattern.window
         if pattern: pattern.SetWindowVisualState(uiaclient.WindowVisualState_Minimized)
         else: super().minimizar()
         return self
@@ -1512,13 +1590,13 @@ class JanelaUIA (JanelaW32):
         def barras_menu_nao_usadas () -> list[ElementoUIA]:
             """Procurar barras de menu nos descendentes e janelas do processo"""
             elementos = self.elemento.descendentes(
-                lambda e: e.barra_menu and e not in barras_menu_usadas,
+                lambda e: e not in barras_menu_usadas and e.tipo.barra_menu,
                 aguardar = 1
             )
             elementos.extend(
                 janela.elemento
                 for janela in self.janelas_processo(
-                    lambda j: j.elemento.barra_menu and j.elemento not in barras_menu_usadas
+                    lambda j: j.elemento not in barras_menu_usadas and j.elemento.tipo.barra_menu
                 )
             )
             return elementos
@@ -1541,13 +1619,14 @@ class JanelaUIA (JanelaW32):
                 for i in range(finder.Length):
                     filho: uiaclient.IUIAutomationElement = finder.GetElement(i)
                     e = ElementoUIA(filho.CurrentNativeWindowHandle, self, barra_menu.profundidade + 1, filho)
-                    if not e.item_barra_menu or opcao != e.texto.lower():
+                    if opcao != e.texto.lower() or not e.tipo.item_barra_menu:
                         continue
 
-                    if (expansivel := e.expansivel)\
+                    pattern = e.pattern
+                    if (expansivel := pattern.expansivel)\
                         and expansivel.Expand() != -1\
                         and expansivel.CurrentExpandCollapseState > 0: pass
-                    elif invocavel := e.invocavel: invocavel.Invoke()
+                    elif invocavel := pattern.invocavel: invocavel.Invoke()
                     else: e.clicar(focar=False)
 
                     opcao_encontrada = True
