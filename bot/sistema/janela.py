@@ -129,13 +129,12 @@ class Popup:
 
         return self
 
-class CheckBoxW32:
-    """Classe para tratar a caixa de seleção do W32"""
+class CheckBox:
 
-    elemento: ElementoW32
+    elemento: ElementoUIA
 
-    def __init__(self, elemento: ElementoW32) -> None:
-        self.elemento = elemento
+    def __init__ (self, elemento: ElementoW32) -> None:
+        self.elemento = elemento.to_uia()
 
     def __repr__ (self) -> str:
         return f"<{type(self).__name__} hwnd='{self.elemento.hwnd}'>"
@@ -143,19 +142,85 @@ class CheckBoxW32:
     @property
     def selecionado (self) -> bool:
         """Checar se está selecionado"""
-        estado = win32gui.SendMessage(self.elemento.hwnd, win32con.BM_GETCHECK, 0, 0)
-        return estado == 1
+        if (toggle := self.elemento.pattern.toggle) is not None:
+            return toggle.CurrentToggleState == 1
+        return win32gui.SendMessage(self.elemento.hwnd, win32con.BM_GETCHECK, 0, 0) == 1
 
     def alternar (self) -> None:
         """Alterar o estado da seleção
         - O `clicar()` pode ser preferencial caso elementos aguardando o evento não atualizem"""
-        estado = 0 if self.selecionado else 1
-        win32gui.SendMessage(self.elemento.hwnd, win32con.BM_CLICK, estado, 0)
-        self.elemento.aguardar(5).sleep(0.1)
+        toggle = self.elemento.pattern.toggle
+        if toggle is not None: toggle.Toggle()
+        else: win32gui.SendMessage(self.elemento.hwnd, win32con.BM_CLICK, 0, 0)
+        self.elemento.sleep(0.1).aguardar(5)
 
     def clicar (self) -> typing.Self:
         self.elemento.clicar()
         return self
+
+class GroupBox:
+
+    elemento: ElementoUIA
+
+    def __init__ (self, elemento: ElementoW32) -> None:
+        self.elemento = elemento.to_uia().aguardar()
+
+    def opcoes (self, selecionados: bool | None = None) -> list[str]:
+        """Opções existentes
+        - `selecionados` para filtrar apenas pelos selecionados ou não"""
+        return [
+            texto
+            for filho in self.elemento.filhos()
+            if (texto := filho.texto) and (
+                selecionados is None
+                or filho.checkbox.selecionado == selecionados
+            )
+        ]
+
+    def selecionar (self, *opcoes: str) -> None:
+        for filho in self.elemento.filhos(lambda e: e.texto in opcoes):
+            check = filho.checkbox
+            if not check.selecionado:
+                check.alternar()
+
+    def desmarcar (self, *opcoes: str) -> None:
+        for filho in self.elemento.filhos(lambda e: e.texto in opcoes):
+            check = filho.checkbox
+            if check.selecionado:
+                check.alternar()
+
+class RadioGroup:
+
+    elemento: ElementoUIA
+
+    def __init__ (self, elemento: ElementoW32) -> None:
+        self.elemento = elemento.to_uia().aguardar()
+
+    @property
+    def selecionado (self) -> str:
+        """Opção selecionada
+        - `""` caso nenhum selecionado"""
+        for filho in self.elemento.filhos():
+            if pattern := filho.pattern.selecionavel:
+                if pattern.CurrentIsSelected: return filho.texto
+            elif win32gui.SendMessage(filho.hwnd, win32con.BM_GETCHECK, 0, 0) == 1:
+                return filho.texto
+        return ""
+
+    def opcoes (self) -> list[str]:
+        """Opções existentes"""
+        return [
+            texto
+            for filho in self.elemento.filhos()
+            if (texto := filho.texto)
+        ]
+
+    def selecionar (self, opcao: str) -> None:
+        """Selecionar a `opção`"""
+        elemento = self.elemento // opcao
+        if (pattern := elemento.pattern.selecionavel) is not None:
+            pattern.Select()
+        else: win32gui.SendMessage(elemento.hwnd, win32con.BM_CLICK, 0, 0)
 
 class ElementoW32:
     """Elemento para o backend Win32"""
@@ -351,10 +416,24 @@ class ElementoW32:
         return win32gui.IsWindowEnabled(self.hwnd) == 1
 
     @property
-    def checkbox (self) -> CheckBoxW32:
-        """Obter a interface da caixa de seleção de uma `CheckBox`
-        - O Elemento pode não aceitar caso não seja uma `CheckBox`, necessário teste"""
-        return CheckBoxW32(self)
+    def checkbox (self) -> CheckBox:
+        """Obter a interface de uma `CheckBox`
+        - Elemento pode não aceitar"""
+        return CheckBox(self)
+
+    @property
+    def groupbox (self) -> GroupBox:
+        """Obter a interface de um grupo de `CheckBox`
+        - Elemento deve possui filhos `CheckBox`
+        - Elemento pode não aceitar"""
+        return GroupBox(self)
+
+    @property
+    def radiogroup (self) -> RadioGroup:
+        """Obter a interface de um grupo de `RadioButton`
+        - Elemento deve possui filhos `RadioButton`
+        - Elemento pode não aceitar"""
+        return RadioGroup(self)
 
     def filhos[T: ElementoW32] (self: T, filtro: typing.Callable[[T], bot.tipagem.SupportsBool] | None = None,
                                          aguardar: int | float = 0) -> list[T]:
@@ -589,6 +668,7 @@ class ElementoW32:
             self.hwnd,
             self.janela.to_uia(),
             self.profundidade,
+            self.uiaelement if isinstance(self, ElementoUIA) else None
         )
 
 class TiposUIA:
@@ -666,8 +746,8 @@ class PatternsUIA:
         return self.query(uiaclient.UIA_ExpandCollapsePatternId, uiaclient.IUIAutomationExpandCollapsePattern)
 
     @property
-    def item_selecionavel (self) -> uiaclient.IUIAutomationSelectionItemPattern | None:
-        """Obter a interface do item selecionável de uma `Lista ou ComboBox`
+    def selecionavel (self) -> uiaclient.IUIAutomationSelectionItemPattern | None:
+        """Obter a interface do item selecionável de uma `Lista` `ComboBox` `RadioButton`
         - `None` caso o elemento não seja um item selecionável"""
         return self.query(uiaclient.UIA_SelectionItemPatternId, uiaclient.IUIAutomationSelectionItemPattern)
 
@@ -889,7 +969,8 @@ class ElementoUIA (ElementoW32):
 
     def selecionar (self, texto: str) -> None:
         """Selecionar a opção que possua o `texto`
-        - Elemento deve ser `expansivel` e conter `item_selecionavel`"""
+        - Útil para elementos estilo `ComboBox`
+        - Elemento deve ser `expansivel` e conter elementos `selecionavel`"""
         texto = texto.lower()
         expansivel = self.pattern.expansivel
         assert expansivel, f"Elemento não é expansível {self}"
@@ -900,9 +981,9 @@ class ElementoUIA (ElementoW32):
 
         (
             self.encontrar(lambda e: texto in e.texto.lower() and
-                                     e.pattern.item_selecionavel is not None)
+                                     e.pattern.selecionavel is not None)
             .pattern
-            .item_selecionavel
+            .selecionavel
             .Select() # type: ignore
         )
 
@@ -921,7 +1002,7 @@ class ElementoUIA (ElementoW32):
                 aguardar = 1,
                 msg_erro = f"Falha ao abrir as abas{nomes}. Aba {nome!r} não encontrada"
             )
-            if s := aba.pattern.item_selecionavel: s.Select()
+            if s := aba.pattern.selecionavel: s.Select()
             else: aba.clicar()
             elemento = aba.parente
 
