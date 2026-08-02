@@ -24,25 +24,23 @@ BOTOES_VIRTUAIS_MOUSE = {
 class Dialogo:
     """Diálogo do windows para confirmação"""
 
-    elemento: ElementoW32
+    elemento: ElementoUIA
+    texto: str
+    """Texto dos descendentes, exceto dos botões, concatenados por `; `"""
 
     def __init__ (self, elemento: ElementoW32) -> None:
-        self.elemento = elemento
+        self.elemento = elemento.to_uia().sleep(0.25)
+        self.texto = "; ".join(
+            texto
+            for elemento in self.elemento.descendentes(aguardar=0.5)
+            if (texto := elemento.texto) and not elemento.tipo.botao
+        )
 
     def __repr__ (self) -> str:
         return f"<{type(self).__name__} {self.elemento}>"
 
     def __eq__ (self, value: object) -> bool:
         return isinstance(value, type(self)) and self.elemento == value.elemento
-
-    @property
-    def texto (self) -> str:
-        """Texto dos descendentes, exceto dos botões, concatenados por `; `"""
-        return "; ".join(
-            elemento.texto
-            for elemento in self.elemento.to_uia().descendentes(aguardar=0.5)
-            if elemento.texto and not elemento.tipo.botao
-        )
 
     def aguardar_fechar (self, timeout: float = 5) -> bool:
         """Aguardar o diálogo fechar por `timeout` segundos e retornar o indicador"""
@@ -65,30 +63,32 @@ class Dialogo:
         - Retornado indicador se o diálogo fechou corretamente"""
         botao = String(botao).normalizar()
         self.elemento\
-            .sleep(0.25)\
             .encontrar(lambda e: botao in String(e.texto).normalizar())\
             .clicar()
         return self.aguardar_fechar()
 
-    def negar (self) -> None:
+    def negar (self) -> typing.Self:
         """Negar o diálogo clicando nas opções `("nao", "ok", "no")`
         - Checado se fechou corretamente"""
         botoes = ("nao", "ok", "no")
         self.elemento\
-            .sleep(0.25)\
             .encontrar(lambda e: String(e.texto).normalizar() in botoes)\
             .clicar()
         assert self.aguardar_fechar(3), "Diálogo não fechou conforme esperado"
+        return self
 
-    def confirmar (self) -> None:
+    def confirmar (self) -> typing.Self:
         """Confirmar o diálogo clicando nas opções `("sim", "ok", "yes")`
         - Checado se fechou corretamente"""
         botoes = ("sim", "ok", "yes")
         self.elemento\
-            .sleep(0.25)\
             .encontrar(lambda e: String(e.texto).normalizar() in botoes)\
             .clicar()
         assert self.aguardar_fechar(3), "Diálogo não fechou conforme esperado"
+        return self
+
+    def Raise (self, prefixo="Diálogo inesperado encontrado:", Error=Exception) -> typing.Never:
+        raise Error(f"{prefixo.rstrip()} `{self.texto}`")
 
 class Popup:
     """Popup do windows com opções"""
@@ -158,6 +158,16 @@ class CheckBox:
         self.elemento.clicar()
         return self
 
+    def selecionar (self) -> None:
+        """Selecionar o `CheckBox` se estiver desmarcado"""
+        if not self.selecionado:
+            self.alternar()
+
+    def desmarcar (self) -> None:
+        """Desmarcar o `CheckBox` se estiver selecionado"""
+        if self.selecionado:
+            self.alternar()
+
 class GroupBox:
 
     elemento: ElementoUIA
@@ -178,16 +188,14 @@ class GroupBox:
         ]
 
     def selecionar (self, *opcoes: str) -> None:
+        """Selecionar as `opções` se estiverem desmarcados"""
         for filho in self.elemento.filhos(lambda e: e.texto in opcoes):
-            check = filho.checkbox
-            if not check.selecionado:
-                check.alternar()
+            filho.checkbox.selecionar()
 
     def desmarcar (self, *opcoes: str) -> None:
+        """Desmarcar as `opções` se estiverem selecionados"""
         for filho in self.elemento.filhos(lambda e: e.texto in opcoes):
-            check = filho.checkbox
-            if check.selecionado:
-                check.alternar()
+            filho.checkbox.desmarcar()
 
 class RadioGroup:
 
@@ -616,6 +624,18 @@ class ElementoW32:
         win32gui.SendMessage(self.hwnd, win32con.WM_SETTEXT, 0, texto) # type: ignore
         return self.sleep(0.01).aguardar()
 
+    def tab (self) -> typing.Self:
+        """Simular um `TAB` para notificar o elemento"""
+        win32gui.SendMessage(self.hwnd, win32con.WM_KEYDOWN, win32con.VK_TAB, 0)
+        win32gui.SendMessage(self.hwnd, win32con.WM_KEYUP, win32con.VK_TAB, 0)
+        return self.sleep(0.01).aguardar()
+
+    def enter (self) -> typing.Self:
+        """Simular um `ENTER` para notificar o elemento"""
+        win32gui.SendMessage(self.hwnd, win32con.WM_KEYDOWN, win32con.VK_RETURN, 0)
+        win32gui.SendMessage(self.hwnd, win32con.WM_KEYUP, win32con.VK_RETURN, 0)
+        return self.sleep(0.01).aguardar()
+
     def limpar (self) -> typing.Self:
         """Limpar o texto do elemento
         - Elemento pode não aceitar"""
@@ -1039,8 +1059,7 @@ class ElementoUIA (ElementoW32):
 
     def selecionar (self, texto: str) -> None:
         """Selecionar a opção que possua o `texto`
-        - Útil para elementos estilo `ComboBox`
-        - Elemento deve ser `expansivel` e conter elementos `selecionavel`"""
+        - Elemento deve ser `expansivel` e conter `item_selecionavel`"""
         texto = texto.lower()
         expansivel = self.pattern.expansivel
         assert expansivel, f"Elemento não é expansível {self}"
@@ -1459,6 +1478,7 @@ class JanelaW32:
         - `None` caso não encontre
         - `aguardar` tempo em segundos para aguardar pelo diálogo"""
         assert aguardar >= 0, "Tempo para aguardar pelo diálogo deve ser >= 0"
+        self.aguardar()
 
         primeiro, cronometro = True, bot.tempo.Cronometro()
         while primeiro or cronometro < aguardar:
@@ -1475,6 +1495,7 @@ class JanelaW32:
         - `None` caso não encontre
         - `aguardar` tempo em segundos para aguardar pelo popup"""
         assert aguardar >= 0, "Tempo para aguardar pelo popup deve ser >= 0"
+        self.aguardar()
 
         primeiro, cronometro = True, bot.tempo.Cronometro()
         while primeiro or cronometro < aguardar:
@@ -1491,6 +1512,7 @@ class JanelaW32:
         - `class_name` para informar demais `class_name` para serem procurados
         - `aguardar` tempo em segundos para aguardar por algum elemento"""
         assert aguardar >= 0, "Tempo para aguardar pelo popup deve ser >= 0"
+        self.aguardar()
 
         elementos = list[ElementoUIA]()
         class_names = { "tooltip", "hint", *map(str.lower, class_name) }
@@ -1539,7 +1561,7 @@ class JanelaW32:
 
     def to_uia (self) -> JanelaUIA:
         """Obter uma instância da `JanelaW32` como `JanelaUIA`"""
-        return self if isinstance(self, JanelaUIA) else JanelaUIA.FromHWND(self.hwnd)
+        return JanelaUIA.FromHWND(self.hwnd)
 
     @staticmethod
     def titulos_janelas_visiveis () -> set[str]:
