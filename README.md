@@ -21,6 +21,7 @@ Utilizar o caminho para o arquivo **whl** baixado `bot @ file://.../bot-7.2-py3-
 - Alterações `ElementoW32` para separar métodos virtuais do `mouse/teclado`
 - Alterações `ElementoUIA` para agrupar os Patterns e Tipos dos controles em classe própria
 - Adicionado `@overload` no filtro da `JanelaW32` para buscar via nome
+- Alterado `JanelaW32.janela_processo()` pelo operador `@` na `JanelaW32` e `ElementoW32` para buscar via nome
 
 </details>
 <details>

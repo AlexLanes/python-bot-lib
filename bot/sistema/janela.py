@@ -429,6 +429,10 @@ class ElementoW32:
             elemento = elemento.parente
         return elemento # type: ignore
 
+    def __matmul__ (self, nome: str) -> JanelaW32:
+        """Obter uma janela interna"""
+        return self.janela @ nome
+
     @property
     def parente (self) -> ElementoW32:
         """Elemento na árvore de elementos que `self` é filho
@@ -991,6 +995,10 @@ class ElementoUIA (ElementoW32):
         """Patterns de controles UIA"""
         return PatternsUIA(self)
 
+    def __matmul__ (self, nome: str) -> JanelaUIA:
+        """Obter uma janela interna"""
+        return self.janela @ nome
+
     def filhos (self, filtro: typing.Callable[[ElementoUIA], bot.tipagem.SupportsBool] | None = None,
                       aguardar: int | float = 0) -> list[ElementoUIA]:
         assert aguardar >= 0, "Tempo para aguardar por filhos deve ser >= 0"
@@ -1147,11 +1155,12 @@ class JanelaW32:
     # Acessores Janela/Elemento, visível e ativo, ordenando pela posição Y e X
     elemento[0]                 # Obter elemento via `index`
     elemento[0, -1]             # Obter elementos via `index`
+    elemento << 2               # Subir para o parente do elemento de acordo com a profundidade
     janela / "OK"               # Obter elemento filho via `class_name` ou `texto`
     janela // "OK"              # Obter elemento descendente via `class_name` ou `texto`
     janela > "TPanel"           # Obter elementos filhos via `class_name` ou `texto`
     janela >> "TPanel"          # Obter elementos descendentes via `class_name` ou `texto`
-    elemento << 2               # Subir para o parente do elemento de acordo com a profundidade
+    janela @ "JanelaInterna"    # Obter janela interna via `class_name` ou `texto`
     ```
 
     ### Métodos
@@ -1163,7 +1172,6 @@ class JanelaW32:
     janela.aguardar()           # Aguarda `timeout` segundos até que a thread da GUI fique ociosa
     janela.sleep()              # Aguardar por `segundos` até continuar a execução
     janela.janelas_processo()   # Janelas do mesmo processo da `janela`
-    janela.janela_processo(...) # Obter janela do mesmo processo da `janela` de acordo com o `filtro`
     janela.print_arvore()       # Realizar o `print()` da árvore de elementos da janela e das janelas do processo
     ```
 
@@ -1198,7 +1206,7 @@ class JanelaW32:
 
         if isinstance(filtro, str):
             nome = filtro
-            msg_erro = msg_erro or f"Janela Nome='{nome}' não foi encontrada"
+            msg_erro = msg_erro or f"Janela Nome={nome!r} não foi encontrada"
             filtro = lambda j: j.visivel and (
                 j.class_name.lower() == nome.lower().strip()
                 or nome in String(j.titulo)
@@ -1326,6 +1334,44 @@ class JanelaW32:
         """Obter elementos descendentes visível e ativo"""
         return self.elemento >> nome
 
+    def __matmul__ (self, nome: str) -> typing.Self:
+        """Obter uma janela interna"""
+        self.aguardar()
+        janelas = list[typing.Self]()
+        class_name = nome.strip().lower()
+
+        def callback (hwnd: int, _) -> bool:
+            if not win32gui.IsWindowVisible(hwnd):
+                return True
+
+            janela = self.FromHWND(hwnd)
+            if janela.class_name.lower() == class_name or nome in String(janela.titulo):
+                janelas.append(janela)
+
+            return True
+
+        try: win32gui.EnumChildWindows(self.hwnd, callback, None)
+        except Exception: pass
+
+        janelas = [janela
+                   for janela in janelas
+                   if janela.to_uia().elemento.pattern.window is not None]
+        janelas = janelas or self.janelas_processo(
+            lambda j: j.visivel and (
+                j.class_name.lower() == class_name
+                or nome in String(j.titulo)
+            )
+        )
+
+        match janelas:
+            case []: raise Exception(f"Janela Nome={nome!r} não foi encontrada")
+            case [janela]: return janela
+            # Ordenar pela quantidade filhos caso haja 2 ou mais
+            case _: return sorted(
+                janelas,
+                key = lambda j: len(j.elemento.filhos())
+            )[-1]
+
     @property
     def titulo (self) -> str:
         """Texto do elemento
@@ -1444,9 +1490,11 @@ class JanelaW32:
         except Exception: raise TimeoutError(f"A janela não respondeu após '{timeout}' segundos esperando") from None
         return self
 
-    def janelas_processo[T: JanelaW32] (self: T, filtro: typing.Callable[[T], bot.tipagem.SupportsBool] | None = None) -> list[T]:
+    def janelas_processo[T: JanelaW32] (self: T, filtro: typing.Callable[[T], bot.tipagem.SupportsBool] | None = None,
+                                                 aguardar: int | float = 0) -> list[T]:
         """Janelas do mesmo processo da `janela`
-        - `filtro` para escolher as janelas. `Default: visível e ativo`"""
+        - `filtro` para escolher as janelas. `Default: visível e ativo`
+        - `aguardar` tempo em segundos para aguardar por alguma janela"""
         self.aguardar()
         encontrados: list[T] = []
         filtro = filtro or (lambda j: j.visivel and j.elemento.ativo)
@@ -1461,25 +1509,13 @@ class JanelaW32:
             except Exception: pass
             return True
 
-        try: win32gui.EnumWindows(callback, None)
-        except Exception: pass
-        return encontrados
-
-    def janela_processo[T: JanelaW32] (self: T, filtro: typing.Callable[[T], bot.tipagem.SupportsBool],
-                                                aguardar: int | float = 0) -> T:
-        """Obter janela do mesmo processo da `janela` de acordo com o `filtro`
-        - `aguardar` tempo em segundos para aguardar por alguma janela"""
-        self.aguardar()
-        assert aguardar >= 0, "Tempo para aguardar por janela deve ser >= 0"
-
-        encontrados = list[T]()
         primeiro, cronometro = True, bot.tempo.Cronometro()
         while primeiro or (not encontrados and cronometro < aguardar):
             primeiro = False
-            encontrados = self.janelas_processo(filtro)
+            try: win32gui.EnumWindows(callback, None)
+            except Exception: pass
 
-        if not encontrados: raise Exception(f"Janela não encontrada no processo para o filtro informado")
-        return encontrados[0]
+        return encontrados
 
     def dialogo (self, class_name: str = "#32770",
                        aguardar: int | float = 0) -> Dialogo | None:
@@ -1660,11 +1696,12 @@ class JanelaUIA (JanelaW32):
     # Acessores Janela/Elemento, visível e ativo, ordenando pela posição Y e X
     elemento[0]                 # Obter elemento via `index`
     elemento[0, -1]             # Obter elementos via `index`
+    elemento << 2               # Subir para o parente do elemento de acordo com a profundidade
     janela / "OK"               # Obter elemento filho via `class_name` ou `texto`
     janela // "OK"              # Obter elemento descendente via `class_name` ou `texto`
     janela > "TPanel"           # Obter elementos filhos via `class_name` ou `texto`
     janela >> "TPanel"          # Obter elementos descendentes via `class_name` ou `texto`
-    elemento << 2               # Subir para o parente do elemento de acordo com a profundidade
+    janela @ "JanelaInterna"    # Obter janela interna via `class_name` ou `texto`
     ```
 
     # Específico UIA
@@ -1684,7 +1721,6 @@ class JanelaUIA (JanelaW32):
     janela.aguardar()           # Aguarda `timeout` segundos até que a thread da GUI fique ociosa
     janela.sleep()              # Aguardar por `segundos` até continuar a execução
     janela.janelas_processo()   # Janelas do mesmo processo da `janela`
-    janela.janela_processo(...) # Obter janela do mesmo processo da `janela` de acordo com o `filtro`
     janela.print_arvore()       # Realizar o `print()` da árvore de elementos da janela e das janelas do processo
 
     # Específico UIA
