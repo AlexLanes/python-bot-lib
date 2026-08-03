@@ -1107,6 +1107,7 @@ class JanelaW32:
     ### Criação
     ```
     JanelaW32.FromFoco()                                        # Janela focada
+    JanelaW32("Título ou ClassName")                            # Procurar Janela visível
     JanelaW32(lambda j: "titulo" in j.titulo and j.visivel)     # Procurar a janela com filtro dinâmico
     JanelaW32(lambda j: ..., aguardar=10)                       # Aguardar por 10 segundos até encontrar a janela
     JanelaW32.Iniciar("notepad", shell=True, aguardar=30)       # Iniciar uma janela via novo processo
@@ -1190,10 +1191,18 @@ class JanelaW32:
 
     hwnd: int
 
-    def __init__[T: JanelaW32] (self: T, filtro: typing.Callable[[T], bot.tipagem.SupportsBool],
+    def __init__[T: JanelaW32] (self: T, filtro: str | typing.Callable[[T], bot.tipagem.SupportsBool],
                                          aguardar: int | float = 0,
                                          msg_erro: str | None = None) -> None:
         assert aguardar >= 0, "Tempo para aguardar por janela deve ser >= 0"
+
+        if isinstance(filtro, str):
+            nome = filtro
+            msg_erro = msg_erro or f"Janela Nome='{nome}' não foi encontrada"
+            filtro = lambda j: j.visivel and (
+                j.class_name.lower() == nome.lower().strip()
+                or nome in String(j.titulo)
+            )
 
         encontrados = list[T]()
         def callback (hwnd: int, _) -> bool:
@@ -1610,7 +1619,8 @@ class JanelaUIA (JanelaW32):
 
     ### Criação
     ```
-    JanelaUIA.FromFoco()                                   # Janela focada
+    JanelaUIA.FromFoco()                                    # Janela focada
+    JanelaUIA("Título ou ClassName")                        # Procurar Janela visível
     JanelaUIA(lambda j: "titulo" in j.titulo and j.visivel) # Procurar a janela com filtro dinâmico
     JanelaUIA(lambda j: ..., aguardar=10)                   # Aguardar por 10 segundos até encontrar a janela
     JanelaUIA.Iniciar("notepad", shell=True, aguardar=30)   # Iniciar uma janela via novo processo
