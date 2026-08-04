@@ -1,6 +1,5 @@
 # std
 from __future__ import annotations
-from types import UnionType
 import time, typing, functools, contextlib
 # interno
 import bot
@@ -639,12 +638,12 @@ class ElementoW32:
 
         return self.sleep(0.01).aguardar()
 
-    def input (self, texto: str, focar: bool = True) -> typing.Self:
+    def input (self, texto: str | bot.tipagem.SupportsStr, focar: bool = True) -> typing.Self:
         """Substituir o texto do elemento pelo `texto`
         - `focar` indicador se dever ser feito o foco no elemento
         - Elemento pode não aceitar"""
         if focar: self.focar()
-        win32gui.SendMessage(self.hwnd, win32con.WM_SETTEXT, 0, texto) # type: ignore
+        win32gui.SendMessage(self.hwnd, win32con.WM_SETTEXT, 0, str(texto)) # type: ignore
         return self.sleep(0.01).aguardar()
 
     def tab (self) -> typing.Self:
@@ -1079,13 +1078,13 @@ class ElementoUIA (ElementoW32):
 
         return super().clicar(botao, focar)
 
-    def input (self, texto: str, focar: bool = True) -> typing.Self:
+    def input (self, texto: str | bot.tipagem.SupportsStr, focar: bool = True) -> typing.Self:
         if focar: self.focar()
         valor = self.pattern.valor
 
         if valor is not None:
             try:
-                valor.SetValue(texto)
+                valor.SetValue(str(texto))
                 return self.sleep(0.01).aguardar()
             except Exception: pass
 
