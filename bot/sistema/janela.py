@@ -1,5 +1,6 @@
 # std
 from __future__ import annotations
+from types import UnionType
 import time, typing, functools, contextlib
 # interno
 import bot
@@ -334,7 +335,8 @@ class ElementoW32:
 
     def __truediv__ (self, nome: str) -> typing.Self:
         """Obter elemento filho visível e ativo
-        - Possível de utilizar index no fim do nome `[0]`"""
+        - Possível de utilizar index no fim do nome `[0]`
+        - Operador `/`"""
         index: int | None = None
         if -1 not in (l := nome.find("["), r := nome.find("]", l)):
             index = int(nome[l + 1 : r])
@@ -363,7 +365,8 @@ class ElementoW32:
 
     def __floordiv__ (self, nome: str) -> typing.Self:
         """Obter elemento descendente visível e ativo
-        - Possível de utilizar index no fim do nome `[0]`"""
+        - Possível de utilizar index no fim do nome `[0]`
+        - Operador `//`"""
         index: int | None = None
         if -1 not in (l := nome.find("["), r := nome.find("]", l)):
             index = int(nome[l + 1 : r])
@@ -391,7 +394,8 @@ class ElementoW32:
             raise IndexError(f"Elemento descendente {nome=} não encontrado no {index=}")
 
     def __gt__ (self, nome: str) -> list[typing.Self]:
-        """Obter elementos filhos visível e ativo"""
+        """Obter elementos filhos visível e ativo
+        - Operador `>`"""
         return self.janela.ordernar_elementos_coordenada(
             self.aguardar().filhos(
                 lambda e:
@@ -405,7 +409,8 @@ class ElementoW32:
         )
 
     def __rshift__ (self, nome: str) -> list[typing.Self]:
-        """Obter elementos descendentes visível e ativo"""
+        """Obter elementos descendentes visível e ativo
+        - Operador `>>`"""
         return self.janela.ordernar_elementos_coordenada(
             self.aguardar().descendentes(
                 lambda e:
@@ -419,13 +424,25 @@ class ElementoW32:
         )
 
     def __lshift__ (self, profundidade: int) -> typing.Self:
-        """Obter o elemento parente subindo a `profundidade`"""
+        """Obter o elemento parente subindo a `profundidade`
+        - Operador `<<`"""
         assert profundidade >= 1
         assert profundidade <= self.profundidade, f"Profundidade desejada '{profundidade}' maior que o nível atual '{self.profundidade}'"
 
         elemento = self
         while profundidade > 0:
             profundidade -= 1
+            elemento = elemento.parente
+        return elemento # type: ignore
+
+    def __xor__ (self, profundidade: int) -> typing.Self:
+        """Obter o elemento parente subindo até a `profundidade`
+        - Operador `^`"""
+        assert profundidade >= 0, f"Profundidade desejada '{profundidade}' inválida"
+        assert profundidade <= self.profundidade, f"Profundidade desejada '{profundidade}' maior que a atual '{self.profundidade}'"
+
+        elemento = self
+        while elemento.profundidade != profundidade:
             elemento = elemento.parente
         return elemento # type: ignore
 
@@ -633,6 +650,11 @@ class ElementoW32:
         win32gui.SendMessage(self.hwnd, win32con.WM_KEYDOWN, win32con.VK_TAB, 0)
         win32gui.SendMessage(self.hwnd, win32con.WM_KEYUP, win32con.VK_TAB, 0)
         return self.sleep(0.01).aguardar()
+
+    def __or__ (self, texto: str) -> typing.Self:
+        """Realizar o `input(texto)` com o `tab()`
+        - Operador `|`"""
+        return self.input(texto).tab()
 
     def enter (self) -> typing.Self:
         """Simular um `ENTER` para notificar o elemento"""
@@ -1155,7 +1177,8 @@ class JanelaW32:
     # Acessores Janela/Elemento, visível e ativo, ordenando pela posição Y e X
     elemento[0]                 # Obter elemento via `index`
     elemento[0, -1]             # Obter elementos via `index`
-    elemento << 2               # Subir para o parente do elemento de acordo com a profundidade
+    elemento ^  2               # Subir para o parente do elemento até uma determinada profundidade
+    elemento << 2               # Subir para o parente do elemento n vezes
     janela / "OK"               # Obter elemento filho via `class_name` ou `texto`
     janela // "OK"              # Obter elemento descendente via `class_name` ou `texto`
     janela > "TPanel"           # Obter elementos filhos via `class_name` ou `texto`
@@ -1696,7 +1719,8 @@ class JanelaUIA (JanelaW32):
     # Acessores Janela/Elemento, visível e ativo, ordenando pela posição Y e X
     elemento[0]                 # Obter elemento via `index`
     elemento[0, -1]             # Obter elementos via `index`
-    elemento << 2               # Subir para o parente do elemento de acordo com a profundidade
+    elemento ^  2               # Subir para o parente do elemento até uma determinada profundidade
+    elemento << 2               # Subir para o parente do elemento n vezes
     janela / "OK"               # Obter elemento filho via `class_name` ou `texto`
     janela // "OK"              # Obter elemento descendente via `class_name` ou `texto`
     janela > "TPanel"           # Obter elementos filhos via `class_name` ou `texto`
