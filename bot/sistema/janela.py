@@ -648,26 +648,27 @@ class ElementoW32:
         return self.sleep(0.01).aguardar()
 
     def tab (self) -> typing.Self:
-        """Simular um `TAB` para notificar o elemento"""
+        """Simular um `TAB` para notificar o elemento
+        - Foca no parente para simular perda de foco no elemento"""
         win32gui.SendMessage(self.hwnd, win32con.WM_KEYDOWN, win32con.VK_TAB, 0)
         win32gui.SendMessage(self.hwnd, win32con.WM_KEYUP, win32con.VK_TAB, 0)
-        return self.sleep(0.01).aguardar()
-
-    def __or__ (self, texto: str) -> typing.Self:
-        """Realizar o `input(texto)` com o `tab()` e focar no parente
-        - Operador `|`"""
-        self.input(texto).tab()
         if self.profundidade >= 1:
             parente = self.parente
-            try: win32gui.SetForegroundWindow(parente.hwnd)
+            try: win32gui.SetForegroundWindow(self.parente.hwnd)
             except Exception: pass
             parente.aguardar()
-        return self
+        return self.sleep(0.01).aguardar()
 
     def enter (self) -> typing.Self:
-        """Simular um `ENTER` para notificar o elemento"""
+        """Simular um `ENTER` para notificar o elemento
+        - Foca no parente para simular perda de foco no elemento"""
         win32gui.SendMessage(self.hwnd, win32con.WM_KEYDOWN, win32con.VK_RETURN, 0)
         win32gui.SendMessage(self.hwnd, win32con.WM_KEYUP, win32con.VK_RETURN, 0)
+        if self.profundidade >= 1:
+            parente = self.parente
+            try: win32gui.SetForegroundWindow(self.parente.hwnd)
+            except Exception: pass
+            parente.aguardar()
         return self.sleep(0.01).aguardar()
 
     def limpar (self) -> typing.Self:
