@@ -760,6 +760,29 @@ class ElementoW32:
                 posicao[1] + c.y
             )
 
+    def abrir_abas (self, *nomes: str) -> typing.Self:
+        """Abrir as abas `*nome` e retornar o elemento
+        - Procurado por elementos `aba` e `item_aba`"""
+        assert nomes, "Pelo menos 1 nome é necessário para abrir as abas do elemento"
+
+        elemento = self.to_uia()
+        for nome in nomes:
+            normalizado = String(nome).normalizar()
+            aba = elemento.aguardar().encontrar(
+                lambda e: normalizado == String(e.texto).normalizar() and e.tipo.item_aba,
+                aguardar = 1,
+                msg_erro = f"Aba Nome={nome!r} não foi encontrada no Caminho{nomes!r}"
+            )
+            if s := aba.pattern.item_selecionavel: s.Select()
+            else: aba.clicar()
+            elemento = aba.parente
+
+        if painel := elemento.filhos(lambda e: nomes[-1] in String(e.texto) and not e.tipo.item_aba):
+            return painel[0] # type: ignore
+        if not elemento.tipo.aba:
+            raise Exception(f"Abas abertas {nomes} com sucesso, porém o elemento final não foi encontrado")
+        return elemento # type: ignore
+
     def print_arvore (self) -> None:
         """Realizar o `print()` da árvore de elementos"""
         def print_nivel (elemento: ElementoW32, prefixo: str) -> None:
@@ -1122,28 +1145,6 @@ class ElementoUIA (ElementoW32):
         expansivel.Collapse()
         self.aguardar()
 
-    def abrir_abas (self, *nomes: str) -> ElementoUIA:
-        """Abrir as abas `*nome` e retornar o elemento
-        - Procurado por elementos `aba` e `item_aba`"""
-        assert nomes, "Pelo menos 1 nome é necessário para abrir as abas do elemento"
-
-        elemento = self
-        for nome in nomes:
-            aba = elemento.aguardar().encontrar(
-                lambda e: nome in String(e.texto) and e.tipo.item_aba,
-                aguardar = 1,
-                msg_erro = f"Falha ao abrir as abas{nomes}. Aba {nome!r} não encontrada"
-            )
-            if s := aba.pattern.item_selecionavel: s.Select()
-            else: aba.clicar()
-            elemento = aba.parente
-
-        if painel := elemento.filhos(lambda e: nomes[-1] in String(e.texto) and not e.tipo.item_aba):
-            return painel[0]
-        if not elemento.tipo.aba:
-            raise Exception(f"Abas abertas {nomes} com sucesso, porém o elemento final não foi encontrado")
-        return elemento
-
 class JanelaW32:
     """Classe para manipulação de janelas e elementos para o backend Win32
 
@@ -1204,11 +1205,12 @@ class JanelaW32:
     janela.maximizar()
     janela.restaurar()
     janela.minimizar()
-    janela.focar()              # Trazer a janela para primeiro plano
-    janela.aguardar()           # Aguarda `timeout` segundos até que a thread da GUI fique ociosa
-    janela.sleep()              # Aguardar por `segundos` até continuar a execução
-    janela.janelas_processo()   # Janelas do mesmo processo da `janela`
-    janela.print_arvore()       # Realizar o `print()` da árvore de elementos da janela e das janelas do processo
+    janela.focar()                         # Trazer a janela para primeiro plano
+    janela.aguardar()                      # Aguarda `timeout` segundos até que a thread da GUI fique ociosa
+    janela.sleep()                         # Aguardar por `segundos` até continuar a execução
+    janela.janelas_processo()              # Janelas do mesmo processo da `janela`
+    janela.print_arvore()                  # Realizar o `print()` da árvore de elementos da janela e das janelas do processo
+    janela.abrir_menu("Arquivo", "Salvar") # Abrir as opções de menu informadas
     ```
 
     ### Métodos acessores
@@ -1644,6 +1646,48 @@ class JanelaW32:
         """Obter uma instância da `JanelaW32` como `JanelaUIA`"""
         return JanelaUIA.FromHWND(self.hwnd)
 
+    def abrir_menu (self, *caminho: str) -> typing.Self:
+        """Abrir as opções de menu informadas procurado por elementos `barra_menu` e `item_barra_menu`
+        - Combinar com o operador `@` para procurar uma janela interna que abre
+        - Utilizar a versão da `JanelaUIA` caso a `JanelaW32` não funcione"""
+        assert caminho, "Necessário informar pelo menos uma opção para abrir menu"
+
+        raiz = self.elemento.to_uia().focar()
+
+        # Fechar o Menu caso já esteja aberto
+        try:
+            menu, *_ = raiz.filhos(
+                lambda e: e.profundidade == 1
+                          and e.visivel and e.ativo
+                          and String(caminho[0]).normalizar() == String(e.texto).normalizar()
+                          and e.tipo.barra_menu
+            )
+            if e := menu.pattern.expansivel:
+                e.Collapse()
+                raiz.aguardar()
+            else: raiz.clicar_mouse(yOffset=0.01)
+        except Exception: pass
+
+        # Remover o mouse do elemento para não interferir
+        bot.mouse.mover(raiz.coordenada.topo())
+
+        for nome in caminho:
+            normalizado = String(nome).normalizar()
+            elemento = raiz.encontrar(
+                lambda e: e.profundidade == 2
+                          and e.visivel and e.ativo
+                          and normalizado == String(e.texto).normalizar()
+                          and (e.tipo.barra_menu or e.tipo.item_barra_menu),
+                aguardar = 1,
+                msg_erro = f"Opção de menu Nome={nome!r} não foi encontrada no Caminho{caminho!r}"
+            )
+
+            if e := elemento.pattern.expansivel: e.Expand()
+            else: elemento.clicar(focar=False)
+            raiz.aguardar()
+
+        return self
+
     @staticmethod
     def titulos_janelas_visiveis () -> set[str]:
         encontrados = set()
@@ -1754,14 +1798,12 @@ class JanelaUIA (JanelaW32):
     janela.maximizar()
     janela.restaurar()
     janela.minimizar()
-    janela.focar()              # Trazer a janela para primeiro plano
-    janela.aguardar()           # Aguarda `timeout` segundos até que a thread da GUI fique ociosa
-    janela.sleep()              # Aguardar por `segundos` até continuar a execução
-    janela.janelas_processo()   # Janelas do mesmo processo da `janela`
-    janela.print_arvore()       # Realizar o `print()` da árvore de elementos da janela e das janelas do processo
-
-    # Específico UIA
-    janela.menu("Arquivo", "Salvar") # Selecionar as `opções` nos menus
+    janela.focar()                         # Trazer a janela para primeiro plano
+    janela.aguardar()                      # Aguarda `timeout` segundos até que a thread da GUI fique ociosa
+    janela.sleep()                         # Aguardar por `segundos` até continuar a execução
+    janela.janelas_processo()              # Janelas do mesmo processo da `janela`
+    janela.print_arvore()                  # Realizar o `print()` da árvore de elementos da janela e das janelas do processo
+    janela.abrir_menu("Arquivo", "Salvar") # Abrir as opções de menu informadas
     ```
 
     ### Métodos acessores
@@ -1837,9 +1879,7 @@ class JanelaUIA (JanelaW32):
         else: super().minimizar()
         return self
 
-    def menu (self, *opcoes: str) -> typing.Self:
-        """Selecionar as `opções` nos menus
-        - Procurado por elementos `barra_menu` com `item_barra_menu`"""
+    def abrir_menu (self, *caminho: str) -> typing.Self:
         self.focar()
         barras_menu_usadas = set[ElementoUIA]()
 
@@ -1860,7 +1900,7 @@ class JanelaUIA (JanelaW32):
         # mover o mouse para o topo para não interferir
         bot.mouse.mover(self.coordenada.topo())
 
-        for opcao in map(str.lower, opcoes):
+        for opcao in map(str.lower, caminho):
             opcao_encontrada = False
             self.sleep(0.1).aguardar()
 
