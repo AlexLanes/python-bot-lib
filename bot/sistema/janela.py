@@ -34,7 +34,9 @@ class Dialogo:
         self.texto = "; ".join(
             texto
             for elemento in self.elemento.descendentes(aguardar=0.5)
-            if (texto := elemento.texto) and not elemento.tipo.botao
+            if (texto := elemento.texto)
+               and not elemento.tipo.botao
+               and not elemento.tipo.imagem
         )
 
     def __repr__ (self) -> str:
@@ -652,9 +654,15 @@ class ElementoW32:
         return self.sleep(0.01).aguardar()
 
     def __or__ (self, texto: str) -> typing.Self:
-        """Realizar o `input(texto)` com o `tab()`
+        """Realizar o `input(texto)` com o `tab()` e focar no parente
         - Operador `|`"""
-        return self.input(texto).tab()
+        self.input(texto).tab()
+        if self.profundidade >= 1:
+            parente = self.parente
+            try: win32gui.SetForegroundWindow(parente.hwnd)
+            except Exception: pass
+            parente.aguardar()
+        return self
 
     def enter (self) -> typing.Self:
         """Simular um `ENTER` para notificar o elemento"""
@@ -786,6 +794,11 @@ class TiposUIA:
         """Nome localizado do tipo do elemento"""
         try: return str(self.e.uiaelement.CurrentLocalizedControlType or "")
         except Exception: return ""
+
+    @property
+    def imagem (self) -> bool:
+        """Checar se o elemento é uma imagem"""
+        return self.e.uiaelement.CurrentControlType == uiaclient.UIA_ImageControlTypeId
 
     @property
     def botao (self) -> bool:
