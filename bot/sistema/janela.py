@@ -279,6 +279,86 @@ class ListControl:
                 if multiplo: selecionavel.AddToSelection()
                 else: selecionavel.Select()
 
+class ComboBox:
+
+    elemento: ElementoUIA
+
+    def __init__ (self, elemento: ElementoW32) -> None:
+        self.elemento = elemento.to_uia()
+
+    @property
+    def itens (self) -> list[ElementoUIA]:
+        elementos = self.elemento.descendentes(lambda e: e.ativo and e.tipo.item_lista)
+        if not elementos: 
+            elementos = self.expandir().elemento.descendentes(lambda e: e.ativo and e.tipo.item_lista)
+        return elementos
+
+    @property
+    def opcoes (self) -> list[str]:
+        """Opções do `ComboBox`"""
+        return [
+            item.texto or item.valor
+            for item in self.itens
+        ]
+
+    @property
+    def selecionado (self) -> str:
+        """Valor selecionado
+        - `""` caso vazio"""
+        if valor := self.elemento.valor:
+            return valor
+
+        profundidade = self.elemento.profundidade + 1
+        return self.elemento.encontrar(
+            lambda e: e.ativo and e.profundidade == profundidade and e.pattern.valor is not None,
+            aguardar = 1,
+            msg_erro = "Nenhum elemento encontrado que informe o valor selecionado da ComboBox"
+        ).valor
+
+    def expandir (self) -> typing.Self:
+        """Expandir a ComboBox"""
+        pattern = self.elemento.pattern.expansivel
+        assert pattern is not None, "Elemento não é expansível"
+        if pattern.CurrentExpandCollapseState == 0:
+            pattern.Expand()
+            self.elemento.sleep(0.1).aguardar()
+        return self
+
+    def recolher (self) -> typing.Self:
+        """Recolher a ComboBox"""
+        pattern = self.elemento.pattern.expansivel
+        assert pattern is not None, "Elemento não é expansível"
+        if pattern.CurrentExpandCollapseState == 1:
+            pattern.Collapse()
+            self.elemento.sleep(0.1).aguardar()
+        return self
+
+    def selecionar (self, opcao: str | typing.Callable[[str], bool]) -> typing.Self:
+        """Selecionar a `opção` informada
+        - Comparado com a versão normalizada exata dos textos
+        - Pode ser informado um função para comparação"""
+        filtro = opcao if callable(opcao) else (
+            lambda o: String(opcao).normalizar() == String(o).normalizar()
+        )
+
+        if filtro(self.selecionado):
+            return self
+
+        for item in self.expandir().itens:
+            if not filtro(item.texto or item.valor):
+                continue
+
+            pattern = item.pattern
+            if selecionavel := pattern.item_selecionavel:
+                selecionavel.Select()
+            elif invocavel := pattern.invocavel:
+                invocavel.Invoke()
+            else: raise AssertionError(f"Opção encontrada {item.texto!r} no ComboBox porém não encontrado forma de selecionar")
+
+            return self.recolher()
+
+        raise Exception("Nenhum opção encontrada para selecionar no ComboBox")
+
 class ElementoW32:
     """Elemento para o backend Win32"""
 
@@ -494,27 +574,34 @@ class ElementoW32:
 
     @property
     def checkbox (self) -> CheckBox:
-        """Obter a interface de uma `CheckBox`
+        """Obter o controle de uma `CheckBox`
         - Elemento pode não aceitar"""
         return CheckBox(self)
 
     @property
     def groupbox (self) -> GroupBox:
-        """Obter a interface de um grupo de `CheckBox`
+        """Obter o controle de um grupo de `CheckBox`
         - Elemento deve possui filhos `CheckBox`
         - Elemento pode não aceitar"""
         return GroupBox(self)
 
     @property
+    def combobox (self) -> ComboBox:
+        """Obter o controle de uma `ComboBox`
+        - Elemento deve ser `expansível` e possuir `ListItem`
+        - Elemento pode não aceitar"""
+        return ComboBox(self)
+
+    @property
     def radiogroup (self) -> RadioGroup:
-        """Obter a interface de um grupo de `RadioButton`
+        """Obter o controle de um grupo de `RadioButton`
         - Elemento deve possui filhos `RadioButton`
         - Elemento pode não aceitar"""
         return RadioGroup(self)
 
     @property
     def listcontrol (self) -> ListControl:
-        """Obter a interface de uma `List`
+        """Obter o controle de uma `List`
         - Elemento deve possui filhos `ListItem`
         - Elemento pode não aceitar"""
         return ListControl(self)
@@ -1123,28 +1210,6 @@ class ElementoUIA (ElementoW32):
 
         return super().limpar()
 
-    def selecionar (self, texto: str) -> None:
-        """Selecionar a opção que possua o `texto`
-        - Elemento deve ser `expansivel` e conter `item_selecionavel`"""
-        texto = texto.lower()
-        expansivel = self.pattern.expansivel
-        assert expansivel, f"Elemento não é expansível {self}"
-
-        self.focar()
-        expansivel.Expand()
-        self.aguardar()
-
-        (
-            self.encontrar(lambda e: texto in e.texto.lower() and
-                                     e.pattern.item_selecionavel is not None)
-            .pattern
-            .item_selecionavel
-            .Select() # type: ignore
-        )
-
-        expansivel.Collapse()
-        self.aguardar()
-
 class JanelaW32:
     """Classe para manipulação de janelas e elementos para o backend Win32
 
@@ -1188,6 +1253,14 @@ class JanelaW32:
     elemento.clicar("left")     # Clicar com o `botão` no centro do elemento
     elemento.input("texto")     # Substituir o texto do elemento pelo `texto`
     ...
+
+    # Controles especializados de acordo com o tipo do elemento
+    elemento.checkbox
+    elemento.groupbox
+    elemento.combobox
+    elemento.radiogroup
+    elemento.listcontrol
+
     # Acessores Janela/Elemento, visível e ativo, ordenando pela posição Y e X
     elemento[0]                 # Obter elemento via `index`
     elemento[0, -1]             # Obter elementos via `index`
@@ -1773,6 +1846,14 @@ class JanelaUIA (JanelaW32):
     elemento.clicar("left")     # Clicar com o `botão` no centro do elemento
     elemento.input("texto")     # Substituir o texto do elemento pelo `texto`
     ...
+
+    # Controles especializados de acordo com o tipo do elemento
+    elemento.checkbox
+    elemento.groupbox
+    elemento.combobox
+    elemento.radiogroup
+    elemento.listcontrol
+
     # Acessores Janela/Elemento, visível e ativo, ordenando pela posição Y e X
     elemento[0]                 # Obter elemento via `index`
     elemento[0, -1]             # Obter elementos via `index`

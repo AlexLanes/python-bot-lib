@@ -23,6 +23,7 @@ Utilizar o caminho para o arquivo **whl** baixado `bot @ file://.../bot-7.2-py3-
 - Adicionado `@overload` no filtro da `JanelaW32` para buscar via nome
 - Alterado `JanelaW32.janela_processo()` pelo operador `@` na `JanelaW32` e `ElementoW32` para buscar via nome
 - Renomeado `JanelaUIA.menu()` para `.abrir_menu()` e adicionado versão no `JanelaW32`
+- Refatorado `JanelaUIA.selecionar()` para controle no `ElementoW32.combobox()`
 
 </details>
 <details>
