@@ -1673,7 +1673,7 @@ class JanelaW32:
 
         for nome in caminho:
             normalizado = String(nome).normalizar()
-            elemento = raiz.encontrar(
+            elemento = raiz.sleep(0.1).encontrar(
                 lambda e: e.profundidade == 2
                           and e.visivel and e.ativo
                           and normalizado == String(e.texto).normalizar()
