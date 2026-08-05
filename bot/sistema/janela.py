@@ -653,7 +653,7 @@ class ElementoW32:
         win32gui.SendMessage(self.hwnd, win32con.WM_KEYUP, win32con.VK_TAB, 0)
         if self.profundidade >= 1:
             parente = self.parente
-            try: win32gui.SetForegroundWindow(self.parente.hwnd)
+            try: win32gui.SetForegroundWindow(parente.hwnd)
             except Exception: pass
             parente.aguardar()
         return self.sleep(0.01).aguardar()
