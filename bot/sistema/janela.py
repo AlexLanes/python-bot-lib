@@ -374,7 +374,7 @@ class ElementoW32:
         self.profundidade = profundidade
 
     def __repr__ (self) -> str:
-        return f"<{type(self).__name__} hwnd='{self.hwnd}' texto='{self.texto}' class_name='{self.class_name}' profundidade='{self.profundidade}'>"
+        return f'<{type(self).__name__} {self.class_name!r} "{self.texto}" {self.profundidade}:{int(self.ativo)}:{int(self.visivel)}>'
 
     def __eq__ (self, value: object) -> bool:
         return isinstance(value, type(self)) and all(
@@ -872,13 +872,12 @@ class ElementoW32:
 
     def print_arvore (self) -> None:
         """Realizar o `print()` da árvore de elementos"""
-        def print_nivel (elemento: ElementoW32, prefixo: str) -> None:
-            prefixo += "|   " if elemento.profundidade > self.profundidade else ""
-            print(prefixo, elemento, sep="")
-            for filho in elemento.filhos(lambda e: True):
-                print_nivel(filho, prefixo)
+        def print_nivel (elemento: ElementoW32, *niveis: str) -> None:
+            print(*niveis, elemento, sep="")
+            for filho in elemento.filhos(lambda _: True):
+                print_nivel(filho, *niveis, "|   ")
 
-        print_nivel(self, "")
+        print_nivel(self)
 
     def to_uia (self) -> ElementoUIA:
         """Criar um instância do `ElementoW32` como `ElementoUIA`"""
@@ -1709,11 +1708,15 @@ class JanelaW32:
         if dialogo := self.aguardar().dialogo(aguardar=aguardar):
             raise AssertionError(f"Diálogo inesperado: '{dialogo.texto}'")
 
-    def print_arvore (self) -> None:
-        """Realizar o `print()` da árvore de elementos da janela e das janelas do processo"""
-        for janela in (self, *self.janelas_processo(lambda j: True)):
-            janela.elemento.print_arvore()
+    def print_arvore (self, processos: bool = False) -> None:
+        """Realizar o `print()` da árvore de elementos da janela
+        - `<class_name 'texto' profundidade:ativo:visivel>`
+        - `processos=True` incluir as árvores de elementos das janelas do processo"""
+        self.elemento.print_arvore()
+        if not processos: return
+        for janela in self.janelas_processo(lambda _: True):
             print()
+            janela.elemento.print_arvore()
 
     def to_uia (self) -> JanelaUIA:
         """Obter uma instância da `JanelaW32` como `JanelaUIA`"""
