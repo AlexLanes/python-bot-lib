@@ -1710,7 +1710,7 @@ class JanelaW32:
 
     def print_arvore (self, processos: bool = False) -> None:
         """Realizar o `print()` da árvore de elementos da janela
-        - `<class_name 'texto' profundidade:ativo:visivel>`
+        - `<Elemento 'class_name' "texto" profundidade:ativo:visivel>`
         - `processos=True` incluir as árvores de elementos das janelas do processo"""
         self.elemento.print_arvore()
         if not processos: return
