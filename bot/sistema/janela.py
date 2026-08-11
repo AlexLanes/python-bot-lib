@@ -1025,6 +1025,13 @@ class PatternsUIA:
         - `None` caso o elemento não seja um item invocável"""
         return self.query(uiaclient.UIA_WindowPatternId, uiaclient.IUIAutomationWindowPattern)
 
+    @property
+    def scroll (self) -> uiaclient.IUIAutomationScrollPattern | None:
+        """Obter a interface para realizar scroll
+        - `SetScrollPercent(-1, 0)` para subir ao topo
+        - `None` caso o elemento não suporte scroll"""
+        return self.query(uiaclient.UIA_ScrollPatternId, uiaclient.IUIAutomationScrollPattern)
+
     def query[T] (self, pattern_id: int, interface: type[T]) -> T | None:
         """Obter o `pattern_id` do `uiaelement` e realizar a query da `interface`
         - `None` caso o `uiaelement` não esteja de acordo com a `interface`"""
