@@ -423,15 +423,19 @@ class ElementoW32:
             index = int(nome[l + 1 : r])
             nome = nome[0 : l]
 
-        elementos = self.janela.ordernar_elementos_coordenada(
-            self.aguardar().filhos(
-                lambda e:
-                    e.visivel and e.ativo
-                    and (
-                        nome in String(e.class_name)
-                        or nome in String(e.texto)
-                    ),
+        elementos = self.janela.aguardar().ordernar_elementos_coordenada(
+            self.filhos(
+                lambda e: e.visivel
+                            and e.ativo
+                            and nome.lower() in (e.class_name.lower(), e.texto.lower()),
                 aguardar = 1
+            )
+            or
+            self.filhos(
+                lambda e: e.visivel and e.ativo and (
+                    nome in String(e.class_name)
+                    or nome in String(e.texto)
+                )
             )
         )
 
@@ -453,15 +457,19 @@ class ElementoW32:
             index = int(nome[l + 1 : r])
             nome = nome[0 : l]
 
-        elementos = self.janela.ordernar_elementos_coordenada(
-            self.aguardar().descendentes(
-                lambda e:
-                    e.visivel and e.ativo
-                    and (
-                        nome in String(e.class_name)
-                        or nome in String(e.texto)
-                    ),
+        elementos = self.janela.aguardar().ordernar_elementos_coordenada(
+            self.descendentes(
+                lambda e: e.visivel
+                            and e.ativo
+                            and nome.lower() in (e.class_name.lower(), e.texto.lower()),
                 aguardar = 1
+            )
+            or
+            self.descendentes(
+                lambda e: e.visivel and e.ativo and (
+                    nome in String(e.class_name)
+                    or nome in String(e.texto)
+                )
             )
         )
 
@@ -477,30 +485,38 @@ class ElementoW32:
     def __gt__ (self, nome: str) -> list[typing.Self]:
         """Obter elementos filhos visível e ativo
         - Operador `>`"""
-        return self.janela.ordernar_elementos_coordenada(
-            self.aguardar().filhos(
-                lambda e:
-                    e.visivel and e.ativo
-                    and (
-                        nome in String(e.class_name)
-                        or nome in String(e.texto)
-                    ),
+        return self.janela.aguardar().ordernar_elementos_coordenada(
+            self.filhos(
+                lambda e: e.visivel
+                            and e.ativo
+                            and nome.lower() in (e.class_name.lower(), e.texto.lower()),
                 aguardar = 1
+            )
+            or
+            self.filhos(
+                lambda e: e.visivel and e.ativo and (
+                    nome in String(e.class_name)
+                    or nome in String(e.texto)
+                )
             )
         )
 
     def __rshift__ (self, nome: str) -> list[typing.Self]:
         """Obter elementos descendentes visível e ativo
         - Operador `>>`"""
-        return self.janela.ordernar_elementos_coordenada(
-            self.aguardar().descendentes(
-                lambda e:
-                    e.visivel and e.ativo
-                    and (
-                        nome in String(e.class_name)
-                        or nome in String(e.texto)
-                    ),
+        return self.janela.aguardar().ordernar_elementos_coordenada(
+            self.descendentes(
+                lambda e: e.visivel
+                            and e.ativo
+                            and nome.lower() in (e.class_name.lower(), e.texto.lower()),
                 aguardar = 1
+            )
+            or
+            self.descendentes(
+                lambda e: e.visivel and e.ativo and (
+                    nome in String(e.class_name)
+                    or nome in String(e.texto)
+                )
             )
         )
 
@@ -793,7 +809,7 @@ class ElementoW32:
         """Apertar e soltar a `tecla` `n` vezes
         - `focar` indicador se dever ser feito o foco no elemento"""
         if focar: self.focar()
-        for _ in range(max(n, 1)):
+        for _ in range(max(n, 0)):
             bot.teclado.apertar(tecla)
             self.aguardar()
         return self.sleep(0.01).aguardar()
@@ -1692,7 +1708,7 @@ class JanelaW32:
 
         return "; ".join(elemento.texto for elemento in elementos)
 
-    def capturar_dialogos (self, callback_tratamento: typing.Callable[[Dialogo], None] | None = None,
+    def capturar_dialogos (self, callback_tratamento: typing.Callable[[Dialogo], typing.Any] | None = None,
                                  aguardar: int | float = 0.5) -> None:
         """Realizar a captura de diálogo(s) na janela e aplicar o `callback_tratamento` para realizar alguma ação no diálogo
         - `AssertionError` caso algum diálogo continue aparecendo após o tratamento"""
