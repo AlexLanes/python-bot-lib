@@ -19,8 +19,8 @@ class Mouse:
     """Classe de controle do mouse
     - Alterar constantes `DELAY_...` para modificar tempo de espera após ação"""
 
-    DELAY_CLICK = 0.1
-    DELAY_MOVER = 0.1
+    DELAY_CLICK  = 0.05
+    DELAY_MOVER  = 0.05
     DELAY_SCROLL = 0.05
     DELAY_MOVER_RELATIVO = 0.001
 

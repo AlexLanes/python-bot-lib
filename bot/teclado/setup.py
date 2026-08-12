@@ -10,16 +10,14 @@ class Teclado:
     """Classe de controle do teclado
     - Alterar constantes `DELAY_...` para modificar tempo de espera após ação"""
 
-    DELAY_APERTAR    = 0.1
-    DELAY_DIGITAR    = 0.02
-    DELAY_ATALHO     = 0.05
-    DELAY_PRESSIONAR = 0.05
+    DELAY_APERTAR = DELAY_DIGITAR = 0.02
+    DELAY_ATALHO = DELAY_PRESSIONAR = 0.05
 
     def __repr__ (self) -> str:
         return "<bot.Teclado>"
 
-    def apertar (self, *teclas: BOTOES_TECLADO | char) -> Self:
-        """Pressionar e soltar as `teclas` uma vez"""
+    def teclar (self, *teclas: BOTOES_TECLADO | char) -> Self:
+        """Apertar e soltar as `teclas` uma vez"""
         try:
             for tecla in teclas:
                 unicode, codigos = traduzir_tecla(tecla)
