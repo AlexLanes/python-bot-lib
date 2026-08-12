@@ -359,6 +359,72 @@ class ComboBox:
 
         raise Exception("Nenhum opção encontrada para selecionar no ComboBox")
 
+class Scroll:
+
+    elemento: ElementoUIA
+
+    def __init__ (self, elemento: ElementoW32) -> None:
+        self.elemento = elemento.to_uia()
+
+    @functools.cached_property
+    def pattern (self) -> uiaclient.IUIAutomationScrollPattern:
+        pattern = self.elemento.pattern.scroll
+        assert pattern is not None, f"O {self.elemento!r} não suporta o pattern de Scroll"
+        return pattern
+
+    @property
+    def suporta_scroll (self) -> bool:
+        """Checar se o elemento suporta scroll"""
+        pattern = self.elemento.pattern.scroll
+        return pattern is not None and bool(pattern.CurrentVerticallyScrollable)
+
+    @property
+    def porcentagem (self) -> float:
+        """Checar a porcentagem da barra scroll no elemento
+        - `0: min` `100: max`"""
+        return float(self.pattern.CurrentVerticalScrollPercent)
+
+    def aguardar (self) -> typing.Self:
+        self.elemento.sleep(0.05).aguardar()
+        return self
+
+    def topo (self) -> typing.Self:
+        "Realizar o scroll para o topo"
+        return self.set_scroll(0.0)
+
+    def fim (self) -> typing.Self:
+        "Realizar o scroll para o fim"
+        return self.set_scroll(100.0)
+
+    def subir (self, n: int = 1) -> bool:
+        """Subir `n` vezes
+        - Retorna um indicador se chegou ao topo"""
+        assert n >= 1
+
+        for _ in range(n):
+            self.pattern.Scroll(uiaclient.ScrollAmount_NoAmount, uiaclient.ScrollAmount_SmallDecrement)
+            self.aguardar()
+
+        return self.porcentagem == 0
+
+    def descer (self, n: int = 1) -> bool:
+        """Descer `n` vezes
+        - Retorna um indicador se chegou ao fim"""
+        assert n >= 1
+
+        for _ in range(n):
+            self.pattern.Scroll(uiaclient.ScrollAmount_NoAmount, uiaclient.ScrollAmount_SmallIncrement)
+            self.aguardar()
+
+        return self.porcentagem == 100
+
+    def set_scroll (self, porcentagem: float) -> typing.Self:
+        """Setar a `porcentagem` da barra scroll no elemento
+        - `0: min` `100: max`"""
+        assert 0 <= porcentagem <= 100
+        self.pattern.SetScrollPercent(uiaclient.ScrollAmount_NoAmount, porcentagem)
+        return self.aguardar()
+
 class ElementoW32:
     """Elemento para o backend Win32"""
 
@@ -622,6 +688,13 @@ class ElementoW32:
         - Elemento pode não aceitar"""
         return ListControl(self)
 
+    @property
+    def scroll (self) -> Scroll:
+        """Obter o controle de um `Scroll`
+        - Elemento deve suportar `UIA_ScrollPattern`
+        - Elemento pode não aceitar, usar `scroll.suporta_scroll` para checar"""
+        return Scroll(self)
+
     def filhos[T: ElementoW32] (self: T, filtro: typing.Callable[[T], bot.tipagem.SupportsBool] | None = None,
                                          aguardar: int | float = 0) -> list[T]:
         """Elementos filhos imediatos
@@ -799,7 +872,7 @@ class ElementoW32:
         - `focar` indicador se dever ser feito o foco no elemento"""
         if focar: self.focar()
         for tecla in teclas:
-            bot.teclado.apertar(tecla)
+            bot.teclado.teclar(tecla)
             self.aguardar()
         return self.sleep(0.01).aguardar()
 
@@ -810,7 +883,7 @@ class ElementoW32:
         - `focar` indicador se dever ser feito o foco no elemento"""
         if focar: self.focar()
         for _ in range(max(n, 0)):
-            bot.teclado.apertar(tecla)
+            bot.teclado.teclar(tecla)
             self.aguardar()
         return self.sleep(0.01).aguardar()
 
@@ -829,15 +902,19 @@ class ElementoW32:
         bot.teclado.atalho(*teclas)
         return self.sleep(0.01).aguardar()
 
-    def scroll (self, quantidade: int = 1,
-                      direcao: bot.tipagem.DIRECOES_SCROLL = "baixo",
-                      focar: bool = True) -> typing.Self:
-        """Realizar scroll no elemento `quantidade` vezes na `direção`
-        - `focar` indicador se dever ser feito o foco no elemento"""
+    def scroll_mouse (self, quantidade: int = 1,
+                            direcao: bot.tipagem.DIRECOES_SCROLL = "baixo",
+                            focar: bool = True,
+                            xOffset = 0.5,
+                            yOffset = 0.5) -> typing.Self:
+        """Realizar scroll vertical com o mouse no elemento `quantidade` vezes na `direção`
+        - `focar` indicador se dever ser feito o foco no elemento
+        - `xOffset` `yOffset` usado para transformar a posição `Default: Centro`"""
         assert quantidade >= 1, "Quantidade de scrolls deve ser pelo menos 1"
 
         if focar: self.focar()
-        bot.mouse.mover(self.coordenada)
+        bot.mouse.mover(self.coordenada.transformar(xOffset, yOffset))
+
         for _ in range(quantidade):
             bot.mouse.scroll_vertical(direcao=direcao)
             self.aguardar()
@@ -1282,6 +1359,7 @@ class JanelaW32:
     elemento.combobox
     elemento.radiogroup
     elemento.listcontrol
+    elemento.scroll
 
     # Acessores Janela/Elemento, visível e ativo, ordenando pela posição Y e X
     elemento[0]                 # Obter elemento via `index`
@@ -1879,6 +1957,7 @@ class JanelaUIA (JanelaW32):
     elemento.combobox
     elemento.radiogroup
     elemento.listcontrol
+    elemento.scroll
 
     # Acessores Janela/Elemento, visível e ativo, ordenando pela posição Y e X
     elemento[0]                 # Obter elemento via `index`
