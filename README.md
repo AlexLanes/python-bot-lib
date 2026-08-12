@@ -15,6 +15,16 @@ Utilizar o caminho para o arquivo **whl** baixado `bot @ file://.../bot-7.2-py3-
 
 ## Changelog 🔧
 
+
+<details>
+<summary>v7.3</summary>
+
+- Diminuido delays do `Mouse` e `Teclado`
+- Alterado `Teclado.apertar` para `teclar`
+- Alterado `ElementoW32.scroll` para `scroll_mouse`
+- Criado controle `ElementoW32.scroll` para scroll via elemento
+
+</details>
 <details>
 <summary>v7.2</summary>
 
