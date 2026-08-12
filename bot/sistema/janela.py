@@ -958,10 +958,16 @@ class ElementoW32:
             elemento = aba.parente
 
         if painel := elemento.filhos(lambda e: nomes[-1] in String(e.texto) and not e.tipo.item_aba):
-            return painel[0] # type: ignore
+            elemento, *_ = painel
+            return (elemento
+                    if isinstance(self, ElementoUIA) else
+                    ElementoW32(elemento.hwnd, elemento.janela, elemento.profundidade)) # type: ignore
+
         if not elemento.tipo.aba:
             raise Exception(f"Abas abertas {nomes} com sucesso, porém o elemento final não foi encontrado")
-        return elemento # type: ignore
+        return (elemento
+                if isinstance(self, ElementoUIA) else
+                ElementoW32(elemento.hwnd, elemento.janela, elemento.profundidade)) # type: ignore
 
     def print_arvore (self) -> None:
         """Realizar o `print()` da árvore de elementos"""
