@@ -1762,36 +1762,34 @@ class JanelaW32:
             for filho in self.elemento.filhos(lambda e: e.class_name == class_name and e.ativo):
                 return Popup(filho)
 
-    def tooltips (self, *class_name: str, aguardar: int = 5) -> str:
+    def tooltips (self, texto: str | None = None, aguardar: int = 5) -> str | None:
         """Obter os textos concatenados por `;` das `tooltips` (Caixa de texto com informação sobre o elemento)
         ### Útil em alguns para obter contexto quando realizar hover de mouse
-        - `class_name` para informar demais `class_name` para serem procurados
+        - `texto` para procurar pelo texto em específico
         - `aguardar` tempo em segundos para aguardar por algum elemento"""
         assert aguardar >= 0, "Tempo para aguardar pelo popup deve ser >= 0"
         self.aguardar()
 
         elementos = list[ElementoUIA]()
-        class_names = { "tooltip", "hint", *map(str.lower, class_name) }
+        class_names = { "tooltip", "hint" }
         def classname_tooltip (elemento: ElementoUIA) -> bool:
             return (
                 elemento.uiaelement.CurrentControlType == uiaclient.UIA_ToolTipControlTypeId
                 or any(class_name in elemento.class_name.lower() for class_name in class_names)
             )
 
+        texto = None if not texto else texto.lower()
         primeiro, cronometro = True, bot.tempo.Cronometro()
         while primeiro or (not elementos and cronometro < aguardar):
             primeiro = False
 
-            for janela in self.to_uia().janelas_processo(lambda _: True):
+            for janela in self.to_uia().janelas_processo(lambda j: j.visivel):
                 elemento = janela.elemento
-                if classname_tooltip(elemento):
+                if classname_tooltip(elemento) and (texto is None or texto in elemento.texto.lower()):
                     elementos.append(elemento)
                     continue
 
-                try: elementos.append(elemento.encontrar(lambda e: classname_tooltip(e)))
-                except Exception: pass
-
-        return "; ".join(elemento.texto for elemento in elementos)
+        return "; ".join(elemento.texto for elemento in elementos) or None
 
     def capturar_dialogos (self, callback_tratamento: typing.Callable[[Dialogo], typing.Any] | None = None,
                                  aguardar: int | float = 0.5) -> None:
