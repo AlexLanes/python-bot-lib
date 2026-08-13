@@ -6,7 +6,7 @@ import bot
 from bot.estruturas import String
 # externo
 import psutil
-import win32gui, win32con, win32api, win32process # pywin32
+import win32gui, win32con, win32api, win32process, pywintypes # pywin32
 import comtypes.client
 comtypes.client.GetModule('UIAutomationCore.dll')
 from comtypes.gen import UIAutomationClient as uiaclient
@@ -789,7 +789,11 @@ class ElementoW32:
             return self
 
         try: win32gui.SendMessageTimeout(self.hwnd, win32con.WM_NULL, None, None, win32con.SMTO_ABORTIFHUNG, int(timeout * 1000))
-        except Exception: raise TimeoutError(f"O elemento não respondeu após '{timeout}' segundos esperando") from None
+        except Exception as e:
+            # Identificador inválido
+            if isinstance(e, pywintypes.error) and e.winerror == 1400: pass
+            else: raise TimeoutError(f"O elemento não respondeu após '{timeout}' segundos esperando") from None
+
         return self
 
     def focar (self) -> typing.Self:
