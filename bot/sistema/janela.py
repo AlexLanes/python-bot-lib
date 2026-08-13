@@ -1496,7 +1496,8 @@ class JanelaW32:
         with JanelaW32.AguardarNovaJanela(aguardar=2) as janela:
             bot.sistema.AbrirProcesso("notepad")
         print(janela.titulo)
-        ```"""
+        ```
+        """
         titulos = lambda: cls.titulos_janelas_visiveis()
         titulos_antes = titulos()
         janela = cls.FromHWND(0)
@@ -1695,6 +1696,21 @@ class JanelaW32:
         if not self.fechar(timeout):
             self.processo.kill()
             self.processo.wait(float(timeout))
+    @contextlib.contextmanager
+    def aguardar_fechar (self, timeout: float | int = 10.0,
+                               msg_erro: str | None = None) -> typing.Generator[typing.Self, None, None]:
+        """Aguardar a janela fechar por `timeout` segundos
+        - `AssertionError` caso não seja fechada
+
+        #### Utilizar com o `with`
+        ```
+        with JanelaW32(...).aguardar_fechar(timeout=3) as janela:
+            (janela / "Botao OK que fecha a janela").clicar()
+        ```
+        """
+        msg_erro = msg_erro or f"Janela `{self.titulo}` não fechou conforme esperado"
+        yield self
+        assert bot.tempo.aguardar(lambda: self.fechada, timeout=timeout, delay=0.5), msg_erro
 
     def sleep (self, segundos: int | float = 1) -> typing.Self:
         """Aguardar por `segundos` até continuar a execução"""
@@ -1734,38 +1750,42 @@ class JanelaW32:
 
         return encontrados
 
-    def dialogo (self, class_name: str = "#32770",
+    def dialogo (self, *class_name: str,
                        aguardar: int | float = 0) -> Dialogo | None:
         """Encontrar janela de diálogo com `class_name`
         - `None` caso não encontre
+        - `class_name` default usado o padrão do windows `#32770`
         - `aguardar` tempo em segundos para aguardar pelo diálogo"""
         assert aguardar >= 0, "Tempo para aguardar pelo diálogo deve ser >= 0"
         self.aguardar()
 
+        class_names = ["#32770", *class_name]
         primeiro, cronometro = True, bot.tempo.Cronometro()
         while primeiro or cronometro < aguardar:
             primeiro = False
 
-            for janela in self.janelas_processo(lambda j: j.class_name == class_name and j.elemento.ativo):
+            for janela in self.janelas_processo(lambda j: j.class_name in class_names and j.elemento.ativo):
                 return Dialogo(janela.elemento)
-            for filho in self.elemento.filhos(lambda e: e.class_name == class_name and e.ativo):
+            for filho in self.elemento.filhos(lambda e: e.class_name in class_names and e.ativo):
                 return Dialogo(filho)
 
-    def popup (self, class_name: str = "#32768",
+    def popup (self, *class_name: str,
                      aguardar: int | float = 0) -> Popup | None:
         """Encontrar janela de popup com `class_name`
         - `None` caso não encontre
+        - `class_name` default usado o padrão do windows `#32768`
         - `aguardar` tempo em segundos para aguardar pelo popup"""
         assert aguardar >= 0, "Tempo para aguardar pelo popup deve ser >= 0"
         self.aguardar()
 
+        class_names = ["#32768", *class_name]
         primeiro, cronometro = True, bot.tempo.Cronometro()
         while primeiro or cronometro < aguardar:
             primeiro = False
 
-            for janela in self.janelas_processo(lambda j: j.class_name == class_name and j.elemento.ativo):
+            for janela in self.janelas_processo(lambda j: j.class_name in class_names and j.elemento.ativo):
                 return Popup(janela.elemento)
-            for filho in self.elemento.filhos(lambda e: e.class_name == class_name and e.ativo):
+            for filho in self.elemento.filhos(lambda e: e.class_name in class_names and e.ativo):
                 return Popup(filho)
 
     def tooltips (self, texto: str | None = None, aguardar: int = 5) -> str | None:
