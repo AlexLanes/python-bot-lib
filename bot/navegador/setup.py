@@ -354,6 +354,8 @@ class Navegador:
             "download.directory_upgrade": True,
             "download.prompt_for_download": False,
             "download.default_directory": download.string,
+            "safebrowsing.enabled": True,
+            "safebrowsing.disable_download_protection": False,
 
             # Print PDF
             "savefile.default_directory": download.string,
