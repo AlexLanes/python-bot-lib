@@ -243,7 +243,7 @@ class ElementoXML:
 
     def indentar (self) -> Self:
         """Indentar o XML
-        - Altera a versão do `str()"""
+        - Altera a versão do `str()`"""
         indentar_xml(self.__elemento, space=" " * 4)
         return self
 
