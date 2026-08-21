@@ -20,10 +20,11 @@ class Decimal:
     Decimal("xpto")
 
     # Transformações aceitas
-    str(decimal)
     int(decimal)
     float(decimal)
     bool(decimal)
+    str(decimal)
+    decimal.formatar(...)
 
     # Funções
     abs(decimal)
@@ -144,6 +145,22 @@ class Decimal:
     def nan (self) -> bool:
         """Checar se o decimal não é um número"""
         return self.d.is_nan()
+
+    def formatar (self, separador: str = ",",
+                        *,
+                        precisao: int | None = None,
+                        milhares: bool = False) -> str:
+        """Transformar o `Decimal` para uma `str()` de acordo com os parâmetros
+        - `AssertionError` caso `self.nan()`"""
+        assert not self.nan()
+        assert separador, f"Algum separador é necessário para o {self}.formatar()"
+
+        valor = str(self.copiar(separador, precisao or self.precisao))
+        if not milhares:
+            return valor
+
+        inteiro, _, decimos = valor.partition(separador)
+        return format(int(inteiro), ",").replace(",", ".") + f"{separador}{decimos}"
 
     def copiar (self, separador: str | None = None,
                       precisao: int | None = None) -> Decimal:
