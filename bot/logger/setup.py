@@ -57,7 +57,7 @@ class JsonFormatter (logging.Formatter):
         return bot.formatos.stringify(payload)
 
 class StdoutFilter (logging.Filter):
-    """Permitir apenas logs `INFO` para os `MainLogger` e `WARNING` para loggers terceiros"""
+    """Permitir apenas logs `INFO` ou maior para os `MainLogger` e `WARNING` ou maior para loggers terceiros"""
 
     @typing.override
     def filter (self, record: logging.LogRecord) -> bool:
@@ -66,7 +66,7 @@ class StdoutFilter (logging.Filter):
         return record.levelno >= logging.WARNING
 
 class FileFilter (logging.Filter):
-    """Permitir apenas todos os logs para os `MainLogger` e `INFO` para loggers terceiros"""
+    """Permitir todos os logs para os `MainLogger` e apenas `INFO` para loggers terceiros"""
 
     @typing.override
     def filter (self, record: logging.LogRecord) -> bool:
@@ -206,6 +206,27 @@ class TracerLogger:
         """Log nível `ERROR`
         - `excecao=None` capturada automaticamente, caso esteja dentro do `except`"""
         self.logger.error(
+            str(mensagem),
+            stacklevel = 2,
+            exc_info = excecao or sys.exc_info(),
+            extra = {
+                "extra": extra | self.extra,
+                "trace": {
+                    "id": self.id,
+                    "chave": self.chave,
+                    "status": "PROCESSING",
+                    "seconds": self.cronometro()
+                }
+            }
+        )
+        return self
+
+    def critico (self, mensagem: SupportsStr,
+                       excecao: Exception | None = None,
+                       **extra: object) -> typing.Self:
+        """Log nível `CRITICAL`
+        - `excecao=None` capturada automaticamente, caso esteja dentro do `except`"""
+        self.logger.critical(
             str(mensagem),
             stacklevel = 2,
             exc_info = excecao or sys.exc_info(),
@@ -383,6 +404,19 @@ class MainLogger:
         """Log nível `ERROR`
         - `excecao=None` capturada automaticamente, caso esteja dentro do `except`"""
         self.logger.error(
+            str(mensagem),
+            stacklevel = 2,
+            extra = { "extra": extra },
+            exc_info = excecao or sys.exc_info()
+        )
+        return self
+
+    def critico (self, mensagem: SupportsStr,
+                       excecao: Exception | None = None,
+                       **extra: object) -> typing.Self:
+        """Log nível `CRITICAL`
+        - `excecao=None` capturada automaticamente, caso esteja dentro do `except`"""
+        self.logger.critical(
             str(mensagem),
             stacklevel = 2,
             extra = { "extra": extra },

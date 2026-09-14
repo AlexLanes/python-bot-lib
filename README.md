@@ -25,6 +25,7 @@ Utilizar o caminho para o arquivo **whl** baixado `bot @ file://.../bot-7.2-py3-
 - Criado controle `ElementoW32.scroll` para scroll via elemento
 - Alterado métodos da `JanelaW32` `dialogo popup tooltips`
 - Criado `JanelaW32.aguardar_fechar`
+- Adicionado método `.critico` no logger e tracer
 
 </details>
 <details>
