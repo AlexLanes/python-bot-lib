@@ -49,11 +49,13 @@ class Mouse:
         - `Coordenada()` posição central
         - `(int, int)` posição exata"""
         coordenada = transformar_posicao(coordenada)
-        win32api.SetCursorPos(coordenada)
+        try: win32api.SetCursorPos(coordenada)
+        except Exception: raise RuntimeError("Falha ao utilizar a API do Windows para movimentar o Mouse")
+
         sleep(self.DELAY_MOVER)
         bot.tempo.aguardar(
             lambda: self.posicao_atual() == coordenada,
-            timeout = 0.5,
+            timeout = 5,
             delay = self.DELAY_MOVER
         )
         return self
