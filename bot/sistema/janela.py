@@ -1661,21 +1661,42 @@ class JanelaW32:
             win32gui.ShowWindow(self.hwnd, win32con.SW_RESTORE)
             bot.tempo.aguardar(lambda: self.visivel, timeout=5, delay=0.5)
 
-        flags = win32con.SWP_NOMOVE | win32con.SWP_NOSIZE | win32con.SWP_SHOWWINDOW
-        def trazer_para_o_foco () -> bool:
+        # ----------- #
+        # Tentativa 1 #
+        # ----------- #
+        def set_foreground () -> bool:
+            try: win32gui.SetForegroundWindow(self.hwnd)
+            except Exception: pass
+            return self.focada
+
+        focada = bot.tempo.aguardar(
+            set_foreground,
+            timeout = 2,
+            delay = 0.5)
+
+        # ----------- #
+        # Tentativa 2 #
+        # ----------- #
+        if not focada:
+            bot.teclado.atalho("alt", "tab")
+            focada = set_foreground()
+
+        # ----------- #
+        # Tentativa 3 #
+        # ----------- #
+        def trazer_para_frente () -> None:
             try:
+                flags = win32con.SWP_NOMOVE | win32con.SWP_NOSIZE | win32con.SWP_SHOWWINDOW
                 win32gui.SetWindowPos(self.hwnd, win32con.HWND_TOPMOST, 0, 0, 0, 0, flags)
                 win32gui.SetWindowPos(self.hwnd, win32con.HWND_NOTOPMOST, 0, 0, 0, 0, flags)
-                win32gui.SetForegroundWindow(self.hwnd)
-                return self.focada
-            except Exception: return False
-        focado = bot.tempo.aguardar(trazer_para_o_foco, timeout=5)
+                win32gui.SetActiveWindow(self.hwnd)
+                win32gui.SetFocus(self.hwnd)
+            except Exception: pass
 
-        # O Windows pode não permitir
-        # Clicando em cima da janela resolve
-        if not focado:
+        if not focada:
+            trazer_para_frente()
             bot.mouse.mover(self.coordenada.topo()).clicar()
-            trazer_para_o_foco()
+            set_foreground()
 
         return self.sleep(0.01).aguardar()
 
