@@ -614,7 +614,8 @@ class Navegador:
         ### Utilizar com o `with` e realizar uma ação que resultará em download
         ```
         with navegador.aguardar_download(".pdf") as arquivo:
-            botao.clicar()
+            navegador.encontrar("#DownloadButton").clicar()
+        arquivo.ler_texto()
         ```
         """
         self.diretorio_download.criar_diretorios()
