@@ -1,7 +1,7 @@
 # std
 from __future__ import annotations
 import time, enum, typing, base64
-import functools, collections, weakref, contextlib
+import functools, weakref, contextlib
 from datetime import (
     datetime  as Datetime,
     timedelta as Timedelta
