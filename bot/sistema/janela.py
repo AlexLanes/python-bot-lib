@@ -95,9 +95,9 @@ class Dialogo:
         raise Error(f"{prefixo.rstrip()} `{self.texto}`")
 
     @staticmethod
-    def registrar_classname (class_name: str) -> None:
+    def registrar_classname (*class_name: str) -> None:
         """Registrar um novo `class_name` para servir de busca por diálogos"""
-        Dialogo.REGISTRO_CLASSNAMES.add(class_name)
+        Dialogo.REGISTRO_CLASSNAMES.update(class_name)
 
 class Popup:
     """Popup do windows com opções"""
@@ -141,9 +141,9 @@ class Popup:
         return self
 
     @staticmethod
-    def registrar_classname (class_name: str) -> None:
+    def registrar_classname (*class_name: str) -> None:
         """Registrar um novo `class_name` para servir de busca por popups"""
-        Popup.REGISTRO_CLASSNAMES.add(class_name)
+        Popup.REGISTRO_CLASSNAMES.update(class_name)
 
 class CheckBox:
 
