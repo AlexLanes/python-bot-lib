@@ -28,6 +28,8 @@ class Dialogo:
     texto: str
     """Texto dos descendentes, exceto dos botões, concatenados por `; `"""
 
+    REGISTRO_CLASSNAMES = { "#32770" }
+
     def __init__ (self, elemento: ElementoW32) -> None:
         self.elemento = elemento.to_uia().sleep(0.25)
         self.texto = "; ".join(
@@ -92,10 +94,17 @@ class Dialogo:
     def Raise (self, prefixo="Diálogo inesperado encontrado:", Error=Exception) -> typing.Never:
         raise Error(f"{prefixo.rstrip()} `{self.texto}`")
 
+    @staticmethod
+    def registrar_classname (class_name: str) -> None:
+        """Registrar um novo `class_name` para servir de busca por diálogos"""
+        Dialogo.REGISTRO_CLASSNAMES.add(class_name)
+
 class Popup:
     """Popup do windows com opções"""
 
     elemento: ElementoUIA
+
+    REGISTRO_CLASSNAMES = { "#32768" }    
 
     def __init__ (self, elemento: ElementoW32) -> None:
         self.elemento = elemento.to_uia()
@@ -130,6 +139,11 @@ class Popup:
         elemento.clicar(focar=False)
 
         return self
+
+    @staticmethod
+    def registrar_classname (class_name: str) -> None:
+        """Registrar um novo `class_name` para servir de busca por popups"""
+        Popup.REGISTRO_CLASSNAMES.add(class_name)
 
 class CheckBox:
 
@@ -1718,7 +1732,8 @@ class JanelaW32:
     def encerrar (self, timeout: float | int = 10.0) -> None:
         """Enviar a mensagem de fechar para janela
         - Caso continue aberto após `timeout` segundos, será feito o encerramento pelo processo"""
-        if not self.fechar(timeout):
+        if self.fechar(timeout): return
+        if not self.destruir(timeout):
             self.processo.kill()
             self.processo.wait(float(timeout))
     @contextlib.contextmanager
@@ -1775,42 +1790,38 @@ class JanelaW32:
 
         return encontrados
 
-    def dialogo (self, *class_name: str,
-                       aguardar: int | float = 0) -> Dialogo | None:
-        """Encontrar janela de diálogo com `class_name`
-        - `None` caso não encontre
+    def dialogo (self, aguardar: int | float = 0) -> Dialogo | None:
+        """Encontrar janela de diálogo ou `None` caso não encontre
+        - `aguardar` tempo em segundos para aguardar pelo diálogo
         - `class_name` default usado o padrão do windows `#32770`
-        - `aguardar` tempo em segundos para aguardar pelo diálogo"""
+        - `Dialogo.registrar_classname("")` utilizado para adicionar um classname diferente do padrão"""
         assert aguardar >= 0, "Tempo para aguardar pelo diálogo deve ser >= 0"
         self.aguardar()
 
-        class_names = ["#32770", *class_name]
         primeiro, cronometro = True, bot.tempo.Cronometro()
         while primeiro or cronometro < aguardar:
             primeiro = False
 
-            for janela in self.janelas_processo(lambda j: j.class_name in class_names and j.elemento.ativo):
+            for janela in self.janelas_processo(lambda j: j.class_name in Dialogo.REGISTRO_CLASSNAMES and j.elemento.ativo):
                 return Dialogo(janela.elemento)
-            for filho in self.elemento.filhos(lambda e: e.class_name in class_names and e.ativo):
+            for filho in self.elemento.filhos(lambda e: e.class_name in Dialogo.REGISTRO_CLASSNAMES and e.ativo):
                 return Dialogo(filho)
 
-    def popup (self, *class_name: str,
-                     aguardar: int | float = 0) -> Popup | None:
-        """Encontrar janela de popup com `class_name`
-        - `None` caso não encontre
+    def popup (self, aguardar: int | float = 0) -> Popup | None:
+        """Encontrar janela de popup ou `None` caso não encontre
+        - `aguardar` tempo em segundos para aguardar pelo popup
         - `class_name` default usado o padrão do windows `#32768`
-        - `aguardar` tempo em segundos para aguardar pelo popup"""
+        - `Popup.registrar_classname("")` utilizado para adicionar um classname diferente do padrão"""
         assert aguardar >= 0, "Tempo para aguardar pelo popup deve ser >= 0"
         self.aguardar()
 
-        class_names = ["#32768", *class_name]
         primeiro, cronometro = True, bot.tempo.Cronometro()
         while primeiro or cronometro < aguardar:
             primeiro = False
 
-            for janela in self.janelas_processo(lambda j: j.class_name in class_names and j.elemento.ativo):
+            for janela in self.janelas_processo(lambda j: j.class_name in Popup.REGISTRO_CLASSNAMES and j.elemento.ativo):
                 return Popup(janela.elemento)
-            for filho in self.elemento.filhos(lambda e: e.class_name in class_names and e.ativo):
+            for filho in self.elemento.filhos(lambda e: e.class_name in Popup.REGISTRO_CLASSNAMES and e.ativo):
                 return Popup(filho)
 
     def tooltips (self, texto: str | None = None, aguardar: int = 5) -> str | None:
@@ -1845,7 +1856,9 @@ class JanelaW32:
     def capturar_dialogos (self, callback_tratamento: typing.Callable[[Dialogo], typing.Any] | None = None,
                                  aguardar: int | float = 0.5) -> None:
         """Realizar a captura de diálogo(s) na janela e aplicar o `callback_tratamento` para realizar alguma ação no diálogo
-        - `AssertionError` caso algum diálogo continue aparecendo após o tratamento"""
+        - `AssertionError` caso algum diálogo continue aparecendo após o tratamento
+        - `class_name` default usado o padrão do windows `#32770`
+        - `Dialogo.registrar_classname("")` utilizado para adicionar um classname diferente do padrão"""
         if callback_tratamento is not None:
             for _ in range(10):
                 dialogo = self.aguardar().dialogo(aguardar=aguardar)
