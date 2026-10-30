@@ -1,6 +1,6 @@
 # std
 from __future__ import annotations
-import typing, collections
+import typing, collections, random
 # interno
 from bot.sistema import Caminho
 from bot.formatos import stringify
@@ -120,6 +120,11 @@ class Coordenada:
         """Posição da base central
         - O mesmo que `self.transformar(0.5, 0.99)`"""
         return self.transformar(0.5, 0.99)
+
+    def random (self) -> tuple[int, int]:
+        """Retorna um ponto aleatório dentro da região"""
+        return (random.randint(self.x, self.x + self.largura - 1),
+                random.randint(self.y, self.y + self.altura - 1))
 
 class Resultado [T]:
     """Classe para capturar o `return | Exception` de chamadas de uma função
