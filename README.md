@@ -20,6 +20,8 @@ Utilizar o caminho para o arquivo **whl** baixado `bot @ file://.../bot-7.4-py3-
 <summary>v7.4</summary>
 
 - Alterado `JanelaW32` para os métodos dialogo() e popup() usarem um sistema de registro dos classnames
+- Alterado `mouse.mover_deslizando()` para calcular os pontos com base no **Bresenham**
+- Adicionado método `Coordenada.random()`
 
 </details>
 <details>

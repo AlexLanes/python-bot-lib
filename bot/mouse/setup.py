@@ -65,29 +65,38 @@ class Mouse:
         - Positivo: `direita` e `baixo`
         - Negativo: `esquerda` e `cima`"""
         send_input_mouse_api(win32con.MOUSEEVENTF_MOVE, x, y)
-        sleep(self.DELAY_MOVER_RELATIVO)
-        return self
+        return self.sleep(self.DELAY_MOVER_RELATIVO)
 
     def mover_deslizando (self, coordenada: tuple[int, int] | Coordenada) -> Self:
         """Mover o mouse, pixel por pixel, até a `coordenada`
         - `Coordenada()` posição central
         - `(int, int)` posição exata"""
         cronometro = bot.tempo.Cronometro()
-        posicao = transformar_posicao(coordenada)
-        direcao_movimento = lambda n: 1 if n > 0 else -1 if n < 0 else 0
-        movimento_relativo = lambda: tuple(desejado - atual for desejado, atual in zip(posicao, self.posicao_atual()))
+        destino = transformar_posicao(coordenada)
 
-        # mover enquanto diferente da coordenada desejada e dentro do tempo estipulado
-        # se houver gargalo na máquina, a movimentação do mouse pode falhar
-        while self.posicao_atual() != posicao and cronometro < 5.0:
-            x_relativo, y_relativo = movimento_relativo()
-            while x_relativo or y_relativo:
-                x_relativo -= (x := direcao_movimento(x_relativo))
-                y_relativo -= (y := direcao_movimento(y_relativo))
-                self.mover_relativo(x, y)
+        # Mover enquanto diferente da coordenada desejada e dentro do tempo estipulado
+        while (atual := self.posicao_atual()) != destino and cronometro < 5.0:
+            x, y = atual
 
-        sleep(self.DELAY_MOVER)
-        return self
+            # Gerar próximo ponto com Bresenham
+            dx = destino[0] - x
+            dy = destino[1] - y
+            erro = abs(dx) - abs(dy)
+            erro2 = 2 * erro
+
+            sx = 1 if dx > 0 else -1 if dx < 0 else 0
+            if erro2 > -abs(dy):
+                erro -= abs(dy)
+                x += sx
+
+            sy = 1 if dy > 0 else -1 if dy < 0 else 0
+            if erro2 < abs(dx):
+                erro += abs(dx)
+                y += sy
+
+            self.mover_relativo(x - atual[0], y - atual[1])
+
+        return self.sleep(self.DELAY_MOVER)
 
     def clicar (self, quantidade = 1, botao: bot.tipagem.BOTOES_MOUSE = "left") -> Self:
         """Clicar com o `botão` do mouse `quantidade` vezes na posição atual"""
