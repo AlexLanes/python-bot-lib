@@ -3,6 +3,7 @@ from typing import Self, Iterator
 from datetime import date as Date, datetime as Datetime
 # interno
 import bot
+from bot import tipagem
 # externo
 import imap_tools
 
@@ -30,11 +31,11 @@ class Email:
         return self.mail.subject
 
     @property
-    def remetente (self) -> bot.tipagem.email:
+    def remetente (self) -> tipagem.email:
         return self.mail.from_
 
     @property
-    def destinatarios (self) -> list[bot.tipagem.email]:
+    def destinatarios (self) -> list[tipagem.email]:
         return list(self.mail.to)
 
     def conteudo (self, html=False) -> str:

@@ -7,8 +7,6 @@ from bot.mouse.setup      import mouse
 from bot.teclado.setup    import teclado
 
 from bot import (
-    tipagem,
-    util,
     sistema,
     estruturas,
 

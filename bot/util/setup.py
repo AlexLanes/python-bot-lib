@@ -3,11 +3,11 @@ import typing, functools
 import cProfile, pstats
 import asyncio, inspect
 # interno
-import bot
+from bot.tipagem import primitivo
 
 P = typing.ParamSpec("P")
 
-def transformar_tipo[T: bot.tipagem.primitivo] (valor: str, tipo: type[T]) -> T:
+def transformar_tipo[T: primitivo] (valor: str, tipo: type[T]) -> T:
     """Fazer a transformação do `valor` para `type(tipo)`
     - Função genérica"""
     match tipo():

@@ -3,7 +3,7 @@ from time import sleep
 from typing import Self
 # interno
 from .win_api import send_input_mouse_api
-import bot
+from bot import tipagem, tempo
 from bot.estruturas import Coordenada
 # externo
 import win32api, win32con, win32gui
@@ -53,7 +53,7 @@ class Mouse:
         except Exception: raise RuntimeError("Falha ao utilizar a API do Windows para movimentar o Mouse")
 
         sleep(self.DELAY_MOVER)
-        bot.tempo.aguardar(
+        tempo.aguardar(
             lambda: self.posicao_atual() == coordenada,
             timeout = 5,
             delay = self.DELAY_MOVER
@@ -71,7 +71,7 @@ class Mouse:
         """Mover o mouse, pixel por pixel, até a `coordenada`
         - `Coordenada()` posição central
         - `(int, int)` posição exata"""
-        cronometro = bot.tempo.Cronometro()
+        cronometro = tempo.Cronometro()
         destino = transformar_posicao(coordenada)
 
         # Mover enquanto diferente da coordenada desejada e dentro do tempo estipulado
@@ -98,7 +98,7 @@ class Mouse:
 
         return self.sleep(self.DELAY_MOVER)
 
-    def clicar (self, quantidade = 1, botao: bot.tipagem.BOTOES_MOUSE = "left") -> Self:
+    def clicar (self, quantidade = 1, botao: tipagem.BOTOES_MOUSE = "left") -> Self:
         """Clicar com o `botão` do mouse `quantidade` vezes na posição atual"""
         assert quantidade >= 1, "Quantidade de clicks deve ser pelo menos 1"
 
@@ -109,7 +109,7 @@ class Mouse:
 
         return self
 
-    def scroll_vertical (self, quantidade = 1, direcao: bot.tipagem.DIRECOES_SCROLL = "baixo") -> Self:
+    def scroll_vertical (self, quantidade = 1, direcao: tipagem.DIRECOES_SCROLL = "baixo") -> Self:
         """Realizar o scroll vertical `quantidade` vezes para a `direcao` na posição atual"""
         assert quantidade >= 1, "Quantidade de scrolls deve ser pelo menos 1"
 
@@ -125,7 +125,7 @@ class Mouse:
         sleep(segundos)
         return self
 
-    def rgb (self) -> bot.tipagem.rgb:
+    def rgb (self) -> tipagem.rgb:
         """Obter a cor `(R, G, B)` do pixel na posição atual do mouse"""
         device_context: int = 0
         try:

@@ -4,6 +4,7 @@ import time, base64, collections
 import tkinter, tempfile, typing
 # interno
 import bot
+from bot import tipagem
 from bot.estruturas import Coordenada
 # externo
 import win32gui, win32ui, win32con
@@ -14,7 +15,7 @@ except ImportError: raise ImportError(
     "Instale como 'bot[imagem]' para utilizar o módulo 'bot.imagem'"
 )
 
-def cor_similar (cor1: bot.tipagem.rgb, cor2: bot.tipagem.rgb, tolerancia=20) -> bool:
+def cor_similar (cor1: tipagem.rgb, cor2: tipagem.rgb, tolerancia=20) -> bool:
     """Comparar se as cores `rgb` são similares com base na `tolerancia`
     - `tolerancia mínima` 0 (Cores são idênticas)
     - `tolerancia máxima` 441 (Branco x Preto)"""
@@ -219,7 +220,7 @@ class Imagem:
         imagem.pixels = cv2.resize(imagem.pixels, dsize=(largura, altura), interpolation=cv2.INTER_LINEAR)
         return imagem
 
-    def cores (self, limite: int | None = 10) -> list[tuple[bot.tipagem.rgb, int]]:
+    def cores (self, limite: int | None = 10) -> list[tuple[tipagem.rgb, int]]:
         """Obter a cor RGB e frequência de cada pixel da imagem
         - `limite` quantidade que será retornada das mais frequentes
         - `for cor, frequencia in imagem.cores()`"""
@@ -228,7 +229,7 @@ class Imagem:
         to_rgb = lambda bgr: (int(bgr), int(bgr), int(bgr)) if cinza else (int(bgr[2]), int(bgr[1]), int(bgr[0]))
         return collections.Counter(map(to_rgb, pixels)).most_common(limite)
 
-    def cor_pixel (self, posicao: tuple[int, int]) -> bot.tipagem.rgb:
+    def cor_pixel (self, posicao: tuple[int, int]) -> tipagem.rgb:
         """Obter a cor RGB do pixel na `posicao`"""
         cinza = len(self.pixels.shape) == 2
         to_rgb = lambda bgr: (int(bgr), int(bgr), int(bgr)) if cinza else (int(bgr[2]), int(bgr[1]), int(bgr[0]))
@@ -237,7 +238,7 @@ class Imagem:
 
     def encontrar_cor (
             self,
-            cor: bot.tipagem.rgb,
+            cor: tipagem.rgb,
             modo: typing.Literal["primeiro", "ultimo", "media"] = "media"
         ) -> tuple[int, int] | None:
         """Encontrar a posição `(x, y)` de um pixel que tenha a `cor` rgb
@@ -264,7 +265,7 @@ class Imagem:
             case _:
                 raise ValueError(f"Modo '{modo}' inesperado")
 
-    def procurar_imagens (self, confianca: bot.tipagem.PORCENTAGENS = 0.9,
+    def procurar_imagens (self, confianca: tipagem.PORCENTAGENS = 0.9,
                                 regiao: Coordenada | None = None,
                                 referencia: Imagem | None = None,
                                 cinza = False,
@@ -304,7 +305,7 @@ class Imagem:
 
         return [c for _, c in confianca_coordenadas]
 
-    def procurar_imagem (self, confianca: bot.tipagem.PORCENTAGENS = 0.9,
+    def procurar_imagem (self, confianca: tipagem.PORCENTAGENS = 0.9,
                                regiao: Coordenada | None = None,
                                referencia: Imagem | None = None,
                                cinza = False,

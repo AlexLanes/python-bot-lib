@@ -5,10 +5,11 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
 # interno
 import bot
+from bot import tipagem
 from bot.estruturas import Caminho, String, Resultado
 
 @Resultado.decorador
-def enviar_email (destinatarios: typing.Iterable[bot.tipagem.email],
+def enviar_email (destinatarios: typing.Iterable[tipagem.email],
                   assunto = "",
                   conteudo = "",
                   anexos: list[Caminho] = [],

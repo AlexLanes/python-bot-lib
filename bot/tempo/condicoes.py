@@ -2,8 +2,9 @@
 import time, typing
 # interno
 import bot
+from bot.tipagem import SupportsBool
 
-def aguardar (condicao: typing.Callable[[], bot.tipagem.SupportsBool],
+def aguardar (condicao: typing.Callable[[], SupportsBool],
               timeout: int | float,
               delay: int | float = 0.01) -> bool:
     """Repetir a função `condição`, aguardando por `timeout` segundos, até que resulte em `True`

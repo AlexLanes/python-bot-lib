@@ -3,6 +3,7 @@ from __future__ import annotations
 import time, typing, functools, contextlib
 # interno
 import bot
+from bot import tipagem
 from bot.estruturas import String
 # externo
 import psutil
@@ -709,7 +710,7 @@ class ElementoW32:
         - Elemento pode não aceitar, usar `scroll.suporta_scroll` para checar"""
         return Scroll(self)
 
-    def filhos[T: ElementoW32] (self: T, filtro: typing.Callable[[T], bot.tipagem.SupportsBool] | None = None,
+    def filhos[T: ElementoW32] (self: T, filtro: typing.Callable[[T], tipagem.SupportsBool] | None = None,
                                          aguardar: int | float = 0) -> list[T]:
         """Elementos filhos imediatos
         - `filtro` para escolher os filhos. `Default: visíveis`
@@ -736,7 +737,7 @@ class ElementoW32:
 
         return filhos
 
-    def descendentes[T: ElementoW32] (self: T, filtro: typing.Callable[[T], bot.tipagem.SupportsBool] | None = None,
+    def descendentes[T: ElementoW32] (self: T, filtro: typing.Callable[[T], tipagem.SupportsBool] | None = None,
                                                aguardar: int | float = 0) -> list[T]:
         """Todos os elementos descendentes
         - `filtro` para escolher os descendentes. `Default: visíveis`
@@ -758,7 +759,7 @@ class ElementoW32:
 
         return descendentes
 
-    def encontrar[T: ElementoW32] (self: T, filtro: typing.Callable[[T], bot.tipagem.SupportsBool],
+    def encontrar[T: ElementoW32] (self: T, filtro: typing.Callable[[T], tipagem.SupportsBool],
                                             aguardar: int | float = 0,
                                             msg_erro: str | None = None) -> T:
         """Encontrar o primeiro elemento descendente, com a menor profundidade, de acordo com o `filtro`
@@ -817,7 +818,7 @@ class ElementoW32:
         except Exception: pass
         return self.aguardar()
 
-    def clicar (self, botao: bot.tipagem.BOTOES_MOUSE = "left",
+    def clicar (self, botao: tipagem.BOTOES_MOUSE = "left",
                       focar: bool = True) -> typing.Self:
         """Clicar virtualmente com o `botão` no centro do elemento
         - `focar` indicador se dever ser feito o foco no elemento
@@ -832,7 +833,7 @@ class ElementoW32:
 
         return self.sleep(0.01).aguardar()
 
-    def input (self, texto: str | bot.tipagem.SupportsStr, focar: bool = True) -> typing.Self:
+    def input (self, texto: str | tipagem.SupportsStr, focar: bool = True) -> typing.Self:
         """Substituir o texto do elemento pelo `texto`
         - `focar` indicador se dever ser feito o foco no elemento
         - Elemento pode não aceitar"""
@@ -870,7 +871,7 @@ class ElementoW32:
         win32gui.SendMessage(self.hwnd, win32con.WM_SETTEXT, 0, None)
         return self.sleep(0.01).aguardar()
 
-    def clicar_mouse (self, botao: bot.tipagem.BOTOES_MOUSE = "left",
+    def clicar_mouse (self, botao: tipagem.BOTOES_MOUSE = "left",
                             focar: bool = True,
                             xOffset = 0.5,
                             yOffset = 0.5) -> typing.Self:
@@ -884,7 +885,7 @@ class ElementoW32:
 
         return self.sleep(0.01).aguardar()
 
-    def teclar (self, *teclas: bot.tipagem.char | bot.tipagem.BOTOES_TECLADO,
+    def teclar (self, *teclas: tipagem.char | tipagem.BOTOES_TECLADO,
                        focar: bool = True) -> typing.Self:
         """Apertar e soltar as `teclas` uma por vez
         - `focar` indicador se dever ser feito o foco no elemento"""
@@ -894,7 +895,7 @@ class ElementoW32:
             self.aguardar()
         return self.sleep(0.01).aguardar()
 
-    def teclar_n (self, tecla: bot.tipagem.char | bot.tipagem.BOTOES_TECLADO,
+    def teclar_n (self, tecla: tipagem.char | tipagem.BOTOES_TECLADO,
                         n: int,
                         focar: bool = True) -> typing.Self:
         """Apertar e soltar a `tecla` `n` vezes
@@ -912,7 +913,7 @@ class ElementoW32:
         bot.teclado.digitar(texto)
         return self.sleep(0.01).aguardar()
 
-    def atalho (self, *teclas: bot.tipagem.char | bot.tipagem.BOTOES_TECLADO,
+    def atalho (self, *teclas: tipagem.char | tipagem.BOTOES_TECLADO,
                       focar: bool = True) -> typing.Self:
         """Pressionar as teclas sequencialmente e soltá-las em ordem reversa
         - `focar` indicador se dever ser feito o foco no elemento"""
@@ -921,7 +922,7 @@ class ElementoW32:
         return self.sleep(0.01).aguardar()
 
     def scroll_mouse (self, quantidade: int = 1,
-                            direcao: bot.tipagem.DIRECOES_SCROLL = "baixo",
+                            direcao: tipagem.DIRECOES_SCROLL = "baixo",
                             focar: bool = True,
                             xOffset = 0.5,
                             yOffset = 0.5) -> typing.Self:
@@ -941,7 +942,7 @@ class ElementoW32:
 
     def encontrar_cor (
             self,
-            cor: bot.tipagem.rgb,
+            cor: tipagem.rgb,
             modo: typing.Literal["primeiro", "ultimo", "media"] = "media"
         ) -> tuple[int, int] | None:
         """Encontrar a posição `(x, y)` de um pixel que tenha a `cor` rgb
@@ -1267,7 +1268,7 @@ class ElementoUIA (ElementoW32):
         """Obter uma janela interna"""
         return self.janela @ nome
 
-    def filhos (self, filtro: typing.Callable[[ElementoUIA], bot.tipagem.SupportsBool] | None = None,
+    def filhos (self, filtro: typing.Callable[[ElementoUIA], tipagem.SupportsBool] | None = None,
                       aguardar: int | float = 0) -> list[ElementoUIA]:
         assert aguardar >= 0, "Tempo para aguardar por filhos deve ser >= 0"
 
@@ -1298,7 +1299,7 @@ class ElementoUIA (ElementoW32):
         except Exception: pass
         return self.aguardar()
 
-    def clicar (self, botao: bot.tipagem.BOTOES_MOUSE = "left",
+    def clicar (self, botao: tipagem.BOTOES_MOUSE = "left",
                       focar: bool = True) -> typing.Self:
         if focar: self.focar()
         invocavel = self.pattern.invocavel
@@ -1311,7 +1312,7 @@ class ElementoUIA (ElementoW32):
 
         return super().clicar(botao, focar)
 
-    def input (self, texto: str | bot.tipagem.SupportsStr, focar: bool = True) -> typing.Self:
+    def input (self, texto: str | tipagem.SupportsStr, focar: bool = True) -> typing.Self:
         if focar: self.focar()
         valor = self.pattern.valor
 
@@ -1434,7 +1435,7 @@ class JanelaW32:
 
     hwnd: int
 
-    def __init__[T: JanelaW32] (self: T, filtro: str | typing.Callable[[T], bot.tipagem.SupportsBool],
+    def __init__[T: JanelaW32] (self: T, filtro: str | typing.Callable[[T], tipagem.SupportsBool],
                                          aguardar: int | float = 0,
                                          msg_erro: str | None = None) -> None:
         assert aguardar >= 0, "Tempo para aguardar por janela deve ser >= 0"
@@ -1763,7 +1764,7 @@ class JanelaW32:
         except Exception: raise TimeoutError(f"A janela não respondeu após '{timeout}' segundos esperando") from None
         return self
 
-    def janelas_processo[T: JanelaW32] (self: T, filtro: typing.Callable[[T], bot.tipagem.SupportsBool] | None = None,
+    def janelas_processo[T: JanelaW32] (self: T, filtro: typing.Callable[[T], tipagem.SupportsBool] | None = None,
                                                  aguardar: int | float = 0) -> list[T]:
         """Janelas do mesmo processo da `janela`
         - `filtro` para escolher as janelas. `Default: visível e ativo`
