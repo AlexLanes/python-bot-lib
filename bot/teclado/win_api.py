@@ -3,6 +3,7 @@
 # std
 import ctypes
 from ctypes import wintypes
+from typing import Literal
 # interno
 from bot.estruturas import DictNormalizado
 # externo
@@ -15,6 +16,8 @@ virtual_key_scan_w = ctypes.windll.user32.VkKeyScanW
 virtual_key_scan_w.restype = wintypes.SHORT
 virtual_key_scan_w.argtypes = (wintypes.WCHAR,)
 
+type BOTOES_TECLADO = Literal["alt", "ctrl", "shift", "alt_gr", "backspace", "win", "enter", "esc", "space", "tab", "up", "down", "left", "right", "insert", "delete", "home", "end", "page_down", "page_up", "f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9", "f10", "f11", "f12", "f13", "f14", "f15", "f16", "f17", "f18", "f19", "f20", "f21", "f22", "f23", "f24"]
+"""Nome dos botões virtuais aceitos pelo `bot.teclado`"""
 CODIGOS_VK_TECLAS_EXTENDIDAS = (win32con.VK_HOME, win32con.VK_END, win32con.VK_INSERT, win32con.VK_DELETE,
                                 win32con.VK_UP, win32con.VK_DOWN, win32con.VK_LEFT, win32con.VK_RIGHT,
                                 win32con.VK_PRIOR, win32con.VK_NEXT)

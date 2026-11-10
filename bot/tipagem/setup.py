@@ -1,6 +1,3 @@
-# std
-from typing import Literal
-
 type url = str
 """String formato url"""
 type char = str
@@ -22,15 +19,6 @@ type SupportsStr = str | object
 type SupportsBool = bool | object
 """Tipo indicador de qualquer objeto que suporte `bool(objeto)`"""
 
-DIRECOES_SCROLL = Literal["cima", "baixo"]
-"""Direções de scroll aceitos pelo `bot.mouse`"""
-BOTOES_MOUSE = Literal["left", "middle", "right"]
-"""Nome dos botões aceitos pelo `bot.mouse`"""
-PORCENTAGENS = float | Literal["0.9", "0.8", "0.7", "0.6", "0.5", "0.4", "0.3", "0.2", "0.1"]
-"""Porcentagens (float) entre 0.0 e 1.0"""
-BOTOES_TECLADO = Literal["alt", "ctrl", "shift", "alt_gr", "backspace", "win", "enter", "esc", "space", "tab", "up", "down", "left", "right", "insert", "delete", "home", "end", "page_down", "page_up", "f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9", "f10", "f11", "f12", "f13", "f14", "f15", "f16", "f17", "f18", "f19", "f20", "f21", "f22", "f23", "f24"]
-"""Nome dos botões virtuais aceitos pelo `bot.teclado`"""
-
 __all__ = [
     "url",
     "rgb",
@@ -41,8 +29,4 @@ __all__ = [
     "primitivo",
     "SupportsStr",
     "SupportsBool",
-    "BOTOES_MOUSE",
-    "PORCENTAGENS",
-    "BOTOES_TECLADO",
-    "DIRECOES_SCROLL",
 ]

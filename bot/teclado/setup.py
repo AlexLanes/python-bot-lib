@@ -3,8 +3,8 @@ import contextlib
 from time import sleep
 from typing import Generator, Self
 # interno
-from .win_api import traduzir_tecla, send_input_tecla_api
-from bot.tipagem import char, BOTOES_TECLADO
+from .win_api import traduzir_tecla, send_input_tecla_api, BOTOES_TECLADO
+from bot.tipagem import char
 
 class Teclado:
     """Classe de controle do teclado

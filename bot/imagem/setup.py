@@ -15,6 +15,9 @@ except ImportError: raise ImportError(
     "Instale como 'bot[imagem]' para utilizar o módulo 'bot.imagem'"
 )
 
+type PORCENTAGENS = float | typing.Literal["0.9", "0.8", "0.7", "0.6", "0.5", "0.4", "0.3", "0.2", "0.1"]
+"""Porcentagens (float) entre 0.0 e 1.0"""
+
 def cor_similar (cor1: tipagem.rgb, cor2: tipagem.rgb, tolerancia=20) -> bool:
     """Comparar se as cores `rgb` são similares com base na `tolerancia`
     - `tolerancia mínima` 0 (Cores são idênticas)
@@ -265,7 +268,7 @@ class Imagem:
             case _:
                 raise ValueError(f"Modo '{modo}' inesperado")
 
-    def procurar_imagens (self, confianca: tipagem.PORCENTAGENS = 0.9,
+    def procurar_imagens (self, confianca: PORCENTAGENS = 0.9,
                                 regiao: Coordenada | None = None,
                                 referencia: Imagem | None = None,
                                 cinza = False,
@@ -305,7 +308,7 @@ class Imagem:
 
         return [c for _, c in confianca_coordenadas]
 
-    def procurar_imagem (self, confianca: tipagem.PORCENTAGENS = 0.9,
+    def procurar_imagem (self, confianca: PORCENTAGENS = 0.9,
                                regiao: Coordenada | None = None,
                                referencia: Imagem | None = None,
                                cinza = False,
