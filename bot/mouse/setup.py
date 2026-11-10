@@ -2,7 +2,7 @@
 from time import sleep
 from typing import Self
 # interno
-from .win_api import send_input_mouse_api
+from .win_api import send_input_mouse_api, click_mouse_api
 from bot import tipagem, tempo
 from bot.estruturas import Coordenada
 # externo
@@ -23,13 +23,7 @@ class Mouse:
     DELAY_MOVER  = 0.05
     DELAY_SCROLL = 0.05
     DELAY_MOVER_RELATIVO = 0.001
-
     UMA_LINHA_SCROLL: int = 120
-    EVENTOS_BOTOES = {
-        "left":   (win32con.MOUSEEVENTF_LEFTDOWN,   win32con.MOUSEEVENTF_LEFTUP),
-        "middle": (win32con.MOUSEEVENTF_MIDDLEDOWN, win32con.MOUSEEVENTF_MIDDLEUP),
-        "right":  (win32con.MOUSEEVENTF_RIGHTDOWN,  win32con.MOUSEEVENTF_RIGHTUP)
-    }
 
     def __repr__ (self) -> str:
         return "<bot.Mouse>"
@@ -98,24 +92,42 @@ class Mouse:
 
         return self.sleep(self.DELAY_MOVER)
 
-    def clicar (self, quantidade = 1, botao: tipagem.BOTOES_MOUSE = "left") -> Self:
-        """Clicar com o `botão` do mouse `quantidade` vezes na posição atual"""
-        assert quantidade >= 1, "Quantidade de clicks deve ser pelo menos 1"
+    def clicar (self) -> Self:
+        """Clicar com o botão esquerdo na posição atual"""
+        click_mouse_api(self.DELAY_CLICK)
+        return self
+
+    def clicar_duplo (self) -> Self:
+        """Clicar com o botão esquerdo 2 vezes na posição atual"""
+        click_mouse_api(self.DELAY_CLICK, quantidade=2)
+        return self
+
+    def clicar_meio (self) -> Self:
+        """Clicar com o botão do meio na posição atual"""
+        click_mouse_api(self.DELAY_CLICK, botao="middle")
+        return self
+
+    def clicar_direito (self) -> Self:
+        """Clicar com o botão direito na posição atual"""
+        click_mouse_api(self.DELAY_CLICK, botao="right")
+        return self
+
+    def scroll (self, quantidade: int = 1) -> Self:
+        """Realizar o scroll vertical `quantidade` vezes para baixo na posição atual"""
+        assert quantidade >= 1, "Quantidade de scrolls deve ser pelo menos 1"
 
         for _ in range(quantidade):
-            for evento in self.EVENTOS_BOTOES[botao]:
-                send_input_mouse_api(evento)
-            sleep(self.DELAY_CLICK)
+            send_input_mouse_api(win32con.MOUSEEVENTF_WHEEL, mouse_data=-self.UMA_LINHA_SCROLL)
+            sleep(self.DELAY_SCROLL)
 
         return self
 
-    def scroll_vertical (self, quantidade = 1, direcao: tipagem.DIRECOES_SCROLL = "baixo") -> Self:
-        """Realizar o scroll vertical `quantidade` vezes para a `direcao` na posição atual"""
+    def scroll_up (self, quantidade: int = 1) -> Self:
+        """Realizar o scroll vertical `quantidade` vezes para cima na posição atual"""
         assert quantidade >= 1, "Quantidade de scrolls deve ser pelo menos 1"
 
-        um_scroll = -self.UMA_LINHA_SCROLL if direcao == "baixo" else self.UMA_LINHA_SCROLL
         for _ in range(quantidade):
-            send_input_mouse_api(win32con.MOUSEEVENTF_WHEEL, mouse_data=um_scroll)
+            send_input_mouse_api(win32con.MOUSEEVENTF_WHEEL, mouse_data=self.UMA_LINHA_SCROLL)
             sleep(self.DELAY_SCROLL)
 
         return self

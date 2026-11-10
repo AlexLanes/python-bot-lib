@@ -5,6 +5,8 @@ import time, typing, functools, contextlib
 import bot
 from bot import tipagem
 from bot.estruturas import String
+from bot.mouse.win_api import BOTOES_MOUSE
+from bot.teclado.win_api import BOTOES_TECLADO
 # externo
 import psutil
 import win32gui, win32con, win32api, win32process, pywintypes # pywin32
@@ -818,7 +820,7 @@ class ElementoW32:
         except Exception: pass
         return self.aguardar()
 
-    def clicar (self, botao: tipagem.BOTOES_MOUSE = "left",
+    def clicar (self, botao: BOTOES_MOUSE = "left",
                       focar: bool = True) -> typing.Self:
         """Clicar virtualmente com o `botão` no centro do elemento
         - `focar` indicador se dever ser feito o foco no elemento
@@ -871,7 +873,7 @@ class ElementoW32:
         win32gui.SendMessage(self.hwnd, win32con.WM_SETTEXT, 0, None)
         return self.sleep(0.01).aguardar()
 
-    def clicar_mouse (self, botao: tipagem.BOTOES_MOUSE = "left",
+    def clicar_mouse (self, botao: BOTOES_MOUSE = "left", *,
                             focar: bool = True,
                             xOffset = 0.5,
                             yOffset = 0.5) -> typing.Self:
@@ -881,11 +883,16 @@ class ElementoW32:
         if focar: self.focar()
 
         posicao = self.coordenada.transformar(xOffset, yOffset)
-        bot.mouse.mover(posicao).clicar(botao=botao)
+        m = bot.mouse.mover(posicao)
+        match botao:
+            case "left":   m.clicar()
+            case "middle": m.clicar_meio()
+            case "right":  m.clicar_direito()
+            case _: raise ValueError(f"Botão `{botao}` inválido ao clicar_mouse()")
 
         return self.sleep(0.01).aguardar()
 
-    def teclar (self, *teclas: tipagem.char | tipagem.BOTOES_TECLADO,
+    def teclar (self, *teclas: tipagem.char | BOTOES_TECLADO,
                        focar: bool = True) -> typing.Self:
         """Apertar e soltar as `teclas` uma por vez
         - `focar` indicador se dever ser feito o foco no elemento"""
@@ -895,7 +902,7 @@ class ElementoW32:
             self.aguardar()
         return self.sleep(0.01).aguardar()
 
-    def teclar_n (self, tecla: tipagem.char | tipagem.BOTOES_TECLADO,
+    def teclar_n (self, tecla: tipagem.char | BOTOES_TECLADO,
                         n: int,
                         focar: bool = True) -> typing.Self:
         """Apertar e soltar a `tecla` `n` vezes
@@ -913,7 +920,7 @@ class ElementoW32:
         bot.teclado.digitar(texto)
         return self.sleep(0.01).aguardar()
 
-    def atalho (self, *teclas: tipagem.char | tipagem.BOTOES_TECLADO,
+    def atalho (self, *teclas: tipagem.char | BOTOES_TECLADO,
                       focar: bool = True) -> typing.Self:
         """Pressionar as teclas sequencialmente e soltá-las em ordem reversa
         - `focar` indicador se dever ser feito o foco no elemento"""
@@ -921,13 +928,14 @@ class ElementoW32:
         bot.teclado.atalho(*teclas)
         return self.sleep(0.01).aguardar()
 
-    def scroll_mouse (self, quantidade: int = 1,
-                            direcao: tipagem.DIRECOES_SCROLL = "baixo",
+    def scroll_mouse (self, quantidade: int = 1, *,
                             focar: bool = True,
+                            up: bool = False,
                             xOffset = 0.5,
                             yOffset = 0.5) -> typing.Self:
-        """Realizar scroll vertical com o mouse no elemento `quantidade` vezes na `direção`
+        """Realizar scroll vertical com o mouse no elemento `quantidade` vezes
         - `focar` indicador se dever ser feito o foco no elemento
+        - `up=True` para inverter a direção
         - `xOffset` `yOffset` usado para transformar a posição `Default: Centro`"""
         assert quantidade >= 1, "Quantidade de scrolls deve ser pelo menos 1"
 
@@ -935,7 +943,8 @@ class ElementoW32:
         bot.mouse.mover(self.coordenada.transformar(xOffset, yOffset))
 
         for _ in range(quantidade):
-            bot.mouse.scroll_vertical(direcao=direcao)
+            if up: bot.mouse.scroll_up()
+            else: bot.mouse.scroll()
             self.aguardar()
 
         return self.sleep(0.01).aguardar()
@@ -1299,7 +1308,7 @@ class ElementoUIA (ElementoW32):
         except Exception: pass
         return self.aguardar()
 
-    def clicar (self, botao: tipagem.BOTOES_MOUSE = "left",
+    def clicar (self, botao: BOTOES_MOUSE = "left",
                       focar: bool = True) -> typing.Self:
         if focar: self.focar()
         invocavel = self.pattern.invocavel
