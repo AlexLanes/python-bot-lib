@@ -1,7 +1,8 @@
 # std
-import re, configparser, typing
+import re, configparser
 # interno
-import bot
+from bot.tipagem import primitivo
+from bot.util import transformar_tipo
 from bot.sistema import Caminho
 from bot.estruturas import DictNormalizado
 
@@ -78,11 +79,11 @@ class SecaoConfigFile:
     def as_dict (self) -> dict[str, str]:
         return dict(self.__dados)
 
-    def obter_ou[T: bot.tipagem.primitivo] (self, opcao: str, default: T = "") -> T:
+    def obter_ou[T: primitivo] (self, opcao: str, default: T = "") -> T:
         """Obter a `opção` da Seção ou `default` caso não exista
         - Transforma o tipo para o mesmo do `default` informado"""
         if (valor := self.__dados.get(opcao, None)) is not None:
-            return bot.util.transformar_tipo(valor, type(default))
+            return transformar_tipo(valor, type(default))
         return default
 
     def obter (self, *opcao: str) -> tuple[str, ...]:
@@ -128,14 +129,10 @@ class ConfigFile:
     ```
     """
 
-    DIRETORIO_EXECUCAO = Caminho.DiretorioExecucao()
     __dados: DictNormalizado[SecaoConfigFile]
     """`{ secao: SecaoConfigFile }`"""
 
-    def __repr__ (self) -> str:
-        return f"<bot.ConfigFile Seções={getattr(self, "__secoes")!r}>"
-
-    def inicializar (self, caminho: Caminho | None = None) -> typing.Self:
+    def __init__ (self, caminho: Caminho | None = None) -> None:
         """Inicializar o `ConfigFile`
         - `caminho=None` inicializar buscando todos os `.ini` no `DIRETORIO_EXECUCAO`"""
         parser = configparser.ConfigParser(
@@ -147,7 +144,7 @@ class ConfigFile:
             case Caminho():
                 parser.read(caminho.string, encoding="utf-8")
             case None:
-                for caminho in self.DIRETORIO_EXECUCAO:
+                for caminho in Caminho.DiretorioExecucao():
                     if not caminho.arquivo() or not caminho.nome.endswith(".ini"): continue
                     parser.read(caminho.string, encoding="utf-8")
 
@@ -163,7 +160,8 @@ class ConfigFile:
             for nome, secao in secoes.items()
         })
 
-        return self
+    def __repr__ (self) -> str:
+        return f"<bot.ConfigFile Seções={self.secoes()!r}>"
 
     def __len__ (self) -> int:
         return len(self.__dados)
@@ -182,13 +180,13 @@ class ConfigFile:
         """Obter as Seções do `ConfigFile`"""
         return list(getattr(self, "__secoes"))
 
-config = ConfigFile().inicializar()
+config = ConfigFile()
 """Classe para inicialização de variáveis a partir de arquivo de configuração `.ini`  
 - Para concatenação de valores, utilizar a sintaxe `${opção}` `${seção:opção}`
 - `#` ou `;` comenta a linha se tiver no começo
 - Arquivos terminados em `.ini` devem estar presente em `DIRETORIO_EXECUCAO`
 
-### Exemplo
+### Exemplo `.ini`
 ```
 [LOGIN]
 usuario = rpa
@@ -198,22 +196,25 @@ senha = 123
 usuario = ${LOGIN:usuario}@gmail.com
 ativado = True
 ```
+
 ### Utilização
 ```python
 import bot
 
+#-- Consultar as Seções --#
 print("Secões", bot.config.secoes())
-assert "minha_secao" in bot.config
-
-secao = bot.config.minha_secao
-print(secao)
-print("Opções Seção", secao.opcoes())
-
-if "usuario" in secao:
-    print(secao.usuario)
-print(secao.obter_ou("usuario", default=""))
-a, b, c = secao.obter("a", "b", "c")
-```
-"""
+#-- Consultar existência de Seção --#
+print("login" in bot.config)
+#-- Obter Seção --#
+print(login := bot.config.login)
+#-- Opções da Seção --#
+print("Opções Seção", login.opcoes())
+#-- Consultar existência de Opção na Seção --#
+print("usuario" in login)
+#-- Consultar valor de Opção na Seção --#
+print(login.usuario)
+print(login.obter_ou("usuario", default=""))
+a, b, c = login.obter("a", "b", "c")
+```"""
 
 __all__ = ["config"]
