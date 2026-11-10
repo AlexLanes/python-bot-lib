@@ -53,7 +53,7 @@ class Dialogo:
             lambda: not win32gui.IsWindow(self.elemento.hwnd)
                     or not self.elemento.visivel,
             timeout = timeout
-        )
+        ).ok
 
     def fechar (self, timeout: float = 10.0) -> bool:
         """Enviar a mensagem de fechar para o diálogo e retornar indicador se fechou corretamente"""
@@ -121,7 +121,7 @@ class Popup:
         hwnd = self.elemento.hwnd
         try: win32gui.PostMessage(hwnd, win32con.WM_CLOSE, 0, 0)
         except Exception: pass
-        return bot.tempo.aguardar(lambda: not win32gui.IsWindow(hwnd), timeout)
+        return bot.tempo.aguardar(lambda: not win32gui.IsWindow(hwnd), timeout).ok
 
     def itens_menu (self) -> list[ElementoUIA]:
         """Elementos do popup que são `item_barra_menu`"""
@@ -1722,14 +1722,14 @@ class JanelaW32:
         """Enviar a mensagem de fechar para janela e retornar indicador se fechou corretamente"""
         if not self.fechada:
             win32gui.PostMessage(self.hwnd, win32con.WM_CLOSE, 0, 0)
-        return bot.tempo.aguardar(lambda: self.fechada, timeout)
+        return bot.tempo.aguardar(lambda: self.fechada, timeout).ok
     def destruir (self, timeout: float | int = 10.0) -> bool:
         """Enviar a mensagem de destruir para janela e retornar indicador se fechou corretamente"""
         if not self.fechada:
             win32gui.PostMessage(self.hwnd, win32con.WM_DESTROY, 0, 0)
         if not self.fechada:
             win32gui.PostMessage(self.hwnd, win32con.WM_QUIT, 0, 0)
-        return bot.tempo.aguardar(lambda: self.fechada, timeout)
+        return bot.tempo.aguardar(lambda: self.fechada, timeout).ok
     def encerrar (self, timeout: float | int = 10.0) -> None:
         """Enviar a mensagem de fechar para janela
         - Caso continue aberto após `timeout` segundos, será feito o encerramento pelo processo"""
