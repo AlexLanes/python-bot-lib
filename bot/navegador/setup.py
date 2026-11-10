@@ -8,6 +8,7 @@ from datetime import (
 )
 # interno
 import bot
+from bot import tipagem
 from bot.sistema import JanelaW32
 from bot.estruturas import String, Caminho
 # externo opcional [navegador]
@@ -181,6 +182,7 @@ class ElementoWEB:
     @retry_staleness
     def limpar (self) -> typing.Self:
         """Limpar o texto do elemento, caso suportado
+        - Alternativa `.limpar_atalho()`
         - Aguardado estar ativo e atualizar valor"""
         bot.tempo.aguardar(lambda: self.ativo, 10, 0.5)
 
@@ -192,9 +194,25 @@ class ElementoWEB:
         return self.sleep()
 
     @retry_staleness
+    def limpar_atalho (self) -> typing.Self:
+        """Limpar o texto do elemento por atalho `CTRL + A / BACKSPACE`
+        - Alternativa ao `.limpar()`
+        - Aguardado estar ativo e atualizar valor"""
+        bot.tempo.aguardar(lambda: self.ativo, 10, 0.5)
+
+        obter_valor = lambda: self.atributos.get("value", None) or self.texto
+        valor = obter_valor().strip()
+
+        self.elemento.send_keys(Teclas.CONTROL, "a")
+        self.elemento.send_keys(Teclas.BACKSPACE)
+
+        if valor: bot.tempo.aguardar(lambda: valor != obter_valor().strip(), 1, 0.2)
+        return self.sleep()
+
+    @retry_staleness
     def digitar (self, *texto: str) -> typing.Self:
         """Digitar o texto no elemento
-        - Pode ser combinado com as `Teclas`
+        - Pode ser combinado com as `Teclas` ou `.tab() .enter()`
         - Hover no elemento, aguardado estar ativo e atualizar valor"""
         try: self.hover()
         except Exception: pass
@@ -207,12 +225,60 @@ class ElementoWEB:
         return self.sleep()
 
     @retry_staleness
+    def input (self, texto: str) -> typing.Self:
+        """Realizar input, via javascript, do texto no elemento
+        - Pode ser combinado com `.tab() .enter()`
+        - Hover no elemento e aguardado estar ativo"""
+        assert (driver := self.__driver()), "Navegador encerrado"
+
+        try: self.hover()
+        except Exception: pass
+
+        bot.tempo.aguardar(lambda: self.ativo, 10, 0.5)
+        driver.execute_script(
+            "arguments[0].value = arguments[1]",
+            self.elemento, texto
+        )
+
+        return self.sleep()
+
+    def tab (self) -> typing.Self:
+        """Teclar `TAB` no elemento"""
+        self.elemento.send_keys(Teclas.TAB)
+        return self.sleep()
+
+    def enter (self) -> typing.Self:
+        """Teclar `ENTER` no elemento"""
+        self.elemento.send_keys(Teclas.ENTER)
+        return self.sleep()
+
+    def __floordiv__ (self, xpath: str | enum.Enum) -> ElementoWEB:
+        """Encontrar o primeiro elemento descendente do `elemento` atual com base no `xpath`
+        - Exceção `ElementoNaoEncontrado` caso não seja encontrado
+        - Operador `//`"""
+        assert self.__driver(), "Navegador encerrado"
+        xpath = (xpath if isinstance(xpath, str) else str(xpath.value)).strip()
+        elemento = self.elemento.find_element("xpath", xpath)
+        return ElementoWEB(elemento, xpath, self.__driver, self)
+
+    def __rshift__ (self, css: str | enum.Enum) -> ElementoWEB:
+        """Encontrar o primeiro elemento descendente do `elemento` atual com base no `css`
+        - Exceção `ElementoNaoEncontrado` caso não seja encontrado
+        - Operador `>>`"""
+        assert self.__driver(), "Navegador encerrado"
+        css = (css if isinstance(css, str) else str(css.value)).strip()
+        elemento = self.elemento.find_element("css selector", css)
+        return ElementoWEB(elemento, css, self.__driver, self)
+
+    @retry_staleness
     def encontrar (self, localizador: str | enum.Enum) -> ElementoWEB:
         """Encontrar o primeiro elemento descendente do `elemento` atual com base no `localizador`
         - Exceção `ElementoNaoEncontrado` caso não seja encontrado
         - Estratégias suportadas:
             - `xpath` se começar com `"/", "(" ou "./"`
-            - `css selector` caso contrário"""
+            - `css selector` caso contrário
+        - Alternativa `elemento // "xpath"`
+        - Alternativa `elemento >> "css"`"""
         assert self.__driver(), "Navegador encerrado"
         localizador = (localizador if isinstance(localizador, str) else str(localizador.value)).strip()
         estrategia = "xpath" if localizador.startswith(("/", "(", "./")) else "css selector"
@@ -453,7 +519,7 @@ class Navegador:
         return self.driver.title
 
     @property
-    def url (self) -> bot.tipagem.url:
+    def url (self) -> tipagem.url:
         """Url atual da aba focada"""
         return self.driver.current_url
 
@@ -531,12 +597,30 @@ class Navegador:
         except Exception: pass
         return self
 
+    def __floordiv__ (self, xpath: str | enum.Enum) -> ElementoWEB:
+        """Encontrar o primeiro elemento na aba atual com base no `xpath`
+        - Exceção `ElementoNaoEncontrado` caso não seja encontrado
+        - Operador `//`"""
+        xpath = (xpath if isinstance(xpath, str) else str(xpath.value)).strip()
+        elemento = self.driver.find_element("xpath", xpath)
+        return ElementoWEB(elemento, xpath, weakref.ref(self.driver))
+
+    def __rshift__ (self, css: str | enum.Enum) -> ElementoWEB:
+        """Encontrar o primeiro elemento na aba atual com base no `css`
+        - Exceção `ElementoNaoEncontrado` caso não seja encontrado
+        - Operador `>>`"""
+        css = (css if isinstance(css, str) else str(css.value)).strip()
+        elemento = self.driver.find_element("css selector", css)
+        return ElementoWEB(elemento, css, weakref.ref(self.driver))
+
     def encontrar (self, localizador: str | enum.Enum) -> ElementoWEB:
         """Encontrar o primeiro elemento na aba atual com base no `localizador`
         - Exceção `ElementoNaoEncontrado` caso não seja encontrado
         - Estratégias suportadas:
             - `xpath` se começar com `"/", "(" ou "./"`
-            - `css selector` caso contrário"""
+            - `css selector` caso contrário
+        - Alternativa `navegador // "xpath"`
+        - Alternativa `navegador >> "css"`"""
         localizador = (localizador if isinstance(localizador, str) else str(localizador.value)).strip()
         estrategia = "xpath" if localizador.startswith(("/", "(", "./")) else "css selector"
         elemento = self.driver.find_element(estrategia, localizador)
