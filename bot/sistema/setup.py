@@ -2,6 +2,7 @@
 import atexit
 # interno
 from . import Caminho, executar
+import bot
 # externo [pywin32]
 import win32event, win32api, win32clipboard
 
@@ -58,12 +59,18 @@ class Resolucao:
         erro = Exception(f"Falha ao alterar para a resolução {desejada} | {mensagem}")
         raise erro
 
-def copiar_texto (texto: str) -> None:
-    """Substituir o texto copiado da área de transferência pelo `texto`"""
+class AtalhoColar:
+    def colar (self) -> None:
+        bot.teclado.atalho("ctrl", "v")
+
+def copiar_texto (texto: str) -> AtalhoColar:
+    """Substituir o texto copiado da área de transferência pelo `texto`
+    - Retornado objeto para `.colar()` o texto copiado via atalho"""
     win32clipboard.OpenClipboard()
     try:
         win32clipboard.EmptyClipboard()
         win32clipboard.SetClipboardText(texto, win32clipboard.CF_UNICODETEXT)
+        return AtalhoColar()
     finally:
         win32clipboard.CloseClipboard()
 
