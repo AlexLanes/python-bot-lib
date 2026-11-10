@@ -1,39 +1,68 @@
 # std
 import atexit, shutil
+import os, tempfile, zipfile
 from typing import Self
 from datetime import datetime, timedelta
 # interno
 import bot
 from bot.sistema import Caminho
+# externo
+import httpx
+
+DIRETORIO_FFMPEG = Caminho.DiretorioUsuario() / "AppData" / "Local" / "bot-lib"
+URL_FFMPEG = "https://github.com/AlexLanes/python-bot-lib/releases/download/ffmpeg-v1/ffmpeg-20261109-essentials_build.zip"
 
 def checar_existencia_ffmpeg () -> bool:
     return shutil.which("ffmpeg") is not None
 
-def instalar_ffmpeg () -> None:
-    if shutil.which("winget") is not None:
-        bot.logger.informar("Realizando a instalação do ffmpeg via winget")
-        sucesso, mensagem = bot.sistema.executar(
-            "winget", "install", "ffmpeg",
-            "--accept-source-agreements",
-            "--accept-package-agreements",
-            powershell = True,
-            timeout = 300
-        )
-        if sucesso: return
-        else: bot.logger.alertar(f"Falha ao instalar o ffmpeg via winget: {mensagem}")
+def baixar_ffmpeg (destino: Caminho) -> None:
+    """Baixar o pacote do ffmpeg"""
+    with httpx.stream("GET", URL_FFMPEG, follow_redirects=True, timeout=300) as response:
+        response.raise_for_status()
 
-    raise Exception("""Falha ao instalar o ffmpeg.
-        \r\t- Caso não possua o gerenciador de pacotes 'winget' instalado, instale o 'chocolatey'
-        \r\t- Abra o terminal como Admin, execute 'choco install ffmpeg-full' e confirme com 'y' caso requerido""")
+        with open(destino.path, "wb") as writer:
+            for bloco in response.iter_bytes(chunk_size=1024 * 1024):
+                writer.write(bloco)
+
+def instalar_ffmpeg () -> None:
+    """Baixar e instalar o ffmpeg localmente"""
+    DIRETORIO_FFMPEG.criar_diretorios()
+    executavel = DIRETORIO_FFMPEG / "ffmpeg.exe"
+    if executavel.existe():
+        os.environ["PATH"] = os.pathsep.join((
+            str(executavel.parente),
+            os.environ['PATH']
+        ))
+        return
+
+    print("FFmpeg: Baixando e extraindo o executável pelo GitHub")
+    with tempfile.TemporaryDirectory() as tmp:
+        diretorio = Caminho(tmp)
+        arquivo = diretorio / URL_FFMPEG.split("/")[-1]
+
+        baixar_ffmpeg(arquivo)
+        with zipfile.ZipFile(arquivo.path) as pacote:
+            pacote.extractall(DIRETORIO_FFMPEG.path)
+
+    if not executavel.existe():
+        raise FileNotFoundError("FFmpeg: Falha ao baixar e extrair o arquivo")
+
+    os.environ["PATH"] = os.pathsep.join((
+        str(executavel.parente),
+        os.environ['PATH']
+    ))
+    if not checar_existencia_ffmpeg():
+        raise RuntimeError("FFmpeg: Falha ao disponibilizar o executável no PATH após sua extração")
+
+    print("FFmpeg: Baixado e adicionado ao PATH com sucesso", executavel)
 
 class GravadorTela:
-    """Classe para realizar a captura de vídeo da tela utilizando o `ffmpeg`.  
-    O `ffmpeg` possui parâmetros customizáveis e é automaticamente instalado, via `winget`, caso não seja encontrado.  
-    Caso não possua `winget`, será informado em erro para realizar a instalação manual do `ffmpeg` via `chocolatey`
-    - `diretorio = ./video_logs` para configurar onde será salvo as gravações
+    """Classe para realizar a captura de vídeo da tela utilizando o `FFmpeg`.  
+    O `FFmpeg` possui parâmetros customizáveis e é automaticamente instalado, de build no `GitHub`, caso não seja encontrado.  
+    - `diretorio = ./logs_video` para configurar onde será salvo as gravações
     - Por padrão é gravado até um tempo limite de `1 hora`, que é customizável
 
-    # Exemplo
+    ## Exemplo
     ```
     gravador = GravadorTela()
     gravador.iniciar()                          # com nome automático
@@ -49,7 +78,7 @@ class GravadorTela:
 
     diretorio: Caminho
     """Caminho para o diretório do arquivo
-    - Default: `./video_logs`"""
+    - Default: `./logs_video`"""
     nome_extensao: str
     """nome do arquivo + extensão apropriada para o `vcodec`"""
     processo: bot.sistema.AbrirProcesso | None
@@ -84,7 +113,7 @@ class GravadorTela:
             instalar_ffmpeg()
 
         self.processo = None
-        self.diretorio = (diretorio or Caminho.DiretorioExecucao() / "video_logs").criar_diretorios()
+        self.diretorio = (diretorio or Caminho.DiretorioExecucao() / "logs_video").criar_diretorios()
 
     @property
     def argumentos (self) -> list[str]:
@@ -100,22 +129,6 @@ class GravadorTela:
             "-crf", str(self.crf),
             "-t", str(self.t),
             str(self.diretorio / self.nome_extensao)
-        ]
-
-    @property
-    def argumentos_compressor (self) -> list[str]:
-        """Argumentos para comprimir o vídeo via `ffmpeg`
-        - Incluído `_comprimido` no nome do `destino`
-        - Usar apenas após `parar`"""
-        caminho = self.caminho
-        destino = caminho.com_prefixo(f"{caminho.prefixo}_comprimido")
-        return [
-            "ffmpeg", "-y",
-            "-i", caminho.string,
-            "-vcodec", self.vcodec,
-            "-preset", "veryfast",
-            "-crf", str(self.crf),
-            str(destino)
         ]
 
     @property
@@ -176,27 +189,6 @@ class GravadorTela:
             p.encerrar()
 
         return self.caminho
-
-    def comprimir (self, *, apagar_original: bool = True) -> Caminho:
-        """Comprimir a gravação, após o `.parar()`, e retornar o `Caminho`
-        - `apagar_original` para remover a gração original e manter apenas o comprimido"""
-        assert self.processo is None, "Não é possível comprimir pois a gravação está em andamento"
-
-        caminho = self.caminho
-        argumentos = self.argumentos_compressor
-
-        try:
-            sucesso, mensagem = bot.sistema.executar(*argumentos)
-            assert sucesso, mensagem
-        except Exception:
-            mensagem = f"Falha ao comprimir o arquivo da gravação {caminho!r}"
-            bot.logger.erro(mensagem)
-            raise Exception(mensagem)
-
-        if apagar_original:
-            self.caminho.apagar_arquivo()
-
-        return Caminho(argumentos[-1])
 
     def registrar_limpeza_diretorio (self, *extensoes: str, limite_dias = 14) -> Self:
         """Registrar a execução da limpeza das gravações no `diretório` que ultrapassarem `limite_dias`
