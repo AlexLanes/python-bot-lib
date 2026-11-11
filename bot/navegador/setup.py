@@ -640,7 +640,7 @@ class Navegador:
         ]
 
     @contextlib.contextmanager
-    def com_frame (self, *frames: str | ElementoWEB) -> typing.Generator[None, None, None]:
+    def com_frame (self, *frames: str | ElementoWEB) -> typing.Generator[typing.Self, None, None]:
         """Alterar o frame atual do DOM da página para o `frame` contendo `@name, @id ou ElementoWEB`
         - Necessário para encontrar e interagir com elementos dentro de `<iframes>`
         - Retornado ao `default_content()` após sair do `with`
@@ -657,12 +657,12 @@ class Navegador:
                     if isinstance(frame, str)
                     else frame.elemento
                 )
-            yield
+            yield self
         finally:
             self.driver.switch_to.default_content()
 
     @contextlib.contextmanager
-    def com_timeout (self, timeout: float) -> typing.Generator[None, None, None]:
+    def com_timeout (self, timeout: float) -> typing.Generator[typing.Self, None, None]:
         """Alterar o tempo de `timeout` para ações realizadas pelo navegador
         ### Utilizar com o `with` e realizar ações com o tempo de timeout alterado
         ```
@@ -672,7 +672,7 @@ class Navegador:
         ```"""
         try:
             self.driver.implicitly_wait(timeout)
-            yield
+            yield self
         finally:
             self.driver.implicitly_wait(self.timeout_inicial)
 
