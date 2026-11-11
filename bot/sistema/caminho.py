@@ -319,4 +319,16 @@ class Caminho:
             filho.apagar_diretorio() if filho.diretorio() else filho.apagar_arquivo()
         return self
 
+    def descompactar (self, diretorio: Caminho | None = None) -> Caminho:
+        """Descompactar o conteúdo do arquivo e retornar o diretório de destino
+        - `diretorio` onde será extraído ou utilizado um diretório com o nome do arquivo
+        - Formatos suportados `zip tar gztar bztar xztar`"""
+        if not self.arquivo():
+            raise ValueError(f"{self} não é um arquivo")
+
+        destino = (diretorio or self.parente / self.prefixo).criar_diretorios()
+        shutil.unpack_archive(self.string, str(destino))
+
+        return destino
+
 __all__ = ["Caminho"]
