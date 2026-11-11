@@ -1,13 +1,17 @@
 # std
+from email.message import Message
 from urllib.parse import urlparse, parse_qs, quote
 # interno
-import bot
+from bot.sistema import Caminho
+from bot.estruturas import DictNormalizado
 from bot.http.cliente import (
     types,
     ClienteHttp,
     ResponseHttp,
     METODOS_HTTP,
 )
+# externo
+import httpx
 
 class Url:
     """Classe para parse de dados de um URL
@@ -17,13 +21,13 @@ class Url:
     schema: str
     host: str
     path: str
-    query: bot.estruturas.DictNormalizado[list[str]]
+    query: DictNormalizado[list[str]]
     url: str
 
     def __init__ (self, url: str) -> None:
         self.url, parse = url, urlparse(url)
         self.schema, self.host = parse.scheme, parse.hostname or ""
-        self.path, self.query = parse.path, bot.estruturas.DictNormalizado(parse_qs(parse.query))
+        self.path, self.query = parse.path, DictNormalizado(parse_qs(parse.query))
 
     def __repr__ (self) -> str:
         return f"<Url '{self.url}'>"
@@ -107,7 +111,38 @@ def request (metodo: METODOS_HTTP,
         )
     )
 
+def download (url: str, diretorio: Caminho,
+              *,
+              chunk_size = 1024 * 1024,
+              metodo: METODOS_HTTP = "GET",
+              query: types.QueryParamTypes | None = None,
+              headers: types.HeaderTypes | None = None,
+              follow_redirects: bool = True,
+              timeout: types.TimeoutTypes = 60,
+              verify: str | bool = True) -> Caminho:
+    """Realizar o download de um arquivo para o `diretorio` desejado
+    - Feito o stream dos dados para ser mais eficiente
+    - Retornado o `Caminho` com o nome do arquivo criado"""
+    with httpx.stream(metodo, url, params=query, headers=headers,
+                      follow_redirects=follow_redirects, timeout=timeout, verify=verify) as response:
+        response.raise_for_status()
+
+        nome_arquivo = ""
+        if cd := response.headers.get("Content-Disposition"):
+            mensagem = Message()
+            mensagem["Content-Disposition"] = cd
+            nome_arquivo = mensagem.get_filename()
+        nome_arquivo = nome_arquivo or Url(url).path.split("/")[-1]
+
+        destino = diretorio.criar_diretorios() / nome_arquivo
+        with open(destino.path, "wb") as writer:
+            for chunk in response.iter_bytes(chunk_size=chunk_size):
+                writer.write(chunk)
+
+        return destino
+
 __all__ = [
     "Url",
     "request",
+    "download",
 ]
