@@ -1,4 +1,5 @@
 # std
+from __future__ import annotations
 import time, types, typing, functools
 # interno
 import bot
@@ -104,8 +105,101 @@ def adicionar_prefixo_classe[R] (prefixo: str) -> typing.Callable[[R], R]:
 
     return prefixar_erro_classe
 
+class Result[T]:
+    """Classe para capturar o `return | Exception` de chamadas de uma função
+    - Alternativa para não propagar o erro e nem precisar utilizar `try-except`
+
+    ```
+    # Criando com a função, argumentos posicionais e argumentos nomeados
+    # a função será automaticamente chamada após
+    result = Result(funcao, "argumento1", "argumento2", argumento=valor)
+    # Pode se utilizar como decorador em uma função e obter `Result` como retorno
+    @Result.decorador
+
+    # Representação "sucesso" ou "erro"
+    repr(result)
+
+    # Checar sucesso na chamada
+    if result: ...
+    if result.ok()
+
+    # Validação com mensagem de erro
+    result.validar("Erro ao realizar xpto")
+    valor = result.validar("Erro ao realizar xpto").valor()
+
+    # Acessar
+    valor = result.valor()           # necessário checar se é de sucesso
+    erro  = result.erro()            # necessário checar se não é de sucesso
+    valor = result.valor_ou(default) # valor ou default caso o resultado seja de erro
+
+    # Mapear o resultado para outra função
+    Result(lambda: 10 / 1).map(lambda x: x * 2)  # Sucesso; valor=20
+    Result(lambda: 1 / 0).map(lambda x: x * 2) # Erro; ZeroDivisionError
+    ```"""
+
+    __valor: T | None
+    __erro: Exception | None
+
+    def __init__ (self, funcao: typing.Callable[..., T], *args, **kwargs) -> None:
+        self.__valor = self.__erro = None
+        try: self.__valor = funcao(*args, **kwargs)
+        except Exception as erro: self.__erro = erro
+
+    @staticmethod
+    def decorador[K] (func: typing.Callable[P, K]) -> typing.Callable[P, Result[K]]: # type: ignore
+        """Permite que a classe seja utilizada como um decorador
+        - Função"""
+        def decorador (*args: P.args, **kwargs: P.kwargs) -> Result[K]: # type: ignore
+            return Result(func, *args, **kwargs)
+        return decorador
+
+    def __bool__ (self) -> bool:
+        """Indicação de sucesso"""
+        return self.__erro is None
+
+    def __repr__ (self) -> str:
+        """Representação da classe"""
+        return f"<Result[T] {"sucesso" if self else "erro"}>"
+
+    def ok (self) -> bool:
+        """Indicação de sucesso"""
+        return bool(self)
+
+    def valor (self) -> T:
+        """Obter o `valor` do resultado
+        - `ValueError` necessário validar se o resultado é de sucesso"""
+        if not self.ok():
+            raise ValueError(f"Tentado obter o valor de um resultado sem sucesso") from self.__erro
+        return self.__valor # type: ignore
+
+    def erro (self) -> Exception:
+        """Obter o `erro` do resultado
+        - `ValueError` Necessário validar se o resultado não é de sucesso"""
+        if self.ok():
+            raise ValueError(f"Tentado obter o erro de um resultado com sucesso")
+        return self.__erro # type: ignore
+
+    def valor_ou[D] (self, default: D) -> T | D:
+        """Obter o valor do resultado ou `default` caso tenha apresentado erro"""
+        return self.__valor if self else default # type: ignore
+
+    def validar (self, mensagem: str) -> typing.Self:
+        """Validar se o resultado é de sucesso
+        - `Exception(mensagem; erro)` caso não seja um resultado de sucesso
+        - Retornado `self` para encadeamento"""
+        if not self.ok():
+            raise Exception(f"{mensagem}; {self.__erro}")
+        return self
+
+    def map[K] (self, func: typing.Callable[[T], K]) -> Result[K]:
+        """Aplicar o `valor` do resultado na `func` como primeiro argumento e retornar um novo resultado
+        - Caso seja resultado de erro, retornado o mesmo resultado para propagar o erro"""
+        if not self.ok(): return self # type: ignore
+        return Result(lambda: func(self.__valor)) # type: ignore
+
 __all__ = [
     "retry",
+    "Result",
     "adicionar_prefixo",
     "adicionar_prefixo_classe",
 ]
