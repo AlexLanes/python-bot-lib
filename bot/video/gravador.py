@@ -1,28 +1,17 @@
 # std
 import atexit, shutil
-import os, tempfile, zipfile
+import os, tempfile
 from typing import Self
 from datetime import datetime, timedelta
 # interno
 import bot
 from bot.sistema import Caminho
-# externo
-import httpx
 
 DIRETORIO_FFMPEG = Caminho.DiretorioUsuario() / "AppData" / "Local" / "bot-lib"
 URL_FFMPEG = "https://github.com/AlexLanes/python-bot-lib/releases/download/ffmpeg-v1/ffmpeg-20261109-essentials_build.zip"
 
 def checar_existencia_ffmpeg () -> bool:
     return shutil.which("ffmpeg") is not None
-
-def baixar_ffmpeg (destino: Caminho) -> None:
-    """Baixar o pacote do ffmpeg"""
-    with httpx.stream("GET", URL_FFMPEG, follow_redirects=True, timeout=300) as response:
-        response.raise_for_status()
-
-        with open(destino.path, "wb") as writer:
-            for bloco in response.iter_bytes(chunk_size=1024 * 1024):
-                writer.write(bloco)
 
 def instalar_ffmpeg () -> None:
     """Baixar e instalar o ffmpeg localmente"""
@@ -37,12 +26,8 @@ def instalar_ffmpeg () -> None:
 
     print("FFmpeg: Baixando e extraindo o executável pelo GitHub")
     with tempfile.TemporaryDirectory() as tmp:
-        diretorio = Caminho(tmp)
-        arquivo = diretorio / URL_FFMPEG.split("/")[-1]
-
-        baixar_ffmpeg(arquivo)
-        with zipfile.ZipFile(arquivo.path) as pacote:
-            pacote.extractall(DIRETORIO_FFMPEG.path)
+        bot.http.download(URL_FFMPEG, Caminho(tmp))\
+                .descompactar(DIRETORIO_FFMPEG)
 
     if not executavel.existe():
         raise FileNotFoundError("FFmpeg: Falha ao baixar e extrair o arquivo")
