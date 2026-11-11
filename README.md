@@ -3,12 +3,12 @@
 ⚠️ <span style="color: red;"><strong>Python</strong> <code>&gt;=3.12</code></span> ⚠️
 
 > **Instalação via url do release no github:**  
-Via pip `pip install https://github.com/AlexLanes/python-bot-lib/releases/download/v7.4/bot-7.4-py3-none-any.whl`  
-Via uv `uv add https://github.com/AlexLanes/python-bot-lib/releases/download/v7.4/bot-7.4-py3-none-any.whl`
+Via pip `pip install https://github.com/AlexLanes/python-bot-lib/releases/download/v8.0/bot-8.0-py3-none-any.whl`  
+Via uv `uv add https://github.com/AlexLanes/python-bot-lib/releases/download/v8.0/bot-8.0-py3-none-any.whl`
 
 > **Para referenciar como dependência:**  
-Utilizar o link para o arquivo **whl** do release `bot @ https://github.com/AlexLanes/python-bot-lib/releases/download/v7.4/bot-7.4-py3-none-any.whl`  
-Utilizar o caminho para o arquivo **whl** baixado `bot @ file://.../bot-7.4-py3-none-any.whl`
+Utilizar o link para o arquivo **whl** do release `bot @ https://github.com/AlexLanes/python-bot-lib/releases/download/v8.0/bot-8.0-py3-none-any.whl`  
+Utilizar o caminho para o arquivo **whl** baixado `bot @ file://.../bot-8.0-py3-none-any.whl`
 
 > Os pacotes podem ser encontrados diretamentes no namespace **bot** após import da biblioteca **import bot** ou importado diretamente o pacote desejado **from bot import pacote**
 
@@ -16,6 +16,21 @@ Utilizar o caminho para o arquivo **whl** baixado `bot @ file://.../bot-7.4-py3-
 ## Changelog 🔧
 
 
+<details>
+<summary>v8.0</summary>
+
+- Criado `http.download`
+- Criado método `Caminho.descompactar()`
+- Adicionado e alterado métodos de pesquisa de elementos e navegação no `navegador`
+- Separado métodos de `click` e `scroll` do pacote `mouse` para métodos individuais
+- Combinado `aguardar` e `esperar` do pacote `tempo`
+- Adicionado método para `.colar()` no retorno do `sistema.copiar_texto()`
+- Alterado forma de se baixar ffmpeg para o `video.GravadorTela()`
+- Incluído script para inicializar o `inspect` pelo pacote `sistema`
+- Refatorado `estruturas.Resultado` para `erro.Result`
+- Removido namespace dos pacotes `util` e `tipagem`. Necessário importar diretamente
+
+</details>
 <details>
 <summary>v7.4</summary>
 
@@ -77,65 +92,32 @@ Utilizar o caminho para o arquivo **whl** baixado `bot @ file://.../bot-7.4-py3-
 - Alterado handlers do `logger` para diminuir o tamanho do `stdout`
 
 </details>
-<details>
-<summary>v5.1</summary>
-
-- Removido `undetected-chromedriver`
-- Adicionado construtores do `Navegador` e suporte ao `with`
-- Alterado implementações `Edge` `Chrome`
-- Alterado forma de se obter `linhas_afetadas` para o `ResultadoSQL`
-
-</details>
-<details>
-<summary>v5.0</summary>
-
-- Criado novo pacote `erro`
-- Criado novo pacote `tempo`
-- Criado novo pacote `dataset`
-- Alteração do pacote `logger` para usar formato Json e suporte a um tracer
-- Criado classe `String` no pacote `estruturas`
-- Alterado classe `LowerDict` para `DictNormalizado` no pacote `estruturas`
-- Movido itens do pacote `util` para pacotes específicos
-- Corrigido problema de interpolação no `configfile` com o char `$`
-- Alteração pacote `http` para extender classes do `httpx`
-
-</details>
-<details>
-<summary>v4.1</summary>
-
-- Alterado `Popup` em `bot.sistema.janela`
-- Implementado hash e eq especial no `ElementoUIA` em `bot.sistema.janela`
-- Correção no formato do `bot.logger` ao chamar `limpar_log_raiz()`
-
-</details>
-<details>
-<summary>v4.0</summary>
-
-- Alterado pacotes `logger`, `configfile`, `mouse` e `teclado` para utilizarem uma classe
-- Alteração geral no `estruturas.Resultado` e `formatos.Json`
-- Adicionado `sistema.criar_mutex()`
-- Renomeado `util.cronometro()` para `util.Cronometro()`
-- Incluído execução do `bot.mouse` como módulo `-m`
-- Criado nova classe de manipulação de database `bot.database.DatabaseOracle`
-
-</details>
 
 
 ## Descrição breve dos pacotes com algumas funcionalidades
 Veja a descrição dos pacotes para mais detalhes e inspecionar as funções e classes disponíveis para um melhor contexto
 
 ### `argumentos`
-Pacote para tratar argumentos de inicialização do Python
+Pacote para obter argumentos de inicialização do Python
 - Argumentos posicionais devem vir antes dos nomeados
 - Argumentos nomeados: `--nome valor`
 - Cobrir argumentos com aspas, caso possua espaço
-> Exemplo `python main.py posicional_1 "posicional 2" --nome "Alex Lanes"`
+#### Exemplo
+> `python main.py arg1 "arg 2" --nome Alex --idade 29`
 ```python
-# Checar se um argumento nomeado existe
-nomeado_existe (nome: str) -> bool
+#-- Argumentos Posicionais --#
+posicionais = bot.argumentos.posicionais()
+assert posicionais == ["arg1", "arg 2"]
 
-# Obter o valor do argumento `nome` ou `default` caso não exista
-nomeado_ou[T] (nome: str, default: T = "") -> T
+#-- Checando existência de Argumentos Nomeados --#
+assert bot.argumentos.nomeado_existe("nome")  == True
+assert bot.argumentos.nomeado_existe("idade") == True
+assert bot.argumentos.nomeado_existe("xpto")  == False
+
+#-- Obter valor de Argumentos Nomeados --#
+assert bot.argumentos.nomeado_ou("nome") == "Alex"
+assert bot.argumentos.nomeado_ou("idade", default=0) == 29
+assert bot.argumentos.nomeado_ou("xpto", default="") == ""
 ```
 
 ### `configfile`
@@ -144,7 +126,7 @@ Pacote para inicialização de variáveis a partir de arquivo de configuração 
 - `#` ou `;` comenta a linha se tiver no começo
 - Arquivos terminados em `.ini` devem estar presente em `DIRETORIO_EXECUCAO`
 
-### Exemplo
+#### Exemplo
 ```
 [LOGIN]
 usuario = rpa
@@ -155,44 +137,24 @@ usuario = ${LOGIN:usuario}@gmail.com
 ativado = True
 ```
 
-### Utilização
+#### Utilização
 ```python
 import bot
 
+#-- Consultar as Seções --#
 print("Secões", bot.config.secoes())
-assert "minha_secao" in bot.config
-
-secao = bot.config.minha_secao
-print(secao)
-print("Opções Seção", secao.opcoes())
-
-if "usuario" in secao:
-    print(secao.usuario)
-print(secao.obter_ou("usuario", default=""))
-a, b, c = secao.obter("a", "b", "c")
-```
-
-### `database`
-Pacote para suporte a operações em banco de dados.  
-Suporte para construção e execução de `Statement` em múltiplas conexões
-### Dependência `bot[database]` necessária para utilizar `bot.database`
-### Exemplo Select + PostgreSQL
-```python
-from bot.database import E, A, T, Select
-from bot.database.conexoes.postgresql import PostgreSQL
-
-with PostgreSQL.Connect(...) as conn:
-    users = T.users
-    select = (
-        Select(users.id, users.name.Trim().As("user_name"))
-        .From(users)
-        .Where(users.id == 1)
-        .OrderBy(users.id.ASC)
-        .Offset(0)
-        .Limit(100)
-    )
-    result = conn.execute(select)
-    result.print()
+#-- Consultar existência de Seção --#
+print("login" in bot.config)
+#-- Obter Seção --#
+print(login := bot.config.login)
+#-- Opções da Seção --#
+print("Opções Seção", login.opcoes())
+#-- Consultar existência de Opção na Seção --#
+print("usuario" in login)
+#-- Consultar valor de Opção na Seção --#
+print(login.usuario)
+print(login.obter_ou("usuario", default=""))
+a, b, c = login.obter("a", "b", "c")
 ```
 
 ### `dataset`
@@ -254,6 +216,11 @@ Pacote agregador de itens para tratativas de `Exceptions`
     on_error: lambda args, kwargs: ..., = None
 )
 
+# Classe para capturar o `return | Exception` de chamadas de uma função
+# Alternativa para não propagar o erro e nem precisar utilizar `try-except`
+Result[T](funcao: (...) -> T, *args, **kwargs)
+@Result.decorador
+
 # Adicionar uma mensagem de prefixo no erro, caso a função resulte em `Exception`
 @adicionar_prefixo (prefixo="Erro ao realizar XPTO")
 @adicionar_prefixo (lambda args, kwargs: f"Erro ao realizar XPTO com os argumentos: {args}")
@@ -268,20 +235,11 @@ Pacote agregador com estruturas de dados
 String("xpto").normalizar()
 String("xpto").re_search(r"\w+")
 
-# Classe para representar uma parte de uma região na tela
-Coordenada(
-    x: int,
-    y: int,
-    largura: int,
-    altura: int,
-)
+# Classe para realizar comparações e operações matemáticas com precisão em números com ponto flutuante
+Decimal(valor: str, precisao: int, separador_decimal: str)
 
-# Classe para capturar o resultado ou `Exception` de alguma chamada
-Resultado[T](
-    funcao: Callable[..., T],
-    *args,
-    **kwargs
-)
+# Classe para representar uma parte de uma região na tela
+Coordenada(x: int, y: int, largura: int, altura: int)
 
 # Dicionário que armazena e acessa chaves sempre na forma `String(chave).normalizar()`
 DictNormalizado[T](d: Mapping[str, T] | None = None)
@@ -431,20 +389,23 @@ with logger.obter_tracer(chave="") as tracer: ...
 ### `mouse`
 Pacote para realizar ações com o mouse
 ```python
-# Mover o mouse, de forma instantânea, até a `coordenada`
+#-- Obter a posição `(x, y)` atual do mouse --#
+posicao_atual() -> tuple[int, int]
+
+#-- Movimentar o Mouse --#
 mover (coordenada: tuple[int, int] | Coordenada) -> Mouse
+mover_relativo (x: int = 0, y: int = 0) -> Mouse
+mover_deslizando (self, coordenada: tuple[int, int] | Coordenada)
 
-# Clicar com o `botão` do mouse `quantidade` vezes na posição atual
-clicar (
-    quantidade = 1,
-    botao: tipagem.BOTOES_MOUSE = "left",
-) -> Mouse
+#-- Realizar clicks --#
+clicar () -> Mouse
+clicar_duplo () -> Mouse
+clicar_meio () -> Mouse
+clicar_direito () -> Mouse
 
-# Realizar o scroll vertical `quantidade` vezes para a `direcao` na posição atual
-scroll_vertical (
-    quantidade = 1,
-    direcao: bot.tipagem.DIRECOES_SCROLL = "baixo"
-) -> Mouse:
+#-- Realizar o scroll vertical `quantidade` vezes --#
+scroll (quantidade: int = 1) -> Mouse
+scroll_up (quantidade: int = 1) -> Mouse
 ```
 
 Possível de ser executado como módulo para fazer 
@@ -500,6 +461,12 @@ Caminho(".", "pasta", "arquivo.txt")
 Caminho() / "diretorio" / "arquivo.txt"
 Caminho.DiretorioExecucao() / "arquivo.txt"
 
+# Classe para manipulação de janelas e elementos para o backend Win32 e UIA
+# docstring das classes com mais informações sobre a utilização
+JanelaW32(lambda janela: bool)
+JanelaUIA(lambda janela: bool)
+# Combinar com script `uv run inspect` para visualizar a raiz de elementos
+
 # Executar um comando com os `argumentos` no `prompt` e aguardar finalizar
 executar(
     *argumentos: str,
@@ -514,18 +481,13 @@ r.alterar(1920, 1080)
 
 # Encerrar os processos do usuário atual que comecem com algum nome em `nome_processo`
 encerrar_processos_usuario (*nome_processo: str) -> int
-
-# Classe para manipulação de janelas e elementos para o backend Win32 e UIA
-# docstring das classes com mais informações sobre a utilização
-JanelaW32(lambda janela: bool)
-JanelaUIA(lambda janela: bool)
 ```
 
 ### `teclado`
 Pacote para realizar ações com o teclado
 ```python
-# Pressionar e soltar as `teclas` uma vez
-apertar (*teclas: tipagem.BOTOES_TECLADO | tipagem.char) -> Teclado
+# Apertar e soltar as `teclas` uma vez
+teclar (*teclas: tipagem.BOTOES_TECLADO | tipagem.char) -> Teclado
 
 # Digitar os caracteres no `texto`
 digitar (texto: str) -> Teclado
@@ -545,7 +507,7 @@ datetime_brt()
 datetime_utc()
 
 # Repetir a função `condição`, aguardando por `timeout` segundos, até que resulte em `True`
-# Retorna um `bool` indicando se a `condição` foi atendida
+# Retorna uma classe especializada para se checar sucesso e obter o valor retornado
 sucesso = aguardar(
     condicao: lambda: bool(),
     timeout:  int,
