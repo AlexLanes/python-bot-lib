@@ -160,9 +160,14 @@ class ElementoWEB:
 
     @retry_staleness
     def hover (self) -> typing.Self:
-        """Realizar a ação de hover no elemento"""
+        """Realizar a ação de hover no elemento e realiza o scroll até o elemento"""
         assert (driver := self.__driver()), "Navegador encerrado"
-        wd.ActionChains(driver).move_to_element(self.elemento).perform()
+        (
+            wd.ActionChains(driver)
+            .scroll_to_element(self.elemento)
+            .move_to_element(self.elemento)
+            .perform()
+        )
         return self.sleep()
 
     @retry_staleness
@@ -172,39 +177,30 @@ class ElementoWEB:
         assert (driver := self.__driver()), "Navegador encerrado"
 
         self.aguardar_clicavel()
-        clicado = bot.tempo.aguardar(lambda: self.elemento.click() == None, 10, 0.5)
-        if not clicado: wd.ActionChains(driver).scroll_to_element(self.elemento)\
-                                               .move_to_element(self.elemento)\
-                                               .click(self.elemento)\
-                                               .perform()
+        clicado = bot.tempo.aguardar(lambda: self.elemento.click() == None, 2, 0.5)
+        if not clicado: (
+            wd.ActionChains(driver)
+            .scroll_to_element(self.elemento)
+            .move_to_element(self.elemento)
+            .click(self.elemento)
+            .perform()
+        )
         return self.sleep()
 
     @retry_staleness
-    def limpar (self) -> typing.Self:
+    def limpar (self, atalho: bool = False) -> typing.Self:
         """Limpar o texto do elemento, caso suportado
-        - Alternativa `.limpar_atalho()`
-        - Aguardado estar ativo e atualizar valor"""
-        bot.tempo.aguardar(lambda: self.ativo, 10, 0.5)
-
-        obter_valor = lambda: self.atributos.get("value", None) or self.texto
-        valor = obter_valor().strip()
-        self.elemento.clear()
-
-        if valor: bot.tempo.aguardar(lambda: valor != obter_valor().strip(), 1, 0.2)
-        return self.sleep()
-
-    @retry_staleness
-    def limpar_atalho (self) -> typing.Self:
-        """Limpar o texto do elemento por atalho `CTRL + A / BACKSPACE`
-        - Alternativa ao `.limpar()`
+        - `atalho=True` para limpar o texto do elemento por atalho `CTRL + A / BACKSPACE`
         - Aguardado estar ativo e atualizar valor"""
         bot.tempo.aguardar(lambda: self.ativo, 10, 0.5)
 
         obter_valor = lambda: self.atributos.get("value", None) or self.texto
         valor = obter_valor().strip()
 
-        self.elemento.send_keys(Teclas.CONTROL, "a")
-        self.elemento.send_keys(Teclas.BACKSPACE)
+        if atalho:
+            self.elemento.send_keys(Teclas.CONTROL, "a")
+            self.elemento.send_keys(Teclas.BACKSPACE)
+        else: self.elemento.clear()
 
         if valor: bot.tempo.aguardar(lambda: valor != obter_valor().strip(), 1, 0.2)
         return self.sleep()
@@ -242,11 +238,13 @@ class ElementoWEB:
 
         return self.sleep()
 
+    @retry_staleness
     def tab (self) -> typing.Self:
         """Teclar `TAB` no elemento"""
         self.elemento.send_keys(Teclas.TAB)
         return self.sleep()
 
+    @retry_staleness
     def enter (self) -> typing.Self:
         """Teclar `ENTER` no elemento"""
         self.elemento.send_keys(Teclas.ENTER)
@@ -394,7 +392,8 @@ class Navegador:
 
     @staticmethod
     def remover_navigator_webdriver (driver: ChromiumDriver) -> None:
-        """Executar comando CDP para remover o `navigator.webdriver`, que indica automação"""
+        """Executar comando CDP para remover o `navigator.webdriver`, que indica automação
+        - `@staticmethod`"""
         driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
             "source": """
                 Object.defineProperty(navigator, "webdriver", {
@@ -405,7 +404,8 @@ class Navegador:
 
     @staticmethod
     def adicionar_defaults_options (options: ChromiumOptions, download: Caminho) -> None:
-        """Adicionar argumentos defaults no `options`"""
+        """Adicionar argumentos defaults no `options`
+        - `@staticmethod`"""
         for argumento in ARGUMENTOS_DEFAULT:
             options.add_argument(argumento)
 
@@ -639,31 +639,37 @@ class Navegador:
             for elemento in self.driver.find_elements(estrategia, localizador)
         ]
 
-    def alterar_frame (self, frame: str | ElementoWEB | None = None) -> typing.Self:
+    @contextlib.contextmanager
+    def com_frame (self, *frames: str | ElementoWEB) -> typing.Generator[None, None, None]:
         """Alterar o frame atual do DOM da página para o `frame` contendo `@name, @id ou ElementoWEB`
         - Necessário para encontrar e interagir com elementos dentro de `<iframes>`
-        - `None` para retornar ao default_content (raiz)"""
-        s = self.driver.switch_to
-        if frame == None: s.default_content()
-        else: s.frame(frame if isinstance(frame, str) else frame.elemento)
-        return self
-
-    def alterar_timeout (self, timeout: float | None = None) -> typing.Self:
-        """Alterar o tempo de `timeout` para ações realizadas pelo navegador
-        - `None` para retornar ao timeout de inicialização"""
-        timeout = timeout if timeout != None else self.timeout_inicial
-        self.driver.implicitly_wait(timeout)
-        return self
+        - Retornado ao `default_content()` após sair do `with`
+        ### Utilizar com o `with` e realizar ações com o frame alterado
+        ```
+        with navegador.com_frame("frame1", "frame2", ...):
+            ... # dentro dos frames
+        # retorna ao default_content
+        ```"""
+        try:
+            for frame in frames:
+                self.driver.switch_to.frame(
+                    frame
+                    if isinstance(frame, str)
+                    else frame.elemento
+                )
+            yield
+        finally:
+            self.driver.switch_to.default_content()
 
     @contextlib.contextmanager
-    def com_timeout_alterado (self, timeout: float) -> typing.Generator[None, None, None]:
+    def com_timeout (self, timeout: float) -> typing.Generator[None, None, None]:
         """Alterar o tempo de `timeout` para ações realizadas pelo navegador
         ### Utilizar com o `with` e realizar ações com o tempo de timeout alterado
         ```
-        with navegador.com_timeout_alterado(1):
-            ...
-        ```
-        """
+        with navegador.com_timeout(1):
+            ... # timeout alterado
+        # timeout padrão
+        ```"""
         try:
             self.driver.implicitly_wait(timeout)
             yield
@@ -698,8 +704,8 @@ class Navegador:
         ### Utilizar com o `with` e realizar uma ação que resultará em download
         ```
         with navegador.aguardar_download(".pdf") as arquivo:
-            navegador.encontrar("#DownloadButton").clicar()
-        arquivo.ler_texto()
+            (navegador >> "#DownloadButton").clicar() # realizar a ação que inicia o download
+        arquivo.ler_texto() # utilizar o `arquivo` fora do `with`
         ```
         """
         self.diretorio_download.criar_diretorios()
