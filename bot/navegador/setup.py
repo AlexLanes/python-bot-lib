@@ -9,8 +9,8 @@ from datetime import (
 # interno
 import bot
 from bot import tipagem
-from bot.sistema import JanelaW32
-from bot.estruturas import String, Caminho
+from bot.estruturas import String
+from bot.sistema import JanelaW32, Caminho
 # externo opcional [navegador]
 try:
     import selenium.webdriver as wd

@@ -1,7 +1,7 @@
 # std
 import typing
 # interno
-from bot.estruturas import Caminho
+from bot.sistema import Caminho
 from bot.formatos import Unmarshaller, decode
 # externo opcional [dataset]
 import polars

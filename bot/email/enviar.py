@@ -6,9 +6,11 @@ from email.mime.application import MIMEApplication
 # interno
 import bot
 from bot import tipagem
-from bot.estruturas import Caminho, String, Resultado
+from bot.erro import Result
+from bot.sistema import Caminho
+from bot.estruturas import String
 
-@Resultado.decorador
+@Result.decorador
 def enviar_email (destinatarios: typing.Iterable[tipagem.email],
                   assunto = "",
                   conteudo = "",
@@ -74,7 +76,7 @@ def enviar_email (destinatarios: typing.Iterable[tipagem.email],
     try:
         TipoSMTP = smtplib.SMTP_SSL if ssl else smtplib.SMTP
         with TipoSMTP(host, port, timeout=10.0) as smtp:
-            Resultado(smtp.starttls)
+            Result(smtp.starttls)
             smtp.login(user, password)
             erro = smtp.sendmail(remetente, destinatarios, mensagem.as_string())
             assert not erro, bot.formatos.stringify(erro)

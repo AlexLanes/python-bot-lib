@@ -1,12 +1,13 @@
 # std
 import typing
 # interno
+from bot.erro import Result
+from bot.sistema import Caminho
 from bot.formatos import Unmarshaller, decode
-from bot.estruturas import Resultado, Caminho
 # externo opcionais [dataset]
 import polars, xlsxwriter, fastexcel
 
-@Resultado.decorador
+@Result.decorador
 def escapar_tag_xml (df: "polars.DataFrame") -> "polars.DataFrame":
     return df.select([
         polars.col(col)
