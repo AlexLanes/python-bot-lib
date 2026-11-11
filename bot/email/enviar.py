@@ -23,7 +23,7 @@ def enviar_email (destinatarios: typing.Iterable[tipagem.email],
     - `anexos` do tipo `text` são enviados com o charset `utf-8`
     - Variáveis .ini `[email.enviar] -> user, password, host, [port: 587, ssl: False]`
 
-    ### Retornado um `Resultado` para não propagar `Exception`
+    ### Retornado um `Result` para não propagar `Exception`
     ```python
     resultado = enviar_email(...)
     # Sucesso ao enviar o e-mail
