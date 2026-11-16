@@ -543,6 +543,10 @@ class Navegador:
         """Títulos das abas abertas"""
         return [self.titulo for _ in self]
 
+    def urls (self) -> list[str]:
+        """URLs das abas abertas"""
+        return [self.url for _ in self]
+
     def pesquisar (self, url: str) -> typing.Self:
         """Pesquisar o url na aba focada"""
         bot.logger.debug(f"Pesquisando o url '{url}'")
@@ -680,12 +684,11 @@ class Navegador:
         """Aguardar alguma aba conter o `título` e alterar o foco para ela
         - Exceção `TimeoutError` caso não finalize no tempo estipulado"""
         aba_com_titulo: str | None = None
-        titulo_normalizado = String(titulo).normalizar()
 
         def aba_contendo_titulo () -> bool:
             nonlocal aba_com_titulo
             for aba in self:
-                if titulo_normalizado in String(self.titulo).normalizar():
+                if titulo in String(self.titulo):
                     aba_com_titulo = aba
                     return True
             return False
@@ -694,6 +697,24 @@ class Navegador:
             raise TimeoutError(f"Aba contendo o título '{titulo}' não foi encontrada após {timeout} segundos")
 
         return self.focar_aba(aba_com_titulo)
+
+    def aguardar_url (self, url: str, timeout=30) -> typing.Self:
+        """Aguardar alguma aba conter o `url` e alterar o foco para ela
+        - Exceção `TimeoutError` caso não finalize no tempo estipulado"""
+        aba_com_url: str | None = None
+
+        def aba_contendo_url () -> bool:
+            nonlocal aba_com_url
+            for aba in self:
+                if url in String(self.url):
+                    aba_com_url = aba
+                    return True
+            return False
+
+        if not bot.tempo.aguardar(aba_contendo_url, timeout, 1):
+            raise TimeoutError(f"Aba contendo o url '{url}' não foi encontrada após {timeout} segundos")
+
+        return self.focar_aba(aba_com_url)
 
     @contextlib.contextmanager
     def aguardar_download (self, *termos: str, timeout=60.0) -> typing.Generator[Caminho, None, None]:
