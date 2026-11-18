@@ -20,7 +20,7 @@ Utilizar o caminho para o arquivo **whl** baixado `bot @ file://.../bot-8.0-py3-
 <summary>v8.0</summary>
 
 - Criado `http.download`
-- Criado método `Caminho.descompactar()`
+- Criado métodos `Caminho.descompactar()` e `Caminho.DiretorioTemporario()`
 - Adicionado e alterado métodos de pesquisa de elementos e navegação no `navegador`
 - Separado métodos de `click` e `scroll` do pacote `mouse` para métodos individuais
 - Combinado `aguardar` e `esperar` do pacote `tempo`

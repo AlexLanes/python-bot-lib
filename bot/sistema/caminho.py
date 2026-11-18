@@ -1,8 +1,8 @@
 # std
 from __future__ import annotations
 import os, typing, functools
-import mimetypes, base64
-import pathlib, shutil
+import pathlib, shutil, tempfile
+import mimetypes, base64, contextlib
 from datetime import datetime as Datetime
 # interno
 from bot.tipagem import SupportsBool
@@ -44,6 +44,7 @@ class Caminho:
         - `Caminho(".", "pasta", "arquivo.txt")`
         - `Caminho() / "diretorio" / "arquivo.txt"`
         - `Caminho.DiretorioUsuario()`, `Caminho.DiretorioExecucao()`
+        - `with Caminho.DiretorioTemporario() as diretorio: ...`
     ### Acesso
         - `c.string`, `str(c)`
         - `c.nome`, `c.prefixo`, `c.sufixo`
@@ -92,6 +93,14 @@ class Caminho:
         caminho = object.__new__(cls)
         caminho.path = path.resolve()
         return caminho
+
+    @classmethod
+    @contextlib.contextmanager
+    def DiretorioTemporario (cls) -> typing.Generator[typing.Self, None, None]:
+        """Criar um diretório temporário removido automaticamente ao sair do escopo
+        - `with Caminho.DiretorioTemporario() as diretorio: ...`"""
+        with tempfile.TemporaryDirectory() as temporario:
+            yield cls(temporario)
 
     def __repr__ (self) -> str:
         return f"<Caminho '{self.path}'>"
