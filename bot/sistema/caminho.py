@@ -268,29 +268,30 @@ class Caminho:
     # ---------------------- #
 
     def renomear (self, novo_nome: str) -> Caminho:
-        """Alterar o nome final do caminho para `novo_nome` e retornar o caminho destino
+        """Alterar o nome final do caminho para `novo_nome` e retornar o caminho
         - Sobrescreve os arquivos existentes (recursivamente se for diretório)
         - Não tem efeito caso caminho não exista"""
         destino = self.parente / novo_nome
         if self.arquivo():
-            self.path.replace(destino.path)
+            return Caminho.FromPath(self.path.replace(destino.path))
         elif self.diretorio():
-            shutil.copytree(self.path, destino.path, dirs_exist_ok=True)
+            d = shutil.copytree(self.path, destino.path, dirs_exist_ok=True)
             self.apagar_diretorio()
-        return destino
+            return Caminho.FromPath(d)
+        return self
 
     def copiar (self, diretorio: Caminho, prefixo: str | None = None) -> Caminho:
-        """Copiar o arquivo ou diretório do caminho atual para o `diretorio` e retornar o caminho destino
-        - `prefixo` para alterar o prefixo do destino.
+        """Copiar o arquivo ou diretório do caminho atual para o `diretorio` e retornar o caminho
+        - `prefixo` para alterar o prefixo do destino
         - Sobrescreve os arquivos existentes (recursivamente se for diretório)
         - Não tem efeito caso caminho não exista"""
         nome = self.nome if not prefixo else self.com_prefixo(prefixo).nome
         destino = diretorio.criar_diretorios() / nome
         if self.arquivo():
-            shutil.copyfile(self.path, destino.path)
+            return Caminho.FromPath(shutil.copyfile(self.path, destino.path))
         elif self.diretorio():
-            shutil.copytree(self.path, destino.path, dirs_exist_ok=True)
-        return destino
+            return Caminho.FromPath(shutil.copytree(self.path, destino.path, dirs_exist_ok=True))
+        return self
 
     def mover (self, diretorio: Caminho) -> Caminho:
         """Mover o arquivo ou diretório do caminho atual para o `diretorio` e retornar o caminho
