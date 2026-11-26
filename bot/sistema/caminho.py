@@ -127,7 +127,7 @@ class Caminho:
     @property
     def string (self) -> str:
         """Obter o caminho como string
-        - Versão alternativa: str(caminho)"""
+        - Alternativa `str(caminho)`"""
         return str(self)
 
     @property
@@ -138,19 +138,19 @@ class Caminho:
     @property
     def nome (self) -> str:
         """Nome final do caminho
-        - Para arquivos, retornado o nome + extensao"""
+        - Para arquivos, retornado o nome + extensão"""
         return self.path.name
 
     @property
     def prefixo (self) -> str:
         """Nome final do caminho sem o sufixo
-        - Para arquivos, retornado o nome sem a extensao"""
+        - Para arquivos, retornado o nome sem a extensão"""
         return self.path.stem
 
     @property
     def sufixo (self) -> str:
         """Nome final do caminho sem o prefixo
-        - Para arquivos, retornado apenas a extensao"""
+        - Para arquivos, retornado apenas a extensão"""
         return self.path.suffix
 
     @property
