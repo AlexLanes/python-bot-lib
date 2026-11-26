@@ -103,10 +103,10 @@ class Caminho:
             yield cls(temporario)
 
     def __repr__ (self) -> str:
-        return f"<Caminho '{self.path}'>"
+        return f"<Caminho {str(self.path)!r}>"
 
     def __str__ (self) -> str:
-        return str(self.path)
+        return str(self.path.as_posix())
 
     def __truediv__ (self, fragmento: str) -> Caminho:
         return Caminho(self.string, str(fragmento))
